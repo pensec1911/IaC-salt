@@ -1,0 +1,14 @@
+{%- set groups = pillar.get('homepage', {}).get('services', []) %}
+{%- for group in groups %}
+- {{ group.name }}:
+{%- for item in group.get('items', []) %}
+    - {{ item.name }}:
+        href: {{ item.href }}
+{%- if item.get('description') %}
+        description: {{ item.description }}
+{%- endif %}
+{%- if item.get('icon') %}
+        icon: {{ item.icon }}
+{%- endif %}
+{%- endfor %}
+{%- endfor %}

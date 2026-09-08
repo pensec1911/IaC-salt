@@ -1,0 +1,4 @@
+{%- set settings = pillar.get('homepage', {}).get('settings', {}) %}
+title: {{ settings.get('title', 'Homelab') }}
+theme: {{ settings.get('theme', 'dark') }}
+color: {{ settings.get('color', 'slate') }}

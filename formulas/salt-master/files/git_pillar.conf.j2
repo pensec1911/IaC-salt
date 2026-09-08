@@ -1,0 +1,9 @@
+{%- from "salt-master/map.jinja" import salt_master with context %}
+# Managed by formulas/salt-master — pillar data comes from the same repo
+# as the state tree, just a different root inside it.
+ext_pillar:
+  - git:
+    - master {{ salt_master.gitfs_remote }}:
+      - root: {{ salt_master.pillar_root }}
+      - privkey: {{ salt_master.deploy_key_dir }}/id_ed25519
+      - pubkey: {{ salt_master.deploy_key_dir }}/id_ed25519.pub

@@ -1,0 +1,18 @@
+{%- from "salt-master/map.jinja" import salt_master with context %}
+# Managed by formulas/salt-master — the master serves its own state tree
+# from this repo instead of a locally-copied /srv/salt. Two remotes, same
+# repo, different roots: one for the formulas/ dir, one for salt/ (top.sls
+# and environment glue) — they merge into a single flat fileserver
+# namespace so `include: - docker` and `salt://homepage/...` both resolve.
+fileserver_backend:
+  - git
+
+gitfs_provider: gitpython
+gitfs_privkey: {{ salt_master.deploy_key_dir }}/id_ed25519
+gitfs_pubkey: {{ salt_master.deploy_key_dir }}/id_ed25519.pub
+
+gitfs_remotes:
+  - {{ salt_master.gitfs_remote }}:
+    - root: {{ salt_master.states_root }}
+  - {{ salt_master.gitfs_remote }}:
+    - root: {{ salt_master.formulas_root }}

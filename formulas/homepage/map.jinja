@@ -1,0 +1,11 @@
+{%- set defaults = {
+    'image': 'ghcr.io/gethomepage/homepage',
+    'tag': 'v1.3.1',
+    'container_name': 'homepage',
+    'host_port': 3000,
+    'config_dir': '/opt/homepage/config',
+    'puid': 1000,
+    'pgid': 1000,
+    'timezone': 'Etc/UTC',
+} %}
+{%- set homepage = salt['pillar.get']('homepage:lookup', default=defaults, merge=True) %}

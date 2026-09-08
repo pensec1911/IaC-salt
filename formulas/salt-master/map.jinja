@@ -1,0 +1,9 @@
+{%- set defaults = {
+    'gitfs_remote': 'git@github.com:pensec1911/IaC-salt.git',
+    'formulas_root': 'formulas',
+    'states_root': 'salt',
+    'pillar_root': 'pillar',
+    'deploy_key_dir': '/etc/salt/pki/master/gitfs',
+    'known_host_key': 'AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl',
+} %}
+{%- set salt_master = salt['pillar.get']('salt-master:lookup', default=defaults, merge=True) %}

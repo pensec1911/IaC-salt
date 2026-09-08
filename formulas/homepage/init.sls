@@ -1,0 +1,2 @@
+include:
+  - homepage.container
