@@ -5,5 +5,10 @@
     'pillar_root': 'pillar',
     'deploy_key_dir': '/etc/salt/pki/master/gitfs',
     'known_host_key': 'AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl',
+    'vault_addr': 'https://vault.example.internal:8200',
+    'vault_role_id': '',
+    'vault_secret_id_file': '/etc/salt/vault-secret-id',
+    'sdb_profile': 'osvault',
+    'sdb_kv_path': 'homelab/data',
 } %}
 {%- set salt_master = salt['pillar.get']('salt-master:lookup', default=defaults, merge=True) %}

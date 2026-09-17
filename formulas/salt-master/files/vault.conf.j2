@@ -1,0 +1,18 @@
+{%- from "salt-master/map.jinja" import salt_master with context %}
+# Managed by formulas/salt-master — OpenBao (Vault-API-compatible) auth for
+# the sdb driver, so pillar values can reference sdb://<profile>/<path>?<key>
+# instead of storing secrets in git. See CLAUDE.md "Secrets in pillar".
+vault:
+  auth:
+    method: approle
+    role_id: {{ salt_master.vault_role_id }}
+    secret_id: {{ salt_master.vault_secret_id_file }}
+  server:
+    url: {{ salt_master.vault_addr }}
+
+sdb:
+  {{ salt_master.sdb_profile }}:
+    driver: vault
+    # No path-prefix option exists on this driver — every sdb:// reference
+    # elsewhere in pillar must spell out the full KV path itself, e.g.
+    # sdb://{{ salt_master.sdb_profile }}/{{ salt_master.sdb_kv_path }}/<subpath>?<key>
