@@ -1,0 +1,61 @@
+{#- media/soulseek uid/gid are pinned (not auto-assigned) on purpose: LSIO
+   images take them as PUID/PGID env vars, and slskd gets an explicit
+   docker `user:` override — both need a number known at render time, the
+   same reasoning as grafana/prometheus's pinned uid/gid. The matching
+   formulas/users account entry (pillar/arrstack.sls) must use the same
+   numbers. #}
+{%- set defaults = {
+    'puid': 970,
+    'pgid': 970,
+    'timezone': 'Etc/UTC',
+    'config_base': '/opt/arrstack',
+    'media_mount': '/mnt/media',
+
+    'gluetun': {
+        'image': 'qmcgaw/gluetun',
+        'tag': 'v3.39.1',
+        'container_name': 'gluetun',
+        'vpn_service_provider': 'mullvad',
+        'vpn_type': 'wireguard',
+        'wireguard_private_key': '',
+        'wireguard_addresses': '',
+        'server_countries': '',
+    },
+
+    'qbittorrent': {
+        'image': 'lscr.io/linuxserver/qbittorrent',
+        'tag': '4.6.7',
+        'container_name': 'qbittorrent',
+        'webui_port': 8080,
+    },
+    'sonarr': {
+        'image': 'lscr.io/linuxserver/sonarr',
+        'tag': '4.0.9',
+        'container_name': 'sonarr',
+        'port': 8989,
+    },
+    'radarr': {
+        'image': 'lscr.io/linuxserver/radarr',
+        'tag': '5.10.4',
+        'container_name': 'radarr',
+        'port': 7878,
+    },
+    'prowlarr': {
+        'image': 'lscr.io/linuxserver/prowlarr',
+        'tag': '1.24.3',
+        'container_name': 'prowlarr',
+        'port': 9696,
+    },
+    'slskd': {
+        'image': 'ghcr.io/slskd/slskd',
+        'tag': '0.21.3',
+        'container_name': 'slskd',
+        'webui_port': 5030,
+        'soulseek_port': 2234,
+        'soulseek_username': '',
+        'soulseek_password': '',
+        'web_username': '',
+        'web_password': '',
+    },
+} %}
+{%- set arrstack = salt['pillar.get']('arrstack:lookup', default=defaults, merge=True) %}
