@@ -16,6 +16,7 @@ homepage-container:
       - PUID={{ homepage.puid }}
       - PGID={{ homepage.pgid }}
       - TZ={{ homepage.timezone }}
+      - HOMEPAGE_ALLOWED_HOSTS={{ homepage.allowed_hosts }}
     - require:
       - sls: docker
       - file: homepage-settings.yaml

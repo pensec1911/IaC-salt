@@ -1,4 +1,7 @@
 homepage:
+  lookup:
+    allowed_hosts: "192.168.178.23:3000,homepage:3000,localhost:3000,127.0.0.1:3000"
+
   settings:
     title: Homelab
     theme: dark
