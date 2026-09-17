@@ -42,36 +42,26 @@ the master picks up changes on its own (`gitfs_update_interval`, default 60s).
 
 This is the only manual step — everything after it is state-managed. The master starts with
 nothing configured, so the `salt-master` formula has to be applied from a local copy once to
-set up gitfs in the first place. `formulas/` and `salt/` need to land in the same flat directory
-to reproduce the merged namespace gitfs will provide afterwards:
+set up gitfs in the first place.
 
 ```sh
-rm -rf /tmp/iac-salt-bootstrap && mkdir -p /tmp/iac-salt-bootstrap/salt
-cp -r formulas/. salt/. /tmp/iac-salt-bootstrap/salt/
-scp -r /tmp/iac-salt-bootstrap/salt pillar user@salt-master:/tmp/iac-salt-bootstrap/
-ssh user@salt-master 'sudo salt-call --local \
-  --file-root=/tmp/iac-salt-bootstrap/salt \
-  --pillar-root=/tmp/iac-salt-bootstrap/pillar \
-  state.apply salt-master'
+./bootstrap.sh user@salt-master
 ```
 
-This generates an ed25519 deploy key at `/etc/salt/pki/master/gitfs/id_ed25519` and writes the
-gitfs/git_pillar/auto_accept config. Grab the public key and add it as a **read-only** deploy
-key on the `IaC-salt` GitHub repo:
-
-```sh
-ssh user@salt-master 'sudo cat /etc/salt/pki/master/gitfs/id_ed25519.pub'
-```
-
-Then restart and force a fetch:
-
-```sh
-ssh user@salt-master 'sudo systemctl restart salt-master && sudo salt-run fileserver.update'
-```
+This stages `formulas/` + `salt/` into one flat directory (reproducing the merged namespace gitfs
+provides afterwards), copies it and `pillar/` to the master, applies the `salt-master` formula
+locally (`salt-call --local`) to generate the ed25519 deploy key and write the
+gitfs/git_pillar/auto_accept config, prints the public key (offers to register it as a read-only
+GitHub deploy key via `gh` if it's installed and authenticated, otherwise prompts you to add it by
+hand), then restarts `salt-master` and forces a fetch once you confirm the key's in place. It
+cleans up its own temp dirs, local and remote, and is safe to re-run if it fails partway through.
 
 From here on, `salt/top.sls` and `formulas/salt-master/init.sls` are themselves fetched over
-gitfs — the master manages its own config from the same repo it's pulling. `rm -rf
-/tmp/iac-salt-bootstrap` (local and remote) when done; it's not needed again.
+gitfs — the master manages its own config from the same repo it's pulling.
+
+The script doesn't handle the separate OpenBao AppRole `secret_id` that `formulas/salt-master/
+vault.sls` needs (see `formulas/salt-master/README.md` "OpenBao AppRole") — that credential isn't
+something this repo can generate, so it stays a manual step.
 
 ## Adding a new service
 
