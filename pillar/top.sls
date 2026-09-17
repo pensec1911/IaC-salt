@@ -3,6 +3,9 @@ base:
     - GLOBAL
     - wazuh-agent
 
+  'salt-master':
+    - salt-master
+
   'homepage':
     - homepage
 
