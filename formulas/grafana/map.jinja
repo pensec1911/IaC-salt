@@ -1,0 +1,17 @@
+{#- admin_password has no sane default — it's required in practice, same
+   spirit as homepage's allowed_hosts. Override via pillar with a real
+   sdb:// reference (see pillar.example.sls); left blank here on purpose
+   so a missing override fails loudly (empty GF_SECURITY_ADMIN_PASSWORD)
+   rather than silently deploying a guessable default admin password. #}
+{%- set defaults = {
+    'image': 'grafana/grafana-oss',
+    'tag': '11.3.0',
+    'container_name': 'grafana',
+    'host_port': 3000,
+    'data_dir': '/opt/grafana/data',
+    'admin_user': 'admin',
+    'admin_password': '',
+    'uid': 472,
+    'gid': 472,
+} %}
+{%- set grafana = salt['pillar.get']('grafana:lookup', default=defaults, merge=True) %}

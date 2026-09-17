@@ -1,0 +1,23 @@
+{%- set scrape_configs = pillar.get('prometheus', {}).get('scrape_configs', [
+    {'job_name': 'prometheus', 'static_configs': [{'targets': ['localhost:9090']}]},
+]) %}
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+{%- for job in scrape_configs %}
+  - job_name: {{ job.job_name }}
+    static_configs:
+{%- for sc in job.get('static_configs', []) %}
+      - targets:
+{%- for target in sc.get('targets', []) %}
+          - {{ target }}
+{%- endfor %}
+{%- if sc.get('labels') %}
+        labels:
+{%- for key, value in sc.labels.items() %}
+          {{ key }}: {{ value }}
+{%- endfor %}
+{%- endif %}
+{%- endfor %}
+{%- endfor %}

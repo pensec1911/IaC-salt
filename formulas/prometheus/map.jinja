@@ -1,0 +1,17 @@
+{%- set defaults = {
+    'image': 'prom/prometheus',
+    'tag': 'v2.55.1',
+    'container_name': 'prometheus',
+    'host_port': 9090,
+    'config_dir': '/opt/prometheus/config',
+    'data_dir': '/opt/prometheus/data',
+    'retention': '15d',
+    'uid': 65534,
+    'gid': 65534,
+} %}
+{%- set prometheus = salt['pillar.get']('prometheus:lookup', default=defaults, merge=True) %}
+{#- scrape_configs is intentionally NOT part of lookup/defaults above — it's
+   a list, and merge=True only deep-merges dicts, so a list default here
+   would just get silently replaced rather than meaningfully merged. It's
+   read straight from pillar in files/prometheus.yml.j2 instead, same
+   pattern as homepage's services/settings (see formulas/homepage). #}
