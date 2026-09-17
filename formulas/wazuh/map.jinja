@@ -1,0 +1,32 @@
+{#- admin_dn/node_dn have no sane default — they MUST exactly match the
+   Subject DN baked into the TLS certs generated during the manual
+   bootstrap (see README "TLS bootstrap"). Get this wrong and the indexer
+   security plugin rejects the manager/dashboard outright. #}
+{%- set defaults = {
+    'apt_keyurl': 'https://packages.wazuh.com/key/GPG-KEY-WAZUH',
+    'apt_baseurl': 'https://packages.wazuh.com/4.x/apt/',
+    'keyring': '/usr/share/keyrings/wazuh.gpg',
+
+    'indexer': {
+        'pkg': 'wazuh-indexer',
+        'node_name': 'wazuh-indexer-1',
+        'cluster_name': 'wazuh-cluster',
+        'network_host': '0.0.0.0',
+        'certs_dir': '/etc/wazuh-indexer/certs',
+        'admin_password': '',
+        'admin_dn': '',
+        'node_dn': '',
+    },
+    'manager': {
+        'pkg': 'wazuh-manager',
+        'certs_dir': '/etc/wazuh-indexer/certs',
+        'registration_password': '',
+    },
+    'dashboard': {
+        'pkg': 'wazuh-dashboard',
+        'server_host': '0.0.0.0',
+        'server_port': 443,
+        'certs_dir': '/etc/wazuh-dashboard/certs',
+    },
+} %}
+{%- set wazuh = salt['pillar.get']('wazuh:lookup', default=defaults, merge=True) %}

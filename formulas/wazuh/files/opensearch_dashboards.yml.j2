@@ -1,0 +1,12 @@
+{%- from "wazuh/map.jinja" import wazuh with context %}
+server.host: {{ wazuh.dashboard.server_host }}
+server.port: {{ wazuh.dashboard.server_port }}
+server.ssl.enabled: true
+server.ssl.certificate: {{ wazuh.dashboard.certs_dir }}/dashboard.pem
+server.ssl.key: {{ wazuh.dashboard.certs_dir }}/dashboard-key.pem
+opensearch.hosts: https://localhost:9200
+opensearch.ssl.verificationMode: certificate
+opensearch.ssl.certificateAuthorities: [{{ wazuh.dashboard.certs_dir }}/root-ca.pem]
+opensearch.username: admin
+opensearch.password: {{ wazuh.indexer.admin_password | yaml_dquote }}
+opensearch.requestHeadersWhitelist: [authorization, securitytenant]

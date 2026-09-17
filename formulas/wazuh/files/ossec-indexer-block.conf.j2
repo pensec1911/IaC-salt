@@ -1,0 +1,16 @@
+{%- from "wazuh/map.jinja" import wazuh with context %}
+<indexer>
+  <enabled>yes</enabled>
+  <hosts>
+    <host>https://localhost:9200</host>
+  </hosts>
+  <username>admin</username>
+  <password>{{ wazuh.indexer.admin_password | e }}</password>
+  <ssl>
+    <certificate_authorities>
+      <ca>{{ wazuh.manager.certs_dir }}/root-ca.pem</ca>
+    </certificate_authorities>
+    <certificate>{{ wazuh.manager.certs_dir }}/admin.pem</certificate>
+    <key>{{ wazuh.manager.certs_dir }}/admin-key.pem</key>
+  </ssl>
+</indexer>

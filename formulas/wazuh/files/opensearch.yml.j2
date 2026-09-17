@@ -1,0 +1,18 @@
+{%- from "wazuh/map.jinja" import wazuh with context %}
+network.host: {{ wazuh.indexer.network_host }}
+node.name: {{ wazuh.indexer.node_name }}
+cluster.name: {{ wazuh.indexer.cluster_name }}
+cluster.initial_master_nodes:
+  - {{ wazuh.indexer.node_name }}
+
+plugins.security.ssl.transport.pemcert_filepath: {{ wazuh.indexer.certs_dir }}/{{ wazuh.indexer.node_name }}.pem
+plugins.security.ssl.transport.pemkey_filepath: {{ wazuh.indexer.certs_dir }}/{{ wazuh.indexer.node_name }}-key.pem
+plugins.security.ssl.transport.pemtrustedcas_filepath: {{ wazuh.indexer.certs_dir }}/root-ca.pem
+plugins.security.ssl.http.enabled: true
+plugins.security.ssl.http.pemcert_filepath: {{ wazuh.indexer.certs_dir }}/{{ wazuh.indexer.node_name }}.pem
+plugins.security.ssl.http.pemkey_filepath: {{ wazuh.indexer.certs_dir }}/{{ wazuh.indexer.node_name }}-key.pem
+plugins.security.ssl.http.pemtrustedcas_filepath: {{ wazuh.indexer.certs_dir }}/root-ca.pem
+plugins.security.authcz.admin_dn:
+  - "{{ wazuh.indexer.admin_dn }}"
+plugins.security.nodes_dn:
+  - "{{ wazuh.indexer.node_dn }}"
