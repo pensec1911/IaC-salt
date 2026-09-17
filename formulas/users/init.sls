@@ -5,6 +5,9 @@ group-{{ account.name }}:
   group.present:
     - name: {{ account.get('group', account.name) }}
     - system: {{ account.get('system', False) }}
+    {%- if account.get('gid') %}
+    - gid: {{ account.gid }}
+    {%- endif %}
 
 user-{{ account.name }}:
   user.present:
@@ -13,6 +16,9 @@ user-{{ account.name }}:
     - shell: {{ account.get('shell', users.default_shell) }}
     - system: {{ account.get('system', False) }}
     - gid: {{ account.get('group', account.name) }}
+    {%- if account.get('uid') %}
+    - uid: {{ account.uid }}
+    {%- endif %}
     - groups:
       - {{ account.get('group', account.name) }}
       {%- if account.get('sudo') %}
