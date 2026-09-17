@@ -1,0 +1,5 @@
+{%- set defaults = {
+    'default_fstype': 'nfs4',
+    'default_opts': ['_netdev', 'rw', 'noatime'],
+} %}
+{%- set nfs_mount = salt['pillar.get']('nfs-mount:lookup', default=defaults, merge=True) %}
