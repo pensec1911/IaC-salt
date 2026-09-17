@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(salt-call --local state.show_sls *)",
+      "Bash(salt-run fileserver.update)",
+      "Bash(salt * saltutil.refresh_pillar)",
+      "Bash(salt * pillar.items)",
+      "Bash(salt * state.apply * test=True)"
+    ],
+    "deny": [
+      "Bash(salt '*' state.apply)",
+      "Bash(salt * state.apply *,!test=True)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(cat | jq -r '.tool_input.file_path // empty'); case \"$f\" in *.sls) salt-call --local state.show_sls $(basename \"$f\" .sls) 2>&1 | tail -20 ;; esac"
+          }
+        ]
+      }
+    ]
+  }
+}
