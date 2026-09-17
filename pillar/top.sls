@@ -1,6 +1,7 @@
 base:
   '*':
     - GLOBAL
+    - wazuh-agent
 
   'homepage':
     - homepage

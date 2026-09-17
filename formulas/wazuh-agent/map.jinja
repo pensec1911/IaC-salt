@@ -1,0 +1,8 @@
+{%- set defaults = {
+    'apt_keyurl': 'https://packages.wazuh.com/key/GPG-KEY-WAZUH',
+    'apt_baseurl': 'https://packages.wazuh.com/4.x/apt/',
+    'keyring': '/usr/share/keyrings/wazuh.gpg',
+    'manager_address': '',
+    'registration_password': '',
+} %}
+{%- set wazuh_agent = salt['pillar.get']('wazuh-agent:lookup', default=defaults, merge=True) %}

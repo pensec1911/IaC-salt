@@ -1,21 +1,25 @@
 base:
   'salt-master':
     - users
+    - wazuh-agent
     - salt-master
 
   'homepage':
     - users
+    - wazuh-agent
     - docker
     - homepage
 
   'monitoring':
     - users
+    - wazuh-agent
     - docker
     - grafana
     - prometheus
 
   'arrstack':
     - users
+    - wazuh-agent
     - nfs-mount
     - docker
     - arrstack
@@ -31,4 +35,5 @@ base:
   # Add one entry per VM as its formula is built out, e.g.:
   # 'jellyfin':
   #   - users
+  #   - wazuh-agent
   #   - jellyfin

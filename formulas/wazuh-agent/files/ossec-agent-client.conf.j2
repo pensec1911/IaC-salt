@@ -1,0 +1,17 @@
+{%- from "wazuh-agent/map.jinja" import wazuh_agent with context %}
+<client>
+  <server>
+    <address>{{ wazuh_agent.manager_address }}</address>
+    <port>1514</port>
+    <protocol>tcp</protocol>
+  </server>
+</client>
+<client_buffer>
+  <disabled>no</disabled>
+</client_buffer>
+<enrollment>
+  <enabled>yes</enabled>
+  <manager_address>{{ wazuh_agent.manager_address }}</manager_address>
+  <port>1515</port>
+  <password>{{ wazuh_agent.registration_password | e }}</password>
+</enrollment>
