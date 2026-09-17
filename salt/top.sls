@@ -1,8 +1,10 @@
 base:
   'salt-master':
+    - users
     - salt-master
 
   'homepage':
+    - users
     - docker
     - homepage
 
@@ -12,4 +14,5 @@ base:
   # formulas/ and salt/ into one flat namespace — see root README).
   # Add one entry per VM as its formula is built out, e.g.:
   # 'jellyfin':
+  #   - users
   #   - jellyfin

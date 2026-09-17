@@ -1,0 +1,6 @@
+{%- set defaults = {
+    'default_shell': '/bin/bash',
+    'sudo_group': 'sudo',
+    'home_base': '/home',
+} %}
+{%- set users = salt['pillar.get']('users:lookup', default=defaults, merge=True) %}
