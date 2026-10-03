@@ -9,6 +9,13 @@ vault:
     secret_id: {{ salt_master.vault_secret_id_file }}
   server:
     url: {{ salt_master.vault_addr }}
+{%- if salt_master.vault_ca_cert %}
+    # CA bundle the master validates OpenBao's TLS cert against. Needed
+    # whenever vault_addr is https with a cert no system trust store knows
+    # (self-signed or an internal CA) — without it the handshake fails and
+    # the error usually reads as an auth failure, not a TLS one.
+    verify: {{ salt_master.vault_ca_cert_file }}
+{%- endif %}
 
 sdb:
   {{ salt_master.sdb_profile }}:

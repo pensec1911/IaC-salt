@@ -17,5 +17,17 @@ salt-master:
     vault_addr: https://vault.example.internal:8200
     vault_role_id: ""
     vault_secret_id_file: /etc/salt/vault-secret-id
+
+    # Only needed when vault_addr is https with a cert no system trust
+    # store knows (self-signed, or an internal CA). Set vault_ca_cert to
+    # the PEM itself — public data, fine in git — and the formula writes it
+    # to vault_ca_cert_file and points Salt's `verify` at it. Leave empty
+    # to omit `verify` entirely (plain http, or a publicly trusted cert).
+    vault_ca_cert: |
+      -----BEGIN CERTIFICATE-----
+      ...
+      -----END CERTIFICATE-----
+    vault_ca_cert_file: /etc/salt/pki/master/openbao-ca.pem
+
     sdb_profile: osvault
     sdb_kv_path: homelab/data
