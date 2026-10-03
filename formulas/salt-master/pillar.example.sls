@@ -8,6 +8,14 @@ salt-master:
     states_root: salt
     pillar_root: pillar
     deploy_key_dir: /etc/salt/pki/master/gitfs
+
+    # The user the salt-master daemon runs as (user: in /etc/salt/master).
+    # Everything the daemon must read is owned by / group-readable to this
+    # user, not root. Only change this if your packaging differs.
+    salt_user: salt
+    # gitfs/git_pillar provider — must be gitcli or pygit2; gitpython does
+    # not support the privkey/pubkey auth params.
+    git_provider: gitcli
     known_host_key: AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
 
     # OpenBao (sdb driver) — lets pillar reference sdb://<sdb_profile>/<path>
@@ -28,6 +36,12 @@ salt-master:
       ...
       -----END CERTIFICATE-----
     vault_ca_cert_file: /etc/salt/pki/master/openbao-ca.pem
+
+    # Policies assigned to the token saltext.vault issues for a minion
+    # context (pillar rendering is one). Must be a subset of what the
+    # master's own AppRole holds, or OpenBao rejects the token.
+    vault_policies:
+      - salt-master-read
 
     sdb_profile: osvault
     sdb_kv_path: homelab/data

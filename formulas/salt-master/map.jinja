@@ -1,15 +1,57 @@
+{#-
+  salt_user: the user the salt-master daemon runs as (`user:` in
+  /etc/salt/master — `salt`, not root, on the Debian packages). Everything
+  the daemon has to read itself — the gitfs deploy key, vault.conf, the
+  AppRole secret_id — must be owned by or group-readable to this user. Get
+  it wrong and the failures read as auth errors, not permission ones.
+
+  git_branch: the repo's default branch. Salt's gitfs_base defaults to
+  'master', so on a 'main'-branch repo the branch shows up as an
+  environment literally named 'main' and top.sls's `base:` matches nothing
+  — states and pillar silently resolve to empty. git_pillar needs the same
+  name as its branch-to-env mapping.
+
+  gitfs_remote: must be the explicit ssh:// form, not the scp-like
+  `git@host:path` shorthand. pygit2 parses the username out of the URL and
+  the shorthand yields None, which it then rejects at remote init
+  ("expected str, bytes, or bytearray not <class 'NoneType'>") — and
+  because that happens in the master's pre-flight checks, the daemon
+  refuses to start at all rather than just disabling gitfs.
+
+  vault_policies: policies saltext.vault assigns to the token it issues
+  for a minion context — and pillar rendering counts as one, so this
+  applies even though no minion in this repo talks to OpenBao itself. Its
+  default (saltstack/minions, saltstack/{minion}) names policies that
+  don't exist here, and OpenBao rejects the child token outright:
+  "child policies must be subset of parent". Must therefore name a policy
+  the master's own AppRole already holds. Narrow this if minions ever get
+  their own scoped access.
+
+  git_provider: pygit2. gitpython does not support the privkey/pubkey auth
+  params — it logs them as unsupported and then fails to authenticate.
+  gitcli authenticates fine and works for gitfs, but git_pillar needs a
+  real worktree checkout and gitcli never creates one ("Root path 'pillar'
+  not present in git_pillar remote"), so pillar silently stays empty.
+  pygit2 is the only provider that does both. It is not importable from
+  the distro package because Salt ships as a onedir bundle — install.sls
+  installs it into that bundle via salt-pip instead.
+-#}
 {%- set defaults = {
-    'gitfs_remote': 'git@github.com:pensec1911/IaC-salt.git',
+    'gitfs_remote': 'ssh://git@github.com/pensec1911/IaC-salt.git',
     'formulas_root': 'formulas',
     'states_root': 'salt',
     'pillar_root': 'pillar',
     'deploy_key_dir': '/etc/salt/pki/master/gitfs',
+    'salt_user': 'salt',
+    'git_provider': 'pygit2',
+    'git_branch': 'main',
     'known_host_key': 'AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl',
     'vault_addr': 'https://vault.example.internal:8200',
     'vault_role_id': '',
     'vault_secret_id_file': '/etc/salt/vault-secret-id',
     'vault_ca_cert': '',
     'vault_ca_cert_file': '/etc/salt/pki/master/openbao-ca.pem',
+    'vault_policies': ['salt-master-read'],
     'sdb_profile': 'osvault',
     'sdb_kv_path': 'homelab/data',
 } %}

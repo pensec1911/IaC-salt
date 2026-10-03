@@ -7,12 +7,22 @@
 fileserver_backend:
   - git
 
-gitfs_provider: gitpython
+gitfs_provider: {{ salt_master.git_provider }}
+# Maps the repo's branch onto the `base` environment top.sls declares.
+# Without this, Salt's default (gitfs_base: master) leaves a main-branch
+# repo exposed as an environment named `main` and `base` stays empty.
+gitfs_base: {{ salt_master.git_branch }}
 gitfs_privkey: {{ salt_master.deploy_key_dir }}/id_ed25519
 gitfs_pubkey: {{ salt_master.deploy_key_dir }}/id_ed25519.pub
 
+# Both remotes are the same URL, so each needs an explicit `name` — without
+# it they derive the same cachedir and Salt refuses to load gitfs at all
+# ("conflicting cachedirs ... Resolve this using a per-remote parameter
+# called 'name'").
 gitfs_remotes:
   - {{ salt_master.gitfs_remote }}:
+    - name: {{ salt_master.states_root }}
     - root: {{ salt_master.states_root }}
   - {{ salt_master.gitfs_remote }}:
+    - name: {{ salt_master.formulas_root }}
     - root: {{ salt_master.formulas_root }}

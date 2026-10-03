@@ -26,10 +26,48 @@ generate locally the way the gitfs deploy key is. Before applying this formula (
 just fail cleanly on the `file.exists` guard until this is done):
 
 1. In OpenBao: create a `salt-master` AppRole role (same pattern as the existing
-   `opentofu`/`ansible-deploy` roles) with a read-only policy scoped to the KV-v2 path
-   `sdb_kv_path` points at (default `homelab/data/*`).
+   `opentofu`/`ansible-deploy` roles). KV read alone is not enough — the policy needs four paths:
+
+   ```hcl
+   path "homelab/data/*" {
+     capabilities = ["read"]
+   }
+   path "homelab/metadata/*" {
+     capabilities = ["list", "read"]
+   }
+   # Salt queries the mount to detect the KV version before every read.
+   path "sys/internal/ui/mounts/*" {
+     capabilities = ["read"]
+   }
+   # saltext.vault issues a child token for every minion context, and pillar
+   # rendering counts as one. Without this: "permission denied" on any read.
+   path "auth/token/create" {
+     capabilities = ["create", "update"]
+   }
+   path "auth/token/create/*" {
+     capabilities = ["create", "update"]
+   }
+   ```
+
+   The policy name must also appear in `salt-master:lookup:vault_policies` (default
+   `salt-master-read`). OpenBao only lets a token mint child tokens with policies it already
+   holds, so a mismatch fails as `child policies must be subset of parent`.
 2. Set `salt-master:lookup:vault_role_id` in pillar (not secret, fine to commit) to that role's
    `role_id`.
 3. Generate a `secret_id` for the role and write it to the master at
-   `salt-master:lookup:vault_secret_id_file` (default `/etc/salt/vault-secret-id`), root-owned,
-   mode `0600`. Never commit this file or its contents.
+   `salt-master:lookup:vault_secret_id_file` (default `/etc/salt/vault-secret-id`). Never commit
+   this file or its contents.
+
+   Write it with no trailing newline, or the newline becomes part of the credential and AppRole
+   auth fails with nothing in the error pointing at whitespace:
+
+   ```sh
+   sudo bash -c 'umask 077; printf %s "<secret_id>" > /etc/salt/vault-secret-id'
+   sudo chown root:salt /etc/salt/vault-secret-id
+   sudo chmod 640 /etc/salt/vault-secret-id
+   ```
+
+   `root:salt` with mode `0640`, **not** root-only `0600`: the salt-master daemon runs as `salt`
+   (see `user:` in `/etc/salt/master`) and has to read this file itself. `vault.sls` asserts these
+   permissions on every apply, so a hand-placed `0600` file gets corrected — but the first apply
+   needs the file to exist at all.
