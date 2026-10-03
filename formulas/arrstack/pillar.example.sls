@@ -20,7 +20,7 @@ arrstack:
       vpn_type: wireguard
       # Required in practice — no sane default (map.jinja). sdb reference,
       # never a literal key.
-      wireguard_private_key: "sdb://osvault/homelab/data/gluetun/mullvad?private_key"
+      wireguard_private_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/gluetun/mullvad?private_key') | yaml_encode }}
       # Not secret on its own (just the tunnel-internal address Mullvad
       # assigned this key), but still account-specific — from the same
       # WireGuard config Mullvad gives you the private key from.
@@ -46,7 +46,7 @@ arrstack:
       webui_port: 5030
       # All four required in practice — no sane defaults. sdb references,
       # never literal values.
-      soulseek_username: "sdb://osvault/homelab/data/slskd/credentials?soulseek_username"
-      soulseek_password: "sdb://osvault/homelab/data/slskd/credentials?soulseek_password"
-      web_username: "sdb://osvault/homelab/data/slskd/credentials?web_username"
-      web_password: "sdb://osvault/homelab/data/slskd/credentials?web_password"
+      soulseek_username: {{ salt['sdb.get']('sdb://osvault/homelab/data/slskd/credentials?soulseek_username') | yaml_encode }}
+      soulseek_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/slskd/credentials?soulseek_password') | yaml_encode }}
+      web_username: {{ salt['sdb.get']('sdb://osvault/homelab/data/slskd/credentials?web_username') | yaml_encode }}
+      web_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/slskd/credentials?web_password') | yaml_encode }}

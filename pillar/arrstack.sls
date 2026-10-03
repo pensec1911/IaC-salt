@@ -15,12 +15,12 @@ arrstack:
     pgid: 970
 
     gluetun:
-      wireguard_private_key: "sdb://osvault/homelab/data/gluetun/mullvad?private_key"
+      wireguard_private_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/gluetun/mullvad?private_key') | yaml_encode }}
       wireguard_addresses: "CHANGEME"   # fill in from Mullvad's WireGuard config
       server_countries: "Germany"
 
     slskd:
-      soulseek_username: "sdb://osvault/homelab/data/slskd/credentials?soulseek_username"
-      soulseek_password: "sdb://osvault/homelab/data/slskd/credentials?soulseek_password"
-      web_username: "sdb://osvault/homelab/data/slskd/credentials?web_username"
-      web_password: "sdb://osvault/homelab/data/slskd/credentials?web_password"
+      soulseek_username: {{ salt['sdb.get']('sdb://osvault/homelab/data/slskd/credentials?soulseek_username') | yaml_encode }}
+      soulseek_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/slskd/credentials?soulseek_password') | yaml_encode }}
+      web_username: {{ salt['sdb.get']('sdb://osvault/homelab/data/slskd/credentials?web_username') | yaml_encode }}
+      web_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/slskd/credentials?web_password') | yaml_encode }}

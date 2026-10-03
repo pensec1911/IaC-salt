@@ -13,7 +13,7 @@ grafana:
     # sqlite db doesn't exist yet) — changing this later does not rotate
     # an already-provisioned admin password. Reset via Grafana's own CLI
     # inside the container if it drifts from pillar.
-    admin_password: "sdb://osvault/homelab/data/grafana/admin?password"
+    admin_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/grafana/admin?password') | yaml_encode }}
     # uid/gid: must match the image's own internal user (472, "grafana")
     # since no host OS account is created for this — see README.md.
     uid: 472

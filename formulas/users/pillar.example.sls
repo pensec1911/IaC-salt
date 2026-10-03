@@ -27,7 +27,7 @@ users:
     # in /etc/shadow) — never a plaintext password, sdb-referenced or not.
     # See formulas/users/README.md for how the sdb:// reference resolves.
     - name: someminion
-      password: "sdb://osvault/homelab/data/users/shared?password"
+      password: {{ salt['sdb.get']('sdb://osvault/homelab/data/users/shared?password') | yaml_encode }}
       sudo: true
       ssh_authorized_keys:
         - "ssh-ed25519 AAAA...replace-me... admin@laptop"

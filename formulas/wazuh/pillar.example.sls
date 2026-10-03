@@ -9,7 +9,7 @@ wazuh:
   lookup:
     indexer:
       # Required in practice — no sane default (map.jinja).
-      admin_password: "sdb://osvault/homelab/data/wazuh/indexer-admin?password"
+      admin_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/wazuh/indexer-admin?password') | yaml_encode }}
       # Must be byte-for-byte the Subject DN used when generating the
       # certs during the TLS bootstrap — not secret, but there's no sane
       # default, and a mismatch here means the indexer security plugin
@@ -22,7 +22,7 @@ wazuh:
     manager:
       # Required in practice — shared with formulas/wazuh-agent's
       # registration_password, must be the same sdb secret.
-      registration_password: "sdb://osvault/homelab/data/wazuh/registration?password"
+      registration_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/wazuh/registration?password') | yaml_encode }}
 
     dashboard:
       server_port: 443

@@ -8,4 +8,4 @@ wazuh-agent:
     manager_address: "CHANGEME-wazuh-vm-ip"
     # Shared with pillar/wazuh.sls's manager:registration_password — must
     # be the identical secret.
-    registration_password: "sdb://osvault/homelab/data/wazuh/registration?password"
+    registration_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/wazuh/registration?password') | yaml_encode }}

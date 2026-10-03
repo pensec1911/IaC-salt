@@ -13,4 +13,4 @@ wazuh-agent:
     # Required in practice. Must be the exact same sdb secret as
     # formulas/wazuh's manager:registration_password — this is the shared
     # password every agent authenticates enrollment with.
-    registration_password: "sdb://osvault/homelab/data/wazuh/registration?password"
+    registration_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/wazuh/registration?password') | yaml_encode }}
