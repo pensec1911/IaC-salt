@@ -142,37 +142,61 @@ instead.
 Secrets come from OpenBao, not plaintext in `git_pillar` — mirrors how OpenTofu already pulls
 creds via AppRole. **Never write an actual secret value into a `pillar/*.sls` file.**
 
-- Use Salt's `sdb` (Simple Database) Vault driver: a pillar value is a reference string,
-  `sdb://<sdb-profile>/<vault-path>?<key>`, resolved at render time by the master — the pillar
-  file itself only ever contains the path, not the value. This keeps secret *references* visible
-  and diffable in git, same spirit as `map.jinja` keeping defaults explicit — prefer this over the
-  `ext_pillar vault` module, which pulls a whole Vault path into pillar implicitly and is harder to
-  reason about from the state/pillar files alone.
+- Use Salt's `sdb` (Simple Database) Vault driver. **Salt does not resolve a bare `sdb://` string
+  in pillar data** — `salt/pillar/__init__.py` never calls `sdb_get`; only config values (via
+  `config.get`) and explicit `sdb.get` calls are resolved. A bare reference reaches the state as
+  the literal URI string, silently, with nothing in any log. So every pillar secret is an explicit
+  call, rendered on the master at pillar-compile time:
+  ```yaml
+  api_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/homepage?api_key') | yaml_encode }}
+  ```
+  `yaml_encode` is not optional — it quotes the resolved value properly, so a secret containing
+  quotes, colons or a leading `*` can't break the pillar YAML. The *reference* stays visible and
+  diffable in git, the value never enters the repo. Prefer this over the `ext_pillar vault`
+  module, which pulls a whole Vault path into pillar implicitly and is harder to reason about from
+  the pillar files alone.
 - Dedicated AppRole for the master: create a `salt-master` AppRole role in OpenBao (same pattern as
-  the existing `opentofu`/`ansible-deploy` roles), with a read-only policy scoped to whatever KV-v2
-  path Salt secrets live under (e.g. `homelab/data/salt/*`, or reuse `homelab/` if per-service
-  sub-paths are used, e.g. `homelab/data/homepage`).
-- Master config (e.g. `/etc/salt/master.d/vault.conf`):
+  the existing `opentofu`/`ansible-deploy` roles). Its policy needs more than KV read — see
+  `formulas/salt-master/README.md` for the full policy; the non-obvious parts are
+  `sys/internal/ui/mounts/*` (Salt detects the KV version before reading) and `auth/token/create`
+  (saltext.vault issues a child token for every minion context, pillar rendering included).
+- Vault support is **not in Salt core** as of 3007 — it lives in the `saltext.vault` extension.
+  Salt ships as a onedir bundle, so it has to be installed into *that* Python via `salt-pip`, not
+  the distro's. `formulas/salt-master/install.sls` does this (along with `pygit2`). Without it the
+  sdb profile resolves but the driver is missing, and the only symptom is `KeyError: 'vault.get'`.
+- Master config (e.g. `/etc/salt/master.d/vault.conf`, written by `formulas/salt-master/vault.sls`):
   ```yaml
   vault:
     auth:
       method: approle
-      role_id: <role-id>          # not secret, can live in this file
-      secret_id: /etc/salt/vault-secret-id   # path to a file, never inline
+      role_id: <role-id>        # not secret, can live in this file
+      secret_id: <the literal secret_id>
     server:
       url: https://<openbao-addr>:8200
-  sdb:
-    osvault:
-      driver: vault
+      verify: /etc/salt/pki/master/openbao-ca.pem   # self-signed cert needs this
+    policies:
+      assign:
+        - salt-master-read      # must be a subset of the AppRole's own policies
+  osvault:                      # TOP-LEVEL key, *not* nested under `sdb:`
+    driver: vault
   ```
-  `role_id`/`secret_id` follow the same rule as everywhere else in this project: never hardcoded
-  in a file that goes to git — `secret_id` lives in a file on the master with restricted
-  permissions, outside this repo.
+  Two things that fail silently if written the way they look like they should be:
+  - The sdb profile is a top-level config key. `sdb_get` does `opts.get("osvault")` directly;
+    nested under an `sdb:` mapping it is never found and the reference resolves to the literal URI.
+  - `secret_id` must be the **literal credential**, not a path to a file — saltext.vault takes
+    `config["auth"]["secret_id"]` verbatim. A path gets sent to OpenBao as the secret ID and comes
+    back as `invalid role or secret ID`. The credential still never enters git: it lives in a
+    root-owned file on the master (`/etc/salt/vault-secret-id`) and the template reads it at render
+    time with `salt['file.read']`.
+
+  Note that `vault.conf` therefore *does* contain a credential, so it is mode `0640 root:salt` —
+  not root-only `0600`, because the master daemon runs as `salt` and an unreadable file in
+  `master.d/` makes every `salt`/`salt-run` invocation die with `PermissionError`.
 - The `vault` sdb driver has **no** path-prefix config option — there is no field that composes a
   base path onto every reference. Each `sdb://` URI must spell out the full KV-v2 path itself,
   data-prefix included: `sdb://osvault/homelab/data/<service>?<key>`, not `sdb://osvault/<service>?<key>`.
-- Example usage in a pillar sls: `api_key: sdb://osvault/homelab/data/homepage?api_key` instead of
-  a literal value.
+  Note this is the *API* path; the `bao kv` CLI omits the `data/` segment and inserts it itself, so
+  the same secret is `bao kv put -mount=homelab <service>` on the CLI.
 
 Implemented in `formulas/salt-master/vault.sls` (writes `vault.conf`, the sdb profile) and
 consumed by `formulas/users` (see its README). `role_id` lives in pillar (`salt-master:lookup`,
