@@ -28,3 +28,15 @@ docker-packages:
     - pkgs: {{ docker.pkgs }}
     - require:
       - pkgrepo: docker-repo
+
+# Salt's docker_* state/execution modules — see map.jinja for why these go
+# through salt-pip. reload_modules makes them loadable for the rest of the
+# same run, so a consuming formula's docker_container states work on the
+# very first apply.
+docker-salt-modules:
+  pip.installed:
+    - pkgs: {{ docker.salt_pip_pkgs }}
+    - bin_env: {{ docker.salt_pip_bin }}
+    - reload_modules: True
+    - require:
+      - pkg: docker-packages

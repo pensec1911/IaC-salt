@@ -6,7 +6,11 @@ docker:
       - docker-ce
       - docker-ce-cli
       - containerd.io
-      - python3-docker
+    # Installed into Salt's onedir Python, not the system one.
+    salt_pip_pkgs:
+      - saltext.dockermod
+      - docker
+    salt_pip_bin: /usr/bin/salt-pip
     repo_baseurl: https://download.docker.com/linux/debian
     repo_keyurl: https://download.docker.com/linux/debian/gpg
     keyring: /etc/apt/keyrings/docker.asc

@@ -1,5 +1,16 @@
+{#-
+  salt_pip_pkgs: Docker support left Salt core in 3007 and now lives in the
+  saltext.dockermod extension (note: not "saltext.docker", which does not
+  exist on PyPI). It also needs the `docker` Python library. Both have to
+  go into Salt's own onedir Python via salt-pip — the distro's
+  python3-docker is not importable by it. Without them every
+  docker_container/docker_image state fails with "'docker_container.running'
+  is not available".
+-#}
 {%- set defaults = {
-    'pkgs': ['docker-ce', 'docker-ce-cli', 'containerd.io', 'python3-docker'],
+    'pkgs': ['docker-ce', 'docker-ce-cli', 'containerd.io'],
+    'salt_pip_pkgs': ['saltext.dockermod', 'docker'],
+    'salt_pip_bin': '/usr/bin/salt-pip',
     'repo_baseurl': 'https://download.docker.com/linux/debian',
     'repo_keyurl': 'https://download.docker.com/linux/debian/gpg',
     'keyring': '/etc/apt/keyrings/docker.asc',
