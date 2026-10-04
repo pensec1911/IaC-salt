@@ -4,4 +4,5 @@ include:
   - arrstack.sonarr
   - arrstack.radarr
   - arrstack.prowlarr
+  - arrstack.flaresolverr
   - arrstack.slskd

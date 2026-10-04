@@ -1,8 +1,8 @@
 # arrstack formula
 
-Runs qBittorrent, Sonarr, Radarr, Prowlarr, and slskd (Soulseek) as Docker containers, all routed
+Runs qBittorrent, Sonarr, Radarr, Prowlarr, FlareSolverr and slskd (Soulseek) as Docker containers, all routed
 through a Mullvad VPN via [gluetun](https://github.com/qdm12/gluetun). Depends on the `docker`,
-`users`, and `nfs-mount` formulas — this formula only handles the six containers and their config.
+`users`, and `nfs-mount` formulas — this formula only handles the seven containers and their config.
 
 Unlike `formulas/grafana`/`formulas/prometheus`, this is one formula for a tightly-coupled group
 of services (they share gluetun's network namespace) rather than one formula per service.
@@ -27,6 +27,11 @@ port-forwarding — a possible future enhancement, out of scope here).
 
 `prowlarr-container` doesn't get a `media_mount` bind — it only manages indexers and talks to
 Sonarr/Radarr over their APIs, it doesn't touch files.
+
+`flaresolverr-container` solves Cloudflare challenges for Prowlarr's indexers. Its port is
+deliberately *not* published — only Prowlarr uses it. In Prowlarr: Settings → Indexers → + →
+FlareSolverr, host `http://localhost:8191`, give it a tag, and put that tag on the indexers that
+need it.
 
 ## Dedicated user
 
@@ -70,8 +75,7 @@ to fill in rather than a real default.
 - **Image tags** (`gluetun` `v3.39.1`, `slskd` `0.21.3`, the LSIO images) are pinned to specific
   versions per this repo's convention, but picked without being able to check current releases —
   verify they still exist and bump as needed, same as you'd do for any pinned tag here.
-- **slskd's env var names and internal paths** (`SLSKD_SLSKD_USERNAME`/`SLSKD_SOULSEEK_USERNAME`/
-  `SLSKD_DOWNLOADS_DIR`/`SLSKD_INCOMPLETE_DIR`, bind target `/app`) are based on general
-  familiarity with the project, not verified against its current docs the way the LSIO images and
-  gluetun's env vars are — slskd is the newest/least-established image in this stack. Check
-  `slskd`'s actual documentation if it doesn't come up cleanly.
+- **slskd's env var names** are verified against the running image (`slskd --envars`):
+  `SLSKD_USERNAME`/`SLSKD_PASSWORD` (web UI) and `SLSKD_SLSK_USERNAME`/`SLSKD_SLSK_PASSWORD`
+  (Soulseek). Unknown `SLSKD_*` vars are ignored silently — a typo means the default web login
+  `slskd`/`slskd` and no Soulseek connection, not an error. Re-check after bumping the tag.

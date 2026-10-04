@@ -41,6 +41,12 @@ arrstack:
       tag: 1.24.3
       port: 9696
 
+    flaresolverr:
+      image: ghcr.io/flaresolverr/flaresolverr
+      tag: v3.5.2
+      port: 8191
+      log_level: info
+
     slskd:
       tag: 0.21.3
       webui_port: 5030

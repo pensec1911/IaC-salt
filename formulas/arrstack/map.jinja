@@ -46,6 +46,13 @@
         'container_name': 'prowlarr',
         'port': 9696,
     },
+    'flaresolverr': {
+        'image': 'ghcr.io/flaresolverr/flaresolverr',
+        'tag': 'v3.5.2',
+        'container_name': 'flaresolverr',
+        'port': 8191,
+        'log_level': 'info',
+    },
     'slskd': {
         'image': 'ghcr.io/slskd/slskd',
         'tag': '0.21.3',
