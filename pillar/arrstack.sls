@@ -16,7 +16,7 @@ arrstack:
 
     gluetun:
       wireguard_private_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/gluetun/mullvad?private_key') | yaml_encode }}
-      wireguard_addresses: "10.73.117.220/32,fc00:bbbb:bbbb:bb01::a:75db/128"   # from the Mullvad WireGuard config
+      wireguard_addresses: "10.73.117.220/32"   # IPv4 only from the Mullvad config — gluetun has no IPv6 in this container and refuses to start with the v6 address
       server_countries: "Switzerland"
 
     slskd:
