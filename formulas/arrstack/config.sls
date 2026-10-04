@@ -24,13 +24,15 @@ arrstack-{{ name }}-config-dir:
       - user: user-media
 {%- endfor %}
 
+{#- Created as puid/pgid directly, not as root and chowned afterwards: the
+   NAS squashes root (root_squash), so root on this client can't create
+   anything on the share — file.directory fails with PermissionError. The
+   share itself is owned by puid/pgid, which can. setpriv instead of runas
+   because the media account has a nologin shell. #}
 arrstack-incomplete-dir:
-  file.directory:
-    - name: {{ arrstack.media_mount }}/incomplete
-    - user: {{ arrstack.puid }}
-    - group: {{ arrstack.pgid }}
-    - mode: '0775'
-    - makedirs: True
+  cmd.run:
+    - name: setpriv --reuid={{ arrstack.puid }} --regid={{ arrstack.pgid }} --clear-groups install -d -m 0775 {{ arrstack.media_mount }}/incomplete
+    - creates: {{ arrstack.media_mount }}/incomplete
     - require:
       - user: user-media
       - mount: nfs-mount-media

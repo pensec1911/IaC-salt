@@ -15,7 +15,12 @@ prowlarr-container:
       - TZ={{ arrstack.timezone }}
     - binds:
       - {{ arrstack.config_base }}/prowlarr:/config:rw
-    - require:
+    # watch, not just require: this container lives in gluetun's network
+    # namespace, and when gluetun is recreated (image bump, env change) that
+    # namespace is gone — the container keeps "running" with no network at
+    # all. watch restarts it whenever gluetun changes.
+    - watch:
       - docker_container: gluetun-container
+    - require:
       - user: user-media
       - file: arrstack-prowlarr-config-dir
