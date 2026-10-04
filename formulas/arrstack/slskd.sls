@@ -13,11 +13,15 @@ slskd-container:
     - restart_policy: unless-stopped
     - network_mode: container:{{ arrstack.gluetun.container_name }}
     - user: "{{ arrstack.puid }}:{{ arrstack.pgid }}"
+    {#- Names as slskd itself lists them (`slskd --envars`). Unknown
+       SLSKD_* vars are ignored silently, so a typo here falls back to the
+       default web login slskd/slskd and leaves Soulseek disconnected. #}
     - environment:
-      - SLSKD_SLSKD_USERNAME={{ arrstack.slskd.web_username }}
-      - SLSKD_SLSKD_PASSWORD={{ arrstack.slskd.web_password }}
-      - SLSKD_SOULSEEK_USERNAME={{ arrstack.slskd.soulseek_username }}
-      - SLSKD_SOULSEEK_PASSWORD={{ arrstack.slskd.soulseek_password }}
+      - SLSKD_USERNAME={{ arrstack.slskd.web_username }}
+      - SLSKD_PASSWORD={{ arrstack.slskd.web_password }}
+      - SLSKD_SLSK_USERNAME={{ arrstack.slskd.soulseek_username }}
+      - SLSKD_SLSK_PASSWORD={{ arrstack.slskd.soulseek_password }}
+      - SLSKD_SLSK_LISTEN_PORT={{ arrstack.slskd.soulseek_port }}
       - SLSKD_DOWNLOADS_DIR=/media/incomplete
       - SLSKD_INCOMPLETE_DIR=/media/incomplete
     - binds:
