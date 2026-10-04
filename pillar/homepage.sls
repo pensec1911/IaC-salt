@@ -31,6 +31,10 @@ homepage:
           href: http://192.168.178.22:9696
           icon: prowlarr.png
           description: Indexers
+        - name: Bazarr
+          href: http://192.168.178.22:6767
+          icon: bazarr.png
+          description: Subtitles
 
     - name: Downloads
       items:
