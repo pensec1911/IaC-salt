@@ -11,7 +11,7 @@ arrstack-gluetun-config-dir:
     - mode: '0755'
     - makedirs: True
 
-{%- for name in ['qbittorrent', 'sonarr', 'radarr', 'prowlarr', 'slskd'] %}
+{%- for name in ['qbittorrent', 'sonarr', 'radarr', 'prowlarr', 'bazarr', 'slskd'] %}
 
 arrstack-{{ name }}-config-dir:
   file.directory:

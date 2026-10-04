@@ -41,6 +41,11 @@ arrstack:
       tag: 1.24.3
       port: 9696
 
+    bazarr:
+      image: lscr.io/linuxserver/bazarr
+      tag: 1.6.2
+      port: 6767
+
     flaresolverr:
       image: ghcr.io/flaresolverr/flaresolverr
       tag: v3.5.2

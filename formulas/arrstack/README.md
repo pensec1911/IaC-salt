@@ -1,8 +1,8 @@
 # arrstack formula
 
-Runs qBittorrent, Sonarr, Radarr, Prowlarr, FlareSolverr and slskd (Soulseek) as Docker containers, all routed
+Runs qBittorrent, Sonarr, Radarr, Prowlarr, Bazarr, FlareSolverr and slskd (Soulseek) as Docker containers, all routed
 through a Mullvad VPN via [gluetun](https://github.com/qdm12/gluetun). Depends on the `docker`,
-`users`, and `nfs-mount` formulas — this formula only handles the seven containers and their config.
+`users`, and `nfs-mount` formulas — this formula only handles the eight containers and their config.
 
 Unlike `formulas/grafana`/`formulas/prometheus`, this is one formula for a tightly-coupled group
 of services (they share gluetun's network namespace) rather than one formula per service.
@@ -14,8 +14,8 @@ to it via `network_mode: container:gluetun`, so their traffic can only leave thr
 tunnel. This has a consequence worth understanding before touching `gluetun.sls`:
 
 **A container sharing another's network namespace can't publish its own ports.** So every WebUI
-port (qBittorrent, Sonarr, Radarr, Prowlarr, slskd) is published on `gluetun-container`, not on
-the app container it actually belongs to — `port_bindings` in `gluetun.sls` lists all five.
+port (qBittorrent, Sonarr, Radarr, Prowlarr, Bazarr, slskd) is published on `gluetun-container`, not on
+the app container it actually belongs to — `port_bindings` in `gluetun.sls` lists all six.
 
 **gluetun's own firewall drops inbound connections by default, even to ports Docker published**,
 unless explicitly allowed via `FIREWALL_INPUT_PORTS`. That's the actual mechanism behind "WebUIs

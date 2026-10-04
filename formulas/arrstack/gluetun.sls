@@ -27,6 +27,7 @@ gluetun-container:
       - {{ arrstack.sonarr.port }}:{{ arrstack.sonarr.port }}/tcp
       - {{ arrstack.radarr.port }}:{{ arrstack.radarr.port }}/tcp
       - {{ arrstack.prowlarr.port }}:{{ arrstack.prowlarr.port }}/tcp
+      - {{ arrstack.bazarr.port }}:{{ arrstack.bazarr.port }}/tcp
       - {{ arrstack.slskd.webui_port }}:{{ arrstack.slskd.webui_port }}/tcp
     - environment:
       - VPN_SERVICE_PROVIDER={{ arrstack.gluetun.vpn_service_provider }}
@@ -36,7 +37,7 @@ gluetun-container:
       {%- if arrstack.gluetun.server_countries %}
       - SERVER_COUNTRIES={{ arrstack.gluetun.server_countries }}
       {%- endif %}
-      - FIREWALL_INPUT_PORTS={{ [arrstack.qbittorrent.webui_port, arrstack.sonarr.port, arrstack.radarr.port, arrstack.prowlarr.port, arrstack.slskd.webui_port] | map('string') | join(',') }}
+      - FIREWALL_INPUT_PORTS={{ [arrstack.qbittorrent.webui_port, arrstack.sonarr.port, arrstack.radarr.port, arrstack.prowlarr.port, arrstack.bazarr.port, arrstack.slskd.webui_port] | map('string') | join(',') }}
     - require:
       - sls: docker
       - file: arrstack-gluetun-config-dir
