@@ -1,4 +1,10 @@
 {% from "wazuh/map.jinja" import wazuh with context %}
+{#- Fail at render time instead of writing a broken config / empty secret. #}
+{%- for key, val in [('node_ip', wazuh.node_ip), ('indexer:admin_password', wazuh.indexer.admin_password),
+                     ('manager:registration_password', wazuh.manager.registration_password),
+                     ('dashboard:api_wui_password', wazuh.dashboard.api_wui_password)] %}
+{%- if not val %}{{ raise('wazuh:lookup:' ~ key ~ ' is required (pillar/wazuh.sls)') }}{% endif %}
+{%- endfor %}
 
 wazuh-prereqs:
   pkg.installed:
@@ -6,6 +12,10 @@ wazuh-prereqs:
       - curl
       - gnupg
       - apt-transport-https
+      - debconf
+      - adduser
+      - procps
+      - tar
 
 {#- Wazuh's GPG key is ASCII-armored, unlike docker's raw binary key (see
    formulas/docker/install.sls) — needs dearmoring via gpg --import into a
@@ -29,20 +39,24 @@ wazuh-repo:
     - require:
       - cmd: wazuh-repo-key
 
-wazuh-indexer-package:
+{#- Pinned together: the Filebeat alerts template (filebeat.sls) is fetched
+   from the git tag matching this version. #}
+{%- for pkg in ['wazuh-indexer', 'wazuh-manager', 'wazuh-dashboard'] %}
+
+{{ pkg }}-package:
   pkg.installed:
-    - name: {{ wazuh.indexer.pkg }}
+    - name: {{ pkg }}
+    - version: {{ wazuh.version }}-1
+    - hold: True
+    - update_holds: True   # so bumping wazuh:lookup:version can move a held package
     - require:
       - pkgrepo: wazuh-repo
+{%- endfor %}
 
-wazuh-manager-package:
+{#- Filebeat comes from the same Wazuh repo (OSS build Wazuh supports). #}
+filebeat-package:
   pkg.installed:
-    - name: {{ wazuh.manager.pkg }}
-    - require:
-      - pkgrepo: wazuh-repo
-
-wazuh-dashboard-package:
-  pkg.installed:
-    - name: {{ wazuh.dashboard.pkg }}
+    - name: filebeat
+    - hold: True           # keep apt upgrade from moving it off the Wazuh-supported build
     - require:
       - pkgrepo: wazuh-repo

@@ -34,7 +34,8 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `gluetun/mullvad` | `private_key` | unused, kept as fallback |
 | `slskd/credentials` | `soulseek_username`, `soulseek_password`, `web_username`, `web_password` | `pillar/arrstack.sls` |
 | `grafana/admin` | `password` | `pillar/grafana.sls` |
-| `wazuh/indexer-admin` | `password` | `pillar/wazuh.sls` |
+| `wazuh/indexer-admin` | `password` | `pillar/wazuh.sls` — indexer `admin` (Filebeat, manager, dashboard login) |
+| `wazuh/api` | `wui_password` | `pillar/wazuh.sls` — server API user `wazuh-wui` (dashboard → API) |
 | `wazuh/registration` | `password` | `pillar/wazuh.sls` + `pillar/wazuh-agent.sls` — must be the same shared secret |
 
 Check `grep -rn "sdb://" pillar/` for the authoritative list.

@@ -11,7 +11,7 @@ Flat network 192.168.178.0/24 (FRITZ!Box range). Minion ID = hostname = Tofu VM 
 | `monitoring` | .25 | users, wazuh-agent, docker, grafana, prometheus | Grafana :3000, Prometheus :9090 |
 | `arrstack` | .22 | users, wazuh-agent, nfs-mount, docker, arrstack | via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal) |
 | `jellyfin` | .24 | users, wazuh-agent, nfs-mount, docker, jellyfin | Jellyfin :8096 |
-| `wazuh` | .27 | users, wazuh | Wazuh indexer/manager/dashboard |
+| `wazuh` | .27 | users, wazuh | dashboard :443, indexer :9200, API :55000, agents :1514 / enrollment :1515 |
 
 `salt/top.sls` and `pillar/top.sls` are authoritative — update this table when they change.
 

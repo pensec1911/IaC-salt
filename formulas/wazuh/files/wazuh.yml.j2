@@ -1,0 +1,9 @@
+{%- from "wazuh/map.jinja" import wazuh with context -%}
+# Managed by Salt (formulas/wazuh/dashboard.sls) — do not edit.
+hosts:
+  - default:
+      url: https://{{ wazuh.node_ip }}
+      port: {{ wazuh.api_port }}
+      username: wazuh-wui
+      password: {{ wazuh.dashboard.api_wui_password | yaml_dquote }}
+      run_as: false

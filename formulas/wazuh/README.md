@@ -1,60 +1,143 @@
 # wazuh formula
 
-Installs the full Wazuh stack — indexer (OpenSearch-based), manager, dashboard — from Wazuh's
-official apt repo, native packages (not Docker — this repo's other services use Docker, but
-Wazuh's own recommended production install method is native packages, and its official Docker
-compose setup runs its own cert-generation container anyway, so native doesn't actually cost
-anything here). Heavy on resources, especially the indexer's JVM heap — give this VM real memory,
-not a minimal footprint like the other single-purpose VMs in this repo.
+Single-node (all-in-one) Wazuh 4.x server: **indexer**, **manager + Filebeat**, **dashboard** on
+one minion, from Wazuh's apt repo. Built step by step after Wazuh's own
+[step-by-step install guide](https://documentation.wazuh.com/current/installation-guide/index.html)
+(4.14) — every command, path, file name and permission here comes from it. Native packages, not
+Docker: that's Wazuh's recommended production install. Needs real memory (indexer JVM) — the VM
+has 8 GB / 4 cores.
 
-Pairs with `formulas/wazuh-agent`, which any other minion includes to get monitored by this one —
-see that formula's README for how agent enrollment actually works.
+Pairs with `formulas/wazuh-agent` on every other minion.
 
-## What it manages
+## What Salt manages vs. what stays manual
 
-- `wazuh.install` — apt repo + `wazuh-indexer`/`wazuh-manager`/`wazuh-dashboard` packages. The GPG
-  key is ASCII-armored (unlike `docker`'s), so it's dearmored via `gpg --import` into a binary
-  keyring rather than `file.managed` + `skip_verify` the way `formulas/docker` does it.
-- `wazuh.config` — patches specific config blocks into the packages' own shipped config files
-  (indexer connection + agent-enrollment settings into `ossec.conf`, the registration password
-  into `authd.pass`) rather than replacing them wholesale, plus fully templates `opensearch.yml`
-  and `opensearch_dashboards.yml` (small, self-contained files where a full template is safe).
-- `wazuh.service` — starts indexer, then manager and dashboard (both depend on the indexer being
-  up), restarting on config changes.
+| Salt (`state.apply`) | Manual, one-time (below) |
+|---|---|
+| Repo + packages, version-pinned and held (`wazuh:lookup:version`) | Generating certs (`wazuh-certs-tool.sh`) |
+| Unpacking certs from the tar into each component's dir (names/modes/owners per guide) | Indexer security init (`indexer-security-init.sh`) |
+| Patching only the guide's keys into the shipped `opensearch.yml` / `opensearch_dashboards.yml` (`file.serialize` merge) | Setting the indexer/API user passwords (`wazuh-passwords-tool.sh`) |
+| Patching the shipped `<indexer>` block and `use_password` in `ossec.conf`; `authd.pass` | Putting those passwords into OpenBao |
+| Filebeat config, alerts template, wazuh module | |
+| *After bootstrap:* `wazuh-keystore` + Filebeat keystore (admin), dashboard `wazuh.yml` (wazuh-wui), Filebeat + dashboard services | |
 
-## What this formula deliberately does NOT do
+Why the split: cert generation and the security plugin init are security-critical and one-time —
+see `.claude/docs/patterns.md` "Security-critical bootstrap stays manual". The pillar flag
+`wazuh:lookup:bootstrapped` keeps Salt away from everything that needs them until they're done.
 
-**Generate TLS certificates or initialize the indexer's security plugin.** Indexer↔manager↔
-dashboard communication is all mutual-TLS, and getting cert generation subtly wrong on a security
-tool is worse than not automating it. This is treated as a manual, one-time bootstrap step — same
-spirit as the gitfs deploy key or the OpenBao AppRole `secret_id` elsewhere in this repo — not
-something `state.apply` does on every run anyway (certs shouldn't be regenerated idempotently).
+Design notes:
+- **Patch, don't replace.** The shipped configs carry paths, security defaults, rules and
+  decoders. `ossec.conf` blocks are rewritten *inside* the existing `<indexer>` tags — appending a
+  block after `</ossec_config>` makes the manager refuse to start, and a second `<indexer>` would
+  keep the placeholder one.
+- **No credentials in config files.** The manager and Filebeat read the indexer credentials from
+  their keystores, the dashboard reads `kibanaserver` from its own keystore (set by the passwords
+  tool). The only file with a password is `wazuh.yml` (0600), because that's where Wazuh reads it.
+  Keystores can't be read back, so a root-only sha256 of the value is the change detector — the
+  keystore command reruns only when the OpenBao value changes.
+- **`node_ip` everywhere instead of localhost** — the certs are issued for the IP; Filebeat
+  verifies the hostname.
 
-### TLS bootstrap (manual, one-time)
+## Bootstrap (one-time, in this order)
 
-Before `state.apply wazuh` will actually work:
+### 0. Secrets in OpenBao
 
-1. Use Wazuh's own certificate generation tool (`wazuh-certs-tool.sh`, current version — check
-   Wazuh's install docs for the exact download/invocation, this repo doesn't script it) to
-   generate a CA plus per-component certs. Give the indexer node the same `node_name` you set (or
-   left default, `wazuh-indexer-1`) in pillar, and give the admin cert the Subject DN you'll put in
-   `wazuh:lookup:indexer:admin_dn`.
-2. Place the resulting files on the `wazuh` minion:
-   - `{{ indexer.certs_dir }}` (default `/etc/wazuh-indexer/certs`): `root-ca.pem`,
-     `<node_name>.pem`, `<node_name>-key.pem`
-   - `{{ manager.certs_dir }}` (default same as indexer's): `root-ca.pem`, `admin.pem`,
-     `admin-key.pem` (the manager needs these to authenticate to the indexer's REST API)
-   - `{{ dashboard.certs_dir }}` (default `/etc/wazuh-dashboard/certs`): `root-ca.pem`,
-     `dashboard.pem`, `dashboard-key.pem`
-3. Set `wazuh:lookup:indexer:admin_dn`/`node_dn` in pillar to match exactly what you generated —
-   these go into `opensearch.yml`'s security config, and a mismatch means the indexer rejects
-   connections outright.
-4. Run the indexer's security initialization (loads the generated certs/admin identity into the
-   security plugin) per Wazuh's current docs, before `state.apply` starts the manager/dashboard
-   against it.
+Password policy (enforced by Wazuh): 8–64 chars, upper + lower case, digit, and one of `.*+?-`.
 
-None of this is scripted here, unlike `bootstrap.sh` for the salt-master — the exact tool
-invocation is too version-sensitive to hardcode with confidence.
+```sh
+bao kv get -mount=homelab wazuh/indexer-admin            # exists — check it meets the policy
+bao kv put -mount=homelab wazuh/api wui_password='<new>' # dashboard -> API user
+```
+
+Both must exist before any `state.apply` on `wazuh` — the pillar references them.
+
+### 1. Generate the certs (on the wazuh VM, as root)
+
+```sh
+cd /root
+curl -sO https://packages.wazuh.com/4.14/wazuh-certs-tool.sh
+curl -sO https://packages.wazuh.com/4.14/config.yml
+```
+
+Edit `config.yml` to exactly one node per type — names must match pillar (`node_name`s; defaults
+shown), IP = `node_ip`:
+
+```yaml
+nodes:
+  indexer:
+    - name: node-1
+      ip: "192.168.178.27"
+  server:
+    - name: wazuh-1
+      ip: "192.168.178.27"
+  dashboard:
+    - name: dashboard
+      ip: "192.168.178.27"
+```
+
+```sh
+bash ./wazuh-certs-tool.sh -A
+tar -cvf ./wazuh-certificates.tar -C ./wazuh-certificates/ .   # if the tool didn't already
+rm -rf ./wazuh-certificates
+tar -tf wazuh-certificates.tar                                  # node-1*, wazuh-1*, dashboard*, admin*, root-ca*
+tar -xOf wazuh-certificates.tar ./node-1.pem | openssl x509 -noout -subject
+```
+
+The subject must be `CN=node-1,OU=Wazuh,O=Wazuh,L=California,C=US` (the default `node_dn`). If
+it isn't, set `wazuh:lookup:indexer:node_dn` in pillar to exactly what it prints. The tar stays
+at `/root/wazuh-certificates.tar` (`certs_tar`) — never copy it into this repo.
+
+### 2. First apply (`bootstrapped: false`)
+
+```sh
+salt wazuh state.apply test=True
+salt wazuh state.apply
+```
+
+Installs everything, deploys the certs, starts **indexer** and **manager**. Filebeat and the
+dashboard are installed but not started yet.
+
+### 3. Initialize the indexer security plugin
+
+```sh
+/usr/share/wazuh-indexer/bin/indexer-security-init.sh
+curl -k -u admin:admin https://192.168.178.27:9200              # cluster info, not an auth error
+curl -k -u admin:admin https://192.168.178.27:9200/_cat/nodes?v
+```
+
+### 4. Set the passwords
+
+```sh
+curl -so wazuh-passwords-tool.sh https://packages.wazuh.com/4.14/wazuh-passwords-tool.sh
+bash wazuh-passwords-tool.sh -u admin -p '<wazuh/indexer-admin from OpenBao>'
+bash wazuh-passwords-tool.sh -u kibanaserver -p '<new kibanaserver password>'
+```
+
+On an all-in-one node the tool also updates the dashboard keystore. Then the server API users —
+check `bash wazuh-passwords-tool.sh -h` for the exact `-A`/`-au`/`-ap` syntax of your version
+before running it; the goal is `wazuh-wui`'s password = OpenBao `wazuh/api?wui_password`, and
+ideally a new password for the `wazuh` API admin too (default credentials `wazuh`/`wazuh`,
+`wazuh-wui`/`wazuh-wui`).
+
+Store whatever isn't in OpenBao yet there (e.g. `wazuh/kibanaserver?password`,
+`wazuh/api?wazuh_password`) — for the record, Salt doesn't read them.
+
+### 5. Second apply (`bootstrapped: true`)
+
+Set `bootstrapped: true` in `pillar/wazuh.sls`, push, then:
+
+```sh
+salt wazuh state.apply
+```
+
+Sets the manager/Filebeat keystores and `wazuh.yml`, starts Filebeat and the dashboard. Check:
+
+```sh
+filebeat test output                      # on the VM — all checks OK
+systemctl is-active wazuh-indexer wazuh-manager filebeat wazuh-dashboard
+```
+
+Dashboard: `https://192.168.178.27` (self-signed), login `admin` / the indexer-admin password.
+Agents (`formulas/wazuh-agent`) enroll on their own once port 1515 answers.
 
 ## Usage
 
@@ -67,20 +150,13 @@ invocation is too version-sensitive to hardcode with confidence.
 
 ## Pillar
 
-See `pillar.example.sls` for the full schema. Real values live in `pillar/wazuh.sls` (referenced
-from `pillar/top.sls`).
+See `pillar.example.sls`. Real values in `pillar/wazuh.sls`. `indexer:admin_password`,
+`manager:registration_password` and `dashboard:api_wui_password` are `sdb.get` references
+(`.claude/docs/secrets.md`); `registration_password` is shared with `formulas/wazuh-agent`.
 
-`indexer:admin_password` and `manager:registration_password` are required in practice (no sane
-default) and must be `sdb://` references, never literal values (.claude/docs/secrets.md).
-`registration_password` must be the exact same secret `formulas/wazuh-agent` uses — it's the
-shared enrollment password every agent authenticates with against this manager's `authd`.
+## Upgrading
 
-## Things worth double-checking before relying on this
-
-Config file schemas here (`opensearch.yml`'s `plugins.security.*` keys, `opensearch_dashboards.yml`'s
-`server.ssl.*`/`opensearch.*` keys, the exact `ossec.conf` `<indexer>`/`<auth>` block shape) are
-based on general familiarity with Wazuh's architecture, not verified against current docs for
-whatever version actually installs from the `4.x` apt repo at the time you run this — config keys
-do shift between Wazuh releases. Check `salt 'wazuh' state.apply wazuh test=True` output and the
-actual service logs (`journalctl -u wazuh-indexer`, `wazuh-manager`, `wazuh-dashboard`) rather than
-assuming this is correct as written.
+Bump `wazuh:lookup:version` deliberately: the packages are held, and the Filebeat alerts template
+is fetched from the matching git tag only once (`creates`) — delete
+`/etc/filebeat/wazuh-template.json` to refetch it. Follow Wazuh's upgrade guide for the order
+(indexer first).

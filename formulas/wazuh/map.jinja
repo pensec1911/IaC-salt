@@ -1,32 +1,52 @@
-{#- admin_dn/node_dn have no sane default — they MUST exactly match the
-   Subject DN baked into the TLS certs generated during the manual
-   bootstrap (see README "TLS bootstrap"). Get this wrong and the indexer
-   security plugin rejects the manager/dashboard outright. #}
+{#- Single-node (all-in-one) Wazuh 4.x: indexer, manager + Filebeat and
+   dashboard on one minion, following Wazuh's step-by-step install guide.
+
+   version pins the three Wazuh packages AND the Filebeat alerts template
+   (fetched from the matching git tag — {version} in filebeat.template_url)
+   — they must move together.
+
+   node_ip is required: certs are issued for it, and Filebeat/the manager
+   verify the indexer's cert against it (127.0.0.1 isn't in the cert).
+
+   Node names default to the ones in Wazuh's own config.yml template, which
+   are also what the package-shipped opensearch.yml already expects — keep
+   them unless you change config.yml accordingly before generating certs.
+
+   bootstrapped gates everything that needs the indexer security plugin
+   initialized and the passwords set (see README "Bootstrap"). #}
 {%- set defaults = {
+    'version': '4.14.9',
     'apt_keyurl': 'https://packages.wazuh.com/key/GPG-KEY-WAZUH',
     'apt_baseurl': 'https://packages.wazuh.com/4.x/apt/',
     'keyring': '/usr/share/keyrings/wazuh.gpg',
+    'node_ip': '',
+    'bootstrapped': False,
+    'certs_tar': '/root/wazuh-certificates.tar',
+    'indexer_port': 9200,
+    'api_port': 55000,
 
     'indexer': {
-        'pkg': 'wazuh-indexer',
-        'node_name': 'wazuh-indexer-1',
-        'cluster_name': 'wazuh-cluster',
+        'node_name': 'node-1',
         'network_host': '0.0.0.0',
         'certs_dir': '/etc/wazuh-indexer/certs',
         'admin_password': '',
-        'admin_dn': '',
-        'node_dn': '',
     },
     'manager': {
-        'pkg': 'wazuh-manager',
-        'certs_dir': '/etc/wazuh-indexer/certs',
+        'node_name': 'wazuh-1',
         'registration_password': '',
     },
+    'filebeat': {
+        'certs_dir': '/etc/filebeat/certs',
+        'module_url': 'https://packages.wazuh.com/4.x/filebeat/wazuh-filebeat-0.5.tar.gz',
+        'config_url': 'https://packages.wazuh.com/4.14/tpl/wazuh/filebeat/filebeat.yml',
+        'template_url': 'https://raw.githubusercontent.com/wazuh/wazuh/v{version}/extensions/elasticsearch/7.x/wazuh-template.json',
+    },
     'dashboard': {
-        'pkg': 'wazuh-dashboard',
+        'node_name': 'dashboard',
         'server_host': '0.0.0.0',
         'server_port': 443,
         'certs_dir': '/etc/wazuh-dashboard/certs',
+        'api_wui_password': '',
     },
 } %}
 {%- set wazuh = salt['pillar.get']('wazuh:lookup', default=defaults, merge=True) %}

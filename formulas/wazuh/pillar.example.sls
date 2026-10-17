@@ -1,28 +1,36 @@
 # Real data for this minion goes in pillar/wazuh.sls, referenced from
-# pillar/top.sls. This file just documents the schema.
-#
-# Requires the TLS certs and indexer security bootstrap to already exist
-# on this minion BEFORE state.apply succeeds — see README.md "TLS
-# bootstrap (manual, one-time)". Nothing in this formula generates them.
+# pillar/top.sls. This file just documents the schema. Read README.md
+# "Bootstrap" first — several steps are manual and ordered.
 
 wazuh:
   lookup:
+    # Pins wazuh-indexer/-manager/-dashboard AND the Filebeat alerts template
+    # tag. Bump all at once, deliberately.
+    version: "4.14.9"
+    # Required — the IP the certs are issued for (config.yml).
+    node_ip: "192.168.178.27"
+    # false until the manual security init + password step is done.
+    # Gates keystores, wazuh.yml, Filebeat and the dashboard service.
+    bootstrapped: false
+    # Where you put the output of wazuh-certs-tool.sh -A.
+    certs_tar: /root/wazuh-certificates.tar
+
     indexer:
-      # Required in practice — no sane default (map.jinja).
+      # Must match the indexer node name in config.yml. Default = Wazuh's
+      # template name, which the shipped opensearch.yml already expects.
+      node_name: node-1
+      # Optional — only if your cert's subject differs from the
+      # wazuh-certs-tool default (README "Bootstrap" step 2 checks this).
+      # node_dn: "CN=node-1,OU=Wazuh,O=Wazuh,L=California,C=US"
+      # Required in practice. sdb reference, never a literal.
       admin_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/wazuh/indexer-admin?password') | yaml_encode }}
-      # Must be byte-for-byte the Subject DN used when generating the
-      # certs during the TLS bootstrap — not secret, but there's no sane
-      # default, and a mismatch here means the indexer security plugin
-      # rejects the manager/dashboard outright.
-      admin_dn: "CN=admin,O=Wazuh,OU=Wazuh,L=California,C=US"
-      node_dn: "CN=wazuh-indexer-1,O=Wazuh,OU=Wazuh,L=California,C=US"
-      # node_name/cluster_name/certs_dir/network_host all have working
-      # defaults (map.jinja) — only set if you changed them during bootstrap.
 
     manager:
-      # Required in practice — shared with formulas/wazuh-agent's
-      # registration_password, must be the same sdb secret.
+      node_name: wazuh-1        # server node name in config.yml
+      # Shared with formulas/wazuh-agent — the same sdb secret.
       registration_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/wazuh/registration?password') | yaml_encode }}
 
     dashboard:
+      node_name: dashboard      # dashboard node name in config.yml
       server_port: 443
+      api_wui_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/wazuh/api?wui_password') | yaml_encode }}
