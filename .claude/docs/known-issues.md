@@ -14,6 +14,4 @@ every `nfs_mounts` entry, owned by `formulas/nfs-mount` (pillar-driven, no hardc
 
 ## Smaller items
 
-- `pillar/GLOBAL.sls`: `ssh_authorized_keys: []` — no SSH key for the per-minion login accounts
-  yet.
 - Pinned arrstack tags (Sonarr 4.0.9, Radarr 5.10.4, Prowlarr 1.24.3, …) are behind upstream.

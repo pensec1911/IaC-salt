@@ -10,7 +10,7 @@ users:
     - name: {{ grains['id'] }}
       password: {{ salt['sdb.get']('sdb://osvault/homelab/data/users/shared?password') | yaml_encode }}
       sudo: true
-      ssh_authorized_keys: []
-        # TODO: add the admin SSH public key(s) here (not secret, fine to
-        # commit in plaintext). Left empty for now — the users formula
-        # skips ssh_auth.present entries when this list is empty.
+      # Public keys only — not secret. Same "homelab" key OpenTofu injects
+      # for the debian cloud-init user (IaC-opentofu terraform.tfvars).
+      ssh_authorized_keys:
+        - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPueLg6VgGT+b2+3HVaDVMFlOcB0UKIUG+MMwajT3ncp homelab"
