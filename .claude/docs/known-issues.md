@@ -2,16 +2,6 @@
 
 Remove an entry once fixed (the fix lives in git history).
 
-## Docker can start before the NFS mount at boot
-
-2026-10-17 arrstack rebooted; `mnt-media.mount` hit its 90 s timeout (NAS slow to answer) and
-Docker started the containers anyway, bound to the empty local `/mnt/media`. Fixed by hand
-(`systemctl start mnt-media.mount`, restart the media containers). Will recur on any reboot where
-the NAS is slow. Affects arrstack and jellyfin.
-
-Proposed fix: a systemd drop-in for `docker.service` with `RequiresMountsFor=<mountpoint>` for
-every `nfs_mounts` entry, owned by `formulas/nfs-mount` (pillar-driven, no hardcoded paths).
-
 ## Smaller items
 
 - arrstack is on the latest release *within* each major (2026-10-17). Newer majors exist and

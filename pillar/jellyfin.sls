@@ -10,6 +10,13 @@ users:
       uid: 970
       gid: 970
 
+# Containers bind the share — Docker must not start before it's mounted
+# (empty /mnt/media after a reboot with a slow NAS, 2026-10-17).
+nfs-mount:
+  lookup:
+    required_by:
+      - docker.service
+
 # Same share the arrstack writes to, mounted read-only here — Jellyfin only
 # reads the library.
 nfs_mounts:

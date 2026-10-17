@@ -8,6 +8,10 @@ nfs-mount:
       - _netdev
       - rw
       - noatime
+    # systemd units that must wait for (and fail without) every mount below.
+    # Set this for docker on any minion whose containers bind a share.
+    required_by:
+      - docker.service
 
 # One entry per share this minion needs mounted.
 nfs_mounts:

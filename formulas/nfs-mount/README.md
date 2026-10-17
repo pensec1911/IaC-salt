@@ -18,6 +18,12 @@ This is the pattern .claude/docs/patterns.md already called out: NFS mounts are
 runtime state of the guest, not a Proxmox/Tofu resource — express "this VM needs share X mounted
 at path Y" as pillar data for that minion, consumed here.
 
+`nfs-mount:lookup:required_by` (list of systemd units, default empty) adds a drop-in with
+`RequiresMountsFor=<every mountpoint>` to each listed unit (+ `daemon-reload`). Set it to
+`docker.service` on any minion whose containers bind a share: Docker then waits for the mounts
+at boot and fails instead of starting containers on the empty local mountpoint when the NAS is
+slow or down. Takes effect on Docker's next start — Salt doesn't restart it.
+
 ## Usage
 
 ```yaml

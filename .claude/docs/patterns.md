@@ -39,7 +39,10 @@ See `formulas/users/README.md`, `formulas/arrstack` (`media`).
   (jellyfin) — arrstack is the only writer on the media share.
 - NAS squashes root: create anything on the share as 970 (`setpriv --reuid … install -d`), not
   as root — see `formulas/arrstack/config.sls`.
-- Known gap: Docker can start before the mount at boot — see [known-issues.md](known-issues.md).
+- Minions whose containers bind a share set `nfs-mount:lookup:required_by: [docker.service]`
+  (arrstack, jellyfin): Docker waits for the mounts at boot and fails rather than running on
+  the empty mountpoint. If the NAS was down at boot, `systemctl start docker` (or a highstate)
+  once it's back.
 
 ## VPN sidecar (gluetun)
 
