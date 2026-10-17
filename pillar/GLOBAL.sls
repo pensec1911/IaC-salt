@@ -6,8 +6,14 @@ users:
   # formulas/users/README.md for how to switch to per-minion passwords
   # later. `password` must resolve to an already-hashed value, never
   # plaintext.
+  #
+  # Where the minion ID is also the name of a service's own system user, the
+  # login account gets a different name — otherwise the service user becomes
+  # a sudo-capable login account (the wazuh package adopted the existing
+  # "wazuh" login user for its daemons, 2026-10-17).
+  {%- set login_name = {'wazuh': 'wazuh-admin'}.get(grains['id'], grains['id']) %}
   accounts:
-    - name: {{ grains['id'] }}
+    - name: {{ login_name }}
       password: {{ salt['sdb.get']('sdb://osvault/homelab/data/users/shared?password') | yaml_encode }}
       sudo: true
       # Public keys only — not secret. Same "homelab" key OpenTofu injects
