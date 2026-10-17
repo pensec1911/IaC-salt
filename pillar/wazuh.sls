@@ -5,7 +5,7 @@ wazuh:
     node_ip: "192.168.178.27"
     # Flip to true only after the manual bootstrap (security init +
     # passwords) — see formulas/wazuh/README.md "Bootstrap".
-    bootstrapped: false
+    bootstrapped: true
 
     indexer:
       # Indexer "admin" user — Filebeat and the manager authenticate with it,
