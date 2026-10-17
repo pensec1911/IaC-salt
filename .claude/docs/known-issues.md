@@ -2,19 +2,6 @@
 
 Remove an entry once fixed (the fix lives in git history).
 
-## wazuh-agent won't start (all agent minions)
-
-Since the agent package actually got installed (2026-10-17, first seen on arrstack + jellyfin):
-
-```
-wazuh-agentd: ERROR: (1230): Invalid element in the configuration: 'client'.
-wazuh-agentd: ERROR: (1215): No client configured. Exiting.
-```
-
-Likely `formulas/wazuh-agent/config.sls`'s `file.blockreplace` puts the `<client>` block outside
-the `<ossec_config>` root, or duplicates/nests it with the shipped one. Every highstate on an
-agent minion currently ends with 1 failed state (`wazuh-agent` service) because of this.
-
 ## Docker can start before the NFS mount at boot
 
 2026-10-17 arrstack rebooted; `mnt-media.mount` hit its 90 s timeout (NAS slow to answer) and

@@ -7,5 +7,7 @@ wazuh-agent-service:
     - enable: True
     - require:
       - file: wazuh-agent-client-block
+      - file: wazuh-agent-authd-pass
     - watch:
       - file: wazuh-agent-client-block
+      - file: wazuh-agent-authd-pass

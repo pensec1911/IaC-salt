@@ -39,6 +39,7 @@ wazuh-authd-password:
     - user: root
     - group: root
     - mode: '0640'
+    - show_changes: False   # it's a secret — keep it out of state output / job cache
     - require:
       - pkg: wazuh-manager-package
 

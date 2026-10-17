@@ -1,17 +1,22 @@
-{%- from "wazuh-agent/map.jinja" import wazuh_agent with context %}
-<client>
-  <server>
-    <address>{{ wazuh_agent.manager_address }}</address>
-    <port>1514</port>
-    <protocol>tcp</protocol>
-  </server>
-</client>
-<client_buffer>
-  <disabled>no</disabled>
-</client_buffer>
-<enrollment>
-  <enabled>yes</enabled>
-  <manager_address>{{ wazuh_agent.manager_address }}</manager_address>
-  <port>1515</port>
-  <password>{{ wazuh_agent.registration_password | e }}</password>
-</enrollment>
+{%- from "wazuh-agent/map.jinja" import wazuh_agent with context -%}
+{#- Inner content of the package's own <client> block (the <client>/</client>
+   lines are the blockreplace markers and stay as shipped). Everything
+   except <server>/<enrollment> mirrors the package defaults. The
+   registration password is NOT inline — Wazuh only reads it from the file
+   at authorization_pass_path (see config.sls). #}
+    <server>
+      <address>{{ wazuh_agent.manager_address }}</address>
+      <port>1514</port>
+      <protocol>tcp</protocol>
+    </server>
+    <config-profile>{{ grains['os'] | lower }}, {{ grains['os'] | lower }}{{ grains['osmajorrelease'] }}</config-profile>
+    <notify_time>20</notify_time>
+    <time-reconnect>60</time-reconnect>
+    <auto_restart>yes</auto_restart>
+    <crypto_method>aes</crypto_method>
+    <enrollment>
+      <enabled>yes</enabled>
+      <manager_address>{{ wazuh_agent.manager_address }}</manager_address>
+      <port>1515</port>
+      <authorization_pass_path>{{ wazuh_agent.authd_pass_file }}</authorization_pass_path>
+    </enrollment>

@@ -21,10 +21,18 @@ new minion under Wazuh's watch.
   `wazuh-agent` package). Duplicated rather than shared with `formulas/wazuh` — they're separate
   formulas for a server and a client that never run on the same minion (the manager monitors
   itself via its own built-in local agent, it doesn't need this formula too).
-- `wazuh-agent.config` — patches the `<client>` (manager address) and `<enrollment>` (manager
-  address + registration password) blocks into the package's own default `ossec.conf`, same
-  block-patch approach as `formulas/wazuh` (the shipped default already has sensible
-  localfile/syscheck monitoring — no reason to replace it wholesale).
+- `wazuh-agent.config` — rewrites the *inside* of the package's own `<client>` block in
+  `ossec.conf` (`file.blockreplace` with the existing `<client>`/`</client>` lines as markers):
+  `<server>` (manager address, replacing the shipped `MANAGER_IP` placeholder) and a nested
+  `<enrollment>` block. The rest of the shipped `ossec.conf` (localfile/syscheck/rootcheck) stays
+  untouched. The registration password goes into `/var/ossec/etc/authd.pass` (`root:wazuh 0640`)
+  — Wazuh has no inline password option, `<enrollment>` only points at that file via
+  `authorization_pass_path`.
+
+  Pitfalls this layout avoids: a block appended after `</ossec_config>` is rejected outright
+  (`Invalid element in the configuration: 'client'`), and a second `<client>` section would keep
+  the shipped `MANAGER_IP` server as an extra, broken entry. `<enrollment>` must sit inside
+  `<client>`, not next to it.
 - `wazuh-agent.service` — runs `wazuh-agent`, restarting on config changes.
 
 ## Usage
