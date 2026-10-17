@@ -15,18 +15,24 @@ arrstack:
     media_mount: /mnt/media   # must match the nfs-mount "media" mountpoint
 
     gluetun:
-      tag: v3.39.1
-      vpn_service_provider: mullvad
+      tag: v3.41.3
+      # Any gluetun provider name (mullvad, protonvpn, ...).
+      vpn_service_provider: protonvpn
       vpn_type: wireguard
       # Required in practice — no sane default (map.jinja). sdb reference,
       # never a literal key.
-      wireguard_private_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/gluetun/mullvad?private_key') | yaml_encode }}
-      # Not secret on its own (just the tunnel-internal address Mullvad
-      # assigned this key), but still account-specific — from the same
-      # WireGuard config Mullvad gives you the private key from.
-      wireguard_addresses: "10.x.x.x/32"
-      # Optional — narrows which Mullvad servers gluetun picks from.
-      server_countries: "Germany"
+      wireguard_private_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/gluetun/proton?private_key') | yaml_encode }}
+      # Not secret on its own (just the tunnel-internal address the provider
+      # assigned this key), but still account-specific — the IPv4 "Address"
+      # from the same WireGuard config the private key comes from.
+      wireguard_addresses: "10.2.0.2/32"
+      # Optional — narrows which servers gluetun picks from.
+      server_countries: "Switzerland"
+      # Optional, default false. Only for providers that support it (Proton:
+      # generate the WireGuard config with NAT-PMP on; Mullvad dropped it).
+      # Restricts server choice to port-forwarding servers and pushes the
+      # forwarded port into qBittorrent — see README "Port forwarding".
+      port_forwarding: true
 
     qbittorrent:
       tag: 4.6.7
