@@ -18,6 +18,11 @@ formula declares `require: - user: user-<name>`.
   `map.jinja`, avoiding 65534/`nobody` and the 1000+ range (the per-minion login account from
   `GLOBAL` lands there).
 - Pinned today: `media` = 970:970 (arrstack + jellyfin, owns the NAS media share).
+- `GLOBAL` creates a sudo login account named after the minion — **unless that name is a
+  service's own system user** (packages silently adopt an existing user of their name, turning
+  their daemons into a sudo-capable login). Such minions get a renamed login via the map in
+  `pillar/GLOBAL.sls` (`wazuh` → `wazuh-admin`). Check this before naming a new VM after its
+  service package.
 - `users` goes first in the minion's `salt/top.sls` entry.
 
 See `formulas/users/README.md`, `formulas/arrstack` (`media`).
