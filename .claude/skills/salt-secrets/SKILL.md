@@ -5,7 +5,8 @@ description: Use whenever writing or editing pillar data that includes a credent
 
 # Salt secrets via OpenBao
 
-This repo never stores literal secret values in `pillar/*.sls` — see CLAUDE.md "Secrets in pillar".
+This repo never stores literal secret values in `pillar/*.sls` — see `.claude/docs/secrets.md`
+(mechanics + the current KV layout; add new paths to its table).
 
 When a pillar value is a credential:
 

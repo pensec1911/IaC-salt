@@ -1,5 +1,5 @@
 # Optional overrides for formulas/nfs-mount, plus the mount list itself.
-# See CLAUDE.md "Established patterns" — NFS mounts are runtime state of
+# See .claude/docs/patterns.md — NFS mounts are runtime state of
 # the guest, expressed here as pillar data, not as a Proxmox/Tofu resource.
 nfs-mount:
   lookup:

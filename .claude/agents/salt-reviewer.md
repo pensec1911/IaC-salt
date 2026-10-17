@@ -9,7 +9,8 @@ You review changes to this SaltStack repo against its documented conventions. Yo
 or fix code yourself — you report violations for the main session to fix, and confirm plainly when
 a change is clean. Don't invent nitpicks to seem thorough; if nothing's wrong, say so.
 
-Read CLAUDE.md at the repo root first if it isn't already in context.
+Read CLAUDE.md at the repo root first if it isn't already in context, and
+`.claude/docs/patterns.md` / `.claude/docs/secrets.md` for the detail behind each rule.
 
 Check every changed formula/pillar file against:
 
@@ -22,11 +23,13 @@ Check every changed formula/pillar file against:
    `docker`) declares `require: - sls: <dep>`, and that dependency is listed first for the same
    minion in `salt/top.sls`.
 4. **Secrets**: no literal secret-looking value (password, API key, token) in any `pillar/*.sls`
-   file — must be an `sdb://osvault/...` reference instead. Flag anything that looks like a real
+   file — must be an explicit `{{ salt['sdb.get']('sdb://osvault/homelab/data/...') | yaml_encode }}`
+   call. A bare `sdb://` string is also a finding (Salt never resolves it in pillar). Flag anything that looks like a real
    credential, even a plausible placeholder.
-5. **users pattern** (once `formulas/users` exists): no formula creates `user.present`/
-   `group.present` locally — it must `require: - user: user-<name>` from the shared `users`
-   formula instead.
+5. **users / nfs-mount pattern**: no formula creates `user.present`/`group.present` or
+   `mount.mounted` locally — it must `require: - user: user-<name>` /
+   `require: - mount: nfs-mount-<name>` from the shared `users` / `nfs-mount` formulas, and
+   those are listed before it in `salt/top.sls`.
 6. **Targeting**: `salt/top.sls` matches minion ID, not grains, unless a role genuinely spans more
    than one minion.
 7. **pillar/top.sls mirrors salt/top.sls**: every minion with formula-specific pillar needs has a

@@ -5,6 +5,9 @@ description: Use when a Salt state fails to render, applies stale/wrong data, a 
 
 # Debugging Salt render/sync issues
 
+All commands run on the master (`ssh salt-master`, then `sudo …`) — Salt isn't installed on
+the workstation. See `.claude/docs/operations.md` for the deploy sequence and quoting tips.
+
 Work through these in order — most "weird" Salt behavior in this repo is one of these, not a
 logic bug in the formula itself.
 
@@ -14,6 +17,7 @@ gitfs/git_pillar poll on an interval (see `formulas/salt-master`), not on every 
 
 ```
 salt-run fileserver.update
+salt-run git_pillar.update     # pillar has its own remote cache
 salt-run cache.clear_all      # only if fileserver.update doesn't pick up the change — nukes gitfs/pillar cache
 ```
 
@@ -45,15 +49,14 @@ system. Common causes in this repo's pattern:
 
 - **`pillar.get` merge behavior**: `merge=True` deep-merges *dicts*. It does NOT merge *lists* —
   a pillar list value fully overwrites map.jinja's default list, it doesn't append. If a formula
-  expects a list to accumulate (like `users:accounts` is meant to, once that formula exists), this
-  needs `pillar_merge_lists: True` in master config (list merge across separate pillar *sls
+  expects a list to accumulate (like `users:accounts`), this needs `pillar_merge_lists: True` in master config (list merge across separate pillar *sls
   files*), which is a different mechanism from `merge=True` in `pillar.get` (dict merge within one
   resolved value). Don't conflate the two.
 - **Missing `with context`**: importing from `map.jinja` without `with context` silently loses
   access to `salt`/`pillar` inside the imported macro/variable — symptoms look like pillar data
   "not existing" even though `pillar.items` shows it.
 - **`salt://` vs relative formula paths**: since `formulas/` and `salt/` are merged into one
-  gitfs namespace (see CLAUDE.md), a typo'd `include:` path fails silently-ish (state just
+  gitfs namespace (see `.claude/docs/architecture.md`), a typo'd `include:` path fails silently-ish (state just
   doesn't apply, no obvious error) rather than a clear "file not found."
 
 ## 4. Verbose logging for anything still unclear
@@ -65,7 +68,18 @@ salt '<minion>' state.apply <formula> test=True -l debug
 Noisy, but shows the actual pillar/grain values Salt resolved at each step — use as a last resort
 once 1–3 haven't isolated it.
 
-## 5. sdb://-specific failures
+## 5. Requisite "does not exist"
+
+`Referenced state does not exist for requisite [require: (user: user-media)]` (or `sls: docker`,
+`mount: nfs-mount-…`) after `state.apply <formula>`: the providing formula isn't in that run.
+Use a full `state.apply` on the minion instead. If it also fails there, the minion's
+`salt/top.sls` entry is missing the dependency.
+
+## 6. sdb://-specific failures
+
+If the value arrives as the literal `sdb://…` string: the pillar uses a bare reference instead
+of an explicit `salt['sdb.get'](…)` call, or the `osvault` profile isn't top-level in
+`vault.conf` — see `.claude/docs/secrets.md`.
 
 If a state renders fine but a value comes back empty/None where an `sdb://osvault/...` reference
 was expected: check the master's vault AppRole auth is valid (`secret_id` files can expire/rotate)

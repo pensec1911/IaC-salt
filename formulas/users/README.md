@@ -40,7 +40,7 @@ See `pillar.example.sls` for the full schema.
 
 ### Passwords come from OpenBao, not plaintext
 
-`password` on an account is a `sdb://` reference (see CLAUDE.md "Secrets in pillar"), resolved by
+`password` on an account is a `sdb://` reference (see .claude/docs/secrets.md), resolved by
 the master at render time — never a literal value in a pillar file. It must point to an
 **already-hashed** value (`sha512-crypt`, the same format `/etc/shadow` stores), not a plaintext
 password.

@@ -1,5 +1,5 @@
 # Optional overrides for formulas/users, plus the accounts list itself.
-# See CLAUDE.md "Established patterns" for the design: any formula needing
+# See .claude/docs/patterns.md for the design: any formula needing
 # a dedicated user appends its account(s) here instead of creating them
 # locally with its own user.present state.
 users:

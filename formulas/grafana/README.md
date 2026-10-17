@@ -36,7 +36,7 @@ See `pillar.example.sls` for the full schema. Real values live in `pillar/grafan
 (referenced from `pillar/top.sls`).
 
 `admin_password` is required in practice (see `map.jinja` — no sane default) and must be an
-`sdb://` reference, never a literal value (CLAUDE.md "Secrets in pillar"). **Important quirk**:
+`sdb://` reference, never a literal value (.claude/docs/secrets.md). **Important quirk**:
 Grafana only applies `GF_SECURITY_ADMIN_PASSWORD` the first time the container starts against an
 empty database — changing the pillar value later does not rotate an already-provisioned admin
 password. If it drifts, reset it via `docker exec grafana grafana-cli admin reset-admin-password

@@ -6,8 +6,7 @@ deploy key, pins GitHub's host key, and writes
 `/etc/salt/master.d/{gitfs,git_pillar,auto_accept,pillar_merge}.conf`.
 
 Also owns the master's OpenBao (sdb) auth (`vault.sls` → `/etc/salt/master.d/vault.conf`) — this
-is what makes `sdb://...` references in pillar (see `formulas/users`, CLAUDE.md "Secrets in
-pillar") resolve to real values instead of erroring.
+is what makes `sdb://...` references in pillar (see `formulas/users`, .claude/docs/secrets.md) resolve to real values instead of erroring.
 
 This is the one formula that isn't fully generic — `map.jinja`'s defaults point at this exact
 repo (`pensec1911/IaC-salt`) since that's what a fresh master actually needs to bootstrap

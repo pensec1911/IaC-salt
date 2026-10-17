@@ -47,6 +47,5 @@ secret applies to every monitored minion, this is the one formula meant to be re
 `'*'` in `pillar/top.sls` (alongside `GLOBAL`) rather than per-minion.
 
 Both `manager_address` and `registration_password` are required in practice (no sane default —
-see `map.jinja`). `registration_password` must be an `sdb://` reference (CLAUDE.md "Secrets in
-pillar") and must be the exact same secret as `formulas/wazuh`'s `manager:registration_password`
+see `map.jinja`). `registration_password` must be an `sdb://` reference (.claude/docs/secrets.md) and must be the exact same secret as `formulas/wazuh`'s `manager:registration_password`
 — it's a shared secret between the two formulas, not per-formula data.

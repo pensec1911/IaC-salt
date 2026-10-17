@@ -71,7 +71,7 @@ See `pillar.example.sls` for the full schema. Real values live in `pillar/wazuh.
 from `pillar/top.sls`).
 
 `indexer:admin_password` and `manager:registration_password` are required in practice (no sane
-default) and must be `sdb://` references, never literal values (CLAUDE.md "Secrets in pillar").
+default) and must be `sdb://` references, never literal values (.claude/docs/secrets.md).
 `registration_password` must be the exact same secret `formulas/wazuh-agent` uses — it's the
 shared enrollment password every agent authenticates with against this manager's `authd`.
 

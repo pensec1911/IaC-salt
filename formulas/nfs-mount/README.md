@@ -14,7 +14,7 @@ A service formula that needs a share mounted doesn't mount it itself — it decl
 `require: - mount: nfs-mount-<name>` in the states that bind that path, and the minion's
 `salt/top.sls` entry lists `nfs-mount` before it. See `formulas/arrstack` for an example.
 
-This is the pattern CLAUDE.md's "Established patterns" section already called out: NFS mounts are
+This is the pattern .claude/docs/patterns.md already called out: NFS mounts are
 runtime state of the guest, not a Proxmox/Tofu resource — express "this VM needs share X mounted
 at path Y" as pillar data for that minion, consumed here.
 

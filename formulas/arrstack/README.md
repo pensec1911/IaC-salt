@@ -82,8 +82,7 @@ See `pillar.example.sls` for the full schema. Real values live in `pillar/arrsta
 (referenced from `pillar/top.sls`); the NFS mount itself is `pillar/nfs-mount.sls`.
 
 `gluetun:wireguard_private_key` and all four `slskd:*` credentials are required in practice (no
-sane default — see `map.jinja`) and must be `sdb://` references, never literal values (CLAUDE.md
-"Secrets in pillar"). `wireguard_addresses` comes from the same WireGuard config the
+sane default — see `map.jinja`) and must be `sdb://` references, never literal values (.claude/docs/secrets.md). `wireguard_addresses` comes from the same WireGuard config the
 private key does — not secret on its own, but account-specific, so it's still pillar data you have
 to fill in rather than a real default.
 

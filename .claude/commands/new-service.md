@@ -14,5 +14,8 @@ Follow CLAUDE.md exactly:
 6. Add `pillar/<name>.sls` and reference it from `pillar/top.sls`
 7. Ask me which minion this goes on before touching `salt/top.sls`
 
-Reference `formulas/docker` or `formulas/homepage` for the established pattern. Don't guess at
+Reference `formulas/docker` or `formulas/homepage` for the established pattern, and
+`.claude/docs/patterns.md` (NFS share → `nfs-mount` pillar + `require: - mount:`, pinned
+uid/gid, VPN sidecar). Pin the image to the current upstream tag — look it up, don't guess.
+Afterwards add the minion/ports to `.claude/docs/inventory.md`. Don't guess at
 values — ask if something isn't clear from an existing formula.
