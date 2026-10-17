@@ -41,11 +41,11 @@ homepage:
         - name: qBittorrent
           href: http://192.168.178.22:8080
           icon: qbittorrent.png
-          description: Torrents (via Mullvad)
+          description: Torrents (via Proton VPN)
         - name: slskd
           href: http://192.168.178.22:5030
           icon: slskd.png
-          description: Soulseek (via Mullvad)
+          description: Soulseek (via Proton VPN)
 
     - name: Monitoring
       items:
