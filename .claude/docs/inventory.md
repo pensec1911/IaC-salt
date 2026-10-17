@@ -34,6 +34,7 @@ Flat network 192.168.178.0/24 (FRITZ!Box range). Minion ID = hostname = Tofu VM 
 
 ## Access from a Claude session
 
-- Only `ssh salt-master` (debian@192.168.178.28, key `~/.ssh/homelab`) works. Reach minions
-  through Salt: `ssh salt-master "sudo salt <minion> cmd.run '…'"`.
+- Every VM: `ssh -i ~/.ssh/homelab debian@<ip>`, passwordless `sudo` (no root SSH). Only
+  `salt-master` has a `~/.ssh/config` alias. For anything scripted across minions, go through
+  Salt: `ssh salt-master "sudo salt <minion> cmd.run '…'"`.
 - No GPU on jellyfin (emulated QEMU VGA only) — software transcoding.
