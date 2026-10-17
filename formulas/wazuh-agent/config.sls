@@ -14,6 +14,7 @@ wazuh-agent-remove-legacy-block:
     - repl: ''
     - flags: ['DOTALL']
     - bufsize: file
+    - show_changes: False   # the old block contains the registration password inline
     - require:
       - pkg: wazuh-agent-package
 
