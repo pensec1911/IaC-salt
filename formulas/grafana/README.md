@@ -6,19 +6,26 @@ and its data dir.
 
 ## What it manages
 
-- `grafana.config` — creates `data_dir` (persistent state: sqlite db, dashboards, plugins).
+- `grafana.config` — creates `data_dir` (persistent state: sqlite db, plugins), renders the
+  datasource provisioning file (`grafana:datasources`) and a file-based dashboard provider, and
+  downloads the pinned grafana.com dashboards (`grafana:dashboards`, sha256-checked) into
+  `dashboards_dir`.
 - `grafana.container` — runs the container via `docker_container.running`, bind-mounting
   `data_dir` to `/var/lib/grafana`. Admin credentials come in via `GF_SECURITY_ADMIN_USER`/
-  `GF_SECURITY_ADMIN_PASSWORD` env vars.
+  `GF_SECURITY_ADMIN_PASSWORD` env vars. Only `provisioning/datasources` and
+  `provisioning/dashboards` are bind-mounted (the image's other provisioning dirs stay), and the
+  container restarts when either provisioning file changes — Grafana reads them only at start.
+  Dashboard JSON changes are picked up without a restart (provider polls every 60s).
 
 No dedicated host user (`users` formula) is created for this. The official image already runs
 internally as a fixed user, uid `472` ("grafana") — `data_dir` is numeric-owned (`472:472`)
 directly to match, and the container's `user:` param is set the same way, so no `/etc/passwd`
 entry is needed for the bind mount to work.
 
-No provisioning (dashboards/datasources-as-code) is wired up yet — this only gets the container
-running with a persistent data dir and an admin login. Add a `provisioning/` bind mount + pillar
-schema the same way `prometheus.yml` is templated if/when that's needed.
+Provisioned dashboards are read-only in the UI (`allowUiUpdates: false`): to customise one, use
+"Save as" into another folder. Only dashboards that select their datasource via a datasource
+variable work as-is — grafana.com exports that rely on `__inputs` (import-time `${DS_…}`
+substitution) don't resolve under file provisioning.
 
 ## Usage
 

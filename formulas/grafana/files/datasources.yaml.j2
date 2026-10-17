@@ -1,0 +1,4 @@
+{#- grafana:datasources is rendered 1:1 as the `datasources:` list of a
+   Grafana provisioning file (upstream schema). -#}
+# Managed by Salt (formulas/grafana) — edit pillar grafana:datasources.
+{{ {'apiVersion': 1, 'datasources': salt['pillar.get']('grafana:datasources', [])} | yaml(False) }}

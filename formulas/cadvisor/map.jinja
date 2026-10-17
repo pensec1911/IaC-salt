@@ -1,0 +1,10 @@
+{#- host_port is not cAdvisor's usual 8080: qBittorrent already has that on
+   arrstack. #}
+{%- set defaults = {
+    'image': 'ghcr.io/google/cadvisor',
+    'tag': 'v0.60.6',
+    'container_name': 'cadvisor',
+    'host_port': 8088,
+    'housekeeping_interval': '30s',
+} %}
+{%- set cadvisor = salt['pillar.get']('cadvisor:lookup', default=defaults, merge=True) %}

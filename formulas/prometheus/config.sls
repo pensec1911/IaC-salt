@@ -26,3 +26,16 @@ prometheus.yml:
     - mode: '0644'
     - require:
       - file: prometheus-config-dir
+
+{#- Always rendered (an empty group list is valid), so prometheus.yml can
+   reference it unconditionally. #}
+prometheus-rules:
+  file.managed:
+    - name: {{ prometheus.config_dir }}/{{ prometheus.rules_file }}
+    - source: salt://prometheus/files/rules.yml.j2
+    - template: jinja
+    - user: {{ prometheus.uid }}
+    - group: {{ prometheus.gid }}
+    - mode: '0644'
+    - require:
+      - file: prometheus-config-dir

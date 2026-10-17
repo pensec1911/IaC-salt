@@ -1,0 +1,9 @@
+{#- Debian's own package rather than a container: it has to run on every
+   minion, including salt-master and wazuh, which have no Docker. Listens
+   on :9100 by default (ARGS in /etc/default/prometheus-node-exporter). #}
+{%- set defaults = {
+    'pkg': 'prometheus-node-exporter',
+    'service': 'prometheus-node-exporter',
+    'install_recommends': False,
+} %}
+{%- set node_exporter = salt['pillar.get']('node-exporter:lookup', default=defaults, merge=True) %}

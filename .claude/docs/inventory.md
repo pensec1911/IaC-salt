@@ -6,12 +6,15 @@ Flat network 192.168.178.0/24 (FRITZ!Box range). Minion ID = hostname = Tofu VM 
 
 | Minion | IP | Formulas (`salt/top.sls`) | Services / ports |
 |---|---|---|---|
-| `salt-master` | .28 | users, wazuh-agent, salt-master | salt-master (gitfs + git_pillar) |
-| `homepage` | .23 | users, wazuh-agent, docker, homepage | homepage :3000 |
-| `monitoring` | .25 | users, wazuh-agent, docker, grafana, prometheus | Grafana :3000, Prometheus :9090 |
-| `arrstack` | .22 | users, wazuh-agent, nfs-mount, docker, arrstack | via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal) |
-| `jellyfin` | .24 | users, wazuh-agent, nfs-mount, docker, jellyfin | Jellyfin :8096 |
-| `wazuh` | .27 | users, wazuh | dashboard :443, indexer :9200, API :55000, agents :1514 / enrollment :1515 |
+| `salt-master` | .28 | users, wazuh-agent, node-exporter, salt-master | salt-master (gitfs + git_pillar) |
+| `homepage` | .23 | users, wazuh-agent, node-exporter, docker, cadvisor, homepage | homepage :3000 |
+| `monitoring` | .25 | users, wazuh-agent, node-exporter, docker, cadvisor, grafana, prometheus, alertmanager | Grafana :3000, Prometheus :9090, Alertmanager :9093 |
+| `arrstack` | .22 | users, wazuh-agent, node-exporter, nfs-mount, docker, cadvisor, arrstack | via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal) |
+| `jellyfin` | .24 | users, wazuh-agent, node-exporter, nfs-mount, docker, cadvisor, jellyfin | Jellyfin :8096 |
+| `wazuh` | .27 | users, node-exporter, wazuh | dashboard :443, indexer :9200, API :55000, agents :1514 / enrollment :1515 |
+
+Every minion: node_exporter :9100. Docker hosts (homepage, monitoring, arrstack, jellyfin):
+cAdvisor :8088. All scraped by Prometheus on monitoring (`pillar/prometheus.sls`).
 
 `salt/top.sls` and `pillar/top.sls` are authoritative — update this table when they change.
 

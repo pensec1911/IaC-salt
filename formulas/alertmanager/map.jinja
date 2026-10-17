@@ -1,0 +1,19 @@
+{%- set defaults = {
+    'image': 'prom/alertmanager',
+    'tag': 'v0.34.1',
+    'container_name': 'alertmanager',
+    'host_port': 9093,
+    'config_dir': '/opt/alertmanager/config',
+    'data_dir': '/opt/alertmanager/data',
+    'uid': 65534,
+    'gid': 65534,
+} %}
+{%- set alertmanager = salt['pillar.get']('alertmanager:lookup', default=defaults, merge=True) %}
+{#- The alertmanager.yml content itself (route/receivers). Kept out of
+   lookup: receivers is a list, which merge=True can't merge — pillar
+   replaces this default wholesale. The default only has a receiver that
+   discards everything, so alerts show up in the UI but go nowhere. #}
+{%- set alertmanager_config = salt['pillar.get']('alertmanager:config', default={
+    'route': {'receiver': 'null'},
+    'receivers': [{'name': 'null'}],
+}) %}

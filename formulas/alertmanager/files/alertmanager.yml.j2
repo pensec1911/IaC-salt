@@ -1,0 +1,3 @@
+{%- from "alertmanager/map.jinja" import alertmanager_config with context -%}
+# Managed by Salt (formulas/alertmanager) — edit pillar alertmanager:config.
+{{ alertmanager_config | yaml(False) }}

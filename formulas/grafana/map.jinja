@@ -9,9 +9,16 @@
     'container_name': 'grafana',
     'host_port': 3000,
     'data_dir': '/opt/grafana/data',
+    'provisioning_dir': '/opt/grafana/provisioning',
+    'dashboards_dir': '/opt/grafana/dashboards',
+    'dashboards_folder': 'Homelab',
+    'dashboards_source': 'https://grafana.com/api/dashboards/{id}/revisions/{revision}/download',
     'admin_user': 'admin',
     'admin_password': '',
     'uid': 472,
     'gid': 472,
 } %}
 {%- set grafana = salt['pillar.get']('grafana:lookup', default=defaults, merge=True) %}
+{#- datasources and dashboards are lists → read straight from pillar in
+   config.sls / files/*.j2, not via lookup (merge=True can't merge lists).
+   Both default to empty: plain Grafana, nothing provisioned. #}

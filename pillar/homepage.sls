@@ -62,6 +62,10 @@ homepage:
           widget:
             type: prometheus
             url: http://192.168.178.25:9090
+        - name: Alertmanager
+          href: http://192.168.178.25:9093
+          icon: alertmanager.png
+          description: Alerts
         - name: Wazuh
           href: https://192.168.178.27
           icon: wazuh.png

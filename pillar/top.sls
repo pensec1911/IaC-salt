@@ -12,6 +12,7 @@ base:
   'monitoring':
     - grafana
     - prometheus
+    - alertmanager
 
   'arrstack':
     - nfs-mount

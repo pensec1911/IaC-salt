@@ -1,0 +1,4 @@
+{#- prometheus:rule_groups is rendered 1:1 as the `groups:` list of a
+   Prometheus rule file (upstream schema). -#}
+# Managed by Salt (formulas/prometheus) — edit pillar prometheus:rule_groups.
+{{ {'groups': pillar.get('prometheus', {}).get('rule_groups', [])} | yaml(False) }}

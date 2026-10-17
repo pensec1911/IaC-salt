@@ -8,9 +8,10 @@ config.
 
 - `prometheus.config` — creates `config_dir`/`data_dir` and renders `prometheus.yml` from
   `files/prometheus.yml.j2` (pillar-driven `scrape_configs`; defaults to scraping only itself if
-  unset).
+  unset; `alerting` → Alertmanager targets) and the rule file from `files/rules.yml.j2`
+  (`rule_groups`, always present, empty if unset).
 - `prometheus.container` — runs the container via `docker_container.running`, bind-mounting both
-  dirs. Restarts automatically when the rendered config changes (`watch`).
+  dirs. Restarts automatically when the rendered config or rules change (`watch`).
 
 No dedicated host user (`users` formula) is created for this. The official image already runs
 internally as a fixed user, uid `65534` ("nobody") — creating a *second* system account pinned to
@@ -38,3 +39,11 @@ scraping only itself. Add real scrape targets by setting `prometheus:scrape_conf
 **replaces** the default list wholesale, same as any other pillar list override in this repo — it
 doesn't merge with the self-scrape default, so include a `prometheus` job entry yourself if you
 still want it scraped).
+
+Alert rules: `rule_groups` is rendered 1:1 (upstream rule-file schema). Annotation templates
+(`{{ $labels.instance }}`) must be wrapped in `{% raw %}…{% endraw %}` in pillar, otherwise
+pillar's own Jinja render tries to resolve them. Where notifications go is configured in
+`formulas/alertmanager`, not here.
+
+Targets in this repo set an `instance` label per host (the minion name) so dashboards and
+alerts don't show bare `IP:port`.

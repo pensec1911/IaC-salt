@@ -22,5 +22,7 @@ prometheus-container:
       - sls: docker
       - file: prometheus-data-dir
       - file: prometheus.yml
+      - file: prometheus-rules
     - watch:
       - file: prometheus.yml
+      - file: prometheus-rules

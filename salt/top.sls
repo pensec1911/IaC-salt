@@ -2,37 +2,48 @@ base:
   'salt-master':
     - users
     - wazuh-agent
+    - node-exporter
     - salt-master
 
   'homepage':
     - users
     - wazuh-agent
+    - node-exporter
     - docker
+    - cadvisor
     - homepage
 
   'monitoring':
     - users
     - wazuh-agent
+    - node-exporter
     - docker
+    - cadvisor
     - grafana
     - prometheus
+    - alertmanager
 
   'arrstack':
     - users
     - wazuh-agent
+    - node-exporter
     - nfs-mount
     - docker
+    - cadvisor
     - arrstack
 
   'wazuh':
     - users
+    - node-exporter
     - wazuh
 
   'jellyfin':
     - users
     - wazuh-agent
+    - node-exporter
     - nfs-mount
     - docker
+    - cadvisor
     - jellyfin
 
   # Targeting is by minion ID, which matches the Tofu VM `name` in
@@ -43,4 +54,5 @@ base:
   # '<minion-id>':
   #   - users
   #   - wazuh-agent
+  #   - node-exporter
   #   - <formula>
