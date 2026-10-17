@@ -12,6 +12,11 @@ container and its config.
 - `homepage.container` — runs the container via `docker_container.running`, bind-mounting the
   config dir. Restarts automatically when the rendered config changes (`watch`).
 
+Per service item, `services.yaml.j2` passes through `href`, `description`, `icon`, `ping` and
+`widget` (any nesting, rendered as JSON). `siteMonitor` (the status dot) defaults to the item's
+`href`; set `siteMonitor: false` to drop it or a URL to probe something else. Widgets that need
+credentials must get them via `sdb.get` in pillar like any other secret.
+
 Only `settings.yaml` and `services.yaml` are templated for now — `widgets.yaml`/`bookmarks.yaml`
 aren't wired up since nothing needs them yet; add a template + pillar key the same way
 `services.yaml` is done if that changes.

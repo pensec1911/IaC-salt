@@ -1,3 +1,7 @@
+{#- siteMonitor defaults to the item's href (a status dot on every tile);
+   set `siteMonitor: false` on an item to disable it, or a URL to probe
+   something else. `ping` and `widget` are passed through as-is — `widget`
+   rendered as JSON, which is valid YAML for any nesting. -#}
 {%- set groups = pillar.get('homepage', {}).get('services', []) %}
 {%- for group in groups %}
 - {{ group.name }}:
@@ -9,6 +13,16 @@
 {%- endif %}
 {%- if item.get('icon') %}
         icon: {{ item.icon }}
+{%- endif %}
+{%- set monitor = item.get('siteMonitor', item.href) %}
+{%- if monitor %}
+        siteMonitor: {{ monitor }}
+{%- endif %}
+{%- if item.get('ping') %}
+        ping: {{ item.ping }}
+{%- endif %}
+{%- if item.get('widget') %}
+        widget: {{ item.widget | tojson }}
 {%- endif %}
 {%- endfor %}
 {%- endfor %}

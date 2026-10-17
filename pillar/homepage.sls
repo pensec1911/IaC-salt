@@ -7,6 +7,8 @@ homepage:
     theme: dark
     color: slate
 
+  # Every item gets a status dot (siteMonitor = href) unless it sets
+  # `siteMonitor: false` — see formulas/homepage/README.md.
   services:
     - name: Media
       items:
@@ -57,10 +59,41 @@ homepage:
           href: http://192.168.178.25:9090
           icon: prometheus.png
           description: Metrics
+          widget:
+            type: prometheus
+            url: http://192.168.178.25:9090
+        - name: Wazuh
+          href: https://192.168.178.27
+          icon: wazuh.png
+          description: SIEM / XDR
 
-    # Add Wazuh once it's bootstrapped:
-    # - name: Infra
-    #   items:
-    #     - name: Wazuh
-    #       href: https://192.168.178.27
-    #       icon: wazuh.png
+    # Proxmox cluster nodes (managed by IaC-opentofu, not Salt).
+    - name: Proxmox
+      items:
+        - name: pve01
+          href: https://192.168.178.11:8006
+          icon: proxmox.png
+          description: homepage, wazuh, tailscale-router
+        - name: pve02
+          href: https://192.168.178.12:8006
+          icon: proxmox.png
+          description: monitoring, jellyfin, salt-master
+        - name: pve03
+          href: https://192.168.178.13:8006
+          icon: proxmox.png
+          description: arrstack, openbao, omada-controller
+
+    - name: Infrastructure
+      items:
+        - name: TrueNAS
+          href: https://192.168.178.10
+          icon: truenas-scale.png
+          description: NAS — media share
+        - name: OpenBao
+          href: https://192.168.178.20:8200/ui/
+          icon: openbao.png
+          description: Secrets
+        - name: FRITZ!Box
+          href: http://192.168.178.1
+          icon: avm-fritzbox.png
+          description: Router
