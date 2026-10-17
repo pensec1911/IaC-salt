@@ -38,13 +38,13 @@ arrstack:
       tag: 4.6.7
       webui_port: 8080
     sonarr:
-      tag: 4.0.9
+      tag: 4.0.20
       port: 8989
     radarr:
-      tag: 5.10.4
+      tag: 5.28.0
       port: 7878
     prowlarr:
-      tag: 1.24.3
+      tag: 1.37.0
       port: 9696
 
     bazarr:
@@ -59,7 +59,7 @@ arrstack:
       log_level: info
 
     slskd:
-      tag: 0.21.3
+      tag: 0.26.1
       webui_port: 5030
       # All four required in practice — no sane defaults. sdb references,
       # never literal values.

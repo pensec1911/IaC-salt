@@ -88,7 +88,7 @@ to fill in rather than a real default.
 
 ## Things worth double-checking before relying on this
 
-- **Image tags** (`gluetun` `v3.41.3`, `slskd` `0.21.3`, the LSIO images) are pinned to specific
+- **Image tags** (`gluetun` `v3.41.3`, `slskd` `0.26.1`, the LSIO images) are pinned to specific
   versions per this repo's convention, but picked without being able to check current releases —
   verify they still exist and bump as needed, same as you'd do for any pinned tag here.
 - **slskd's env var names** are verified against the running image (`slskd --envars`):
