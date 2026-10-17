@@ -1,0 +1,4 @@
+#!/bin/sh
+# Versioned pre-commit hook. Enable once per clone:
+#   git config core.hooksPath .githooks
+exec python3 "$(git rev-parse --show-toplevel)/.githooks/check-secrets.py"

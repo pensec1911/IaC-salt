@@ -74,3 +74,12 @@ something this repo can generate, so it stays a manual step.
 4. Push. Either wait for the next gitfs poll or run `salt-run fileserver.update` /
    `salt '<minion>' saltutil.refresh_pillar` to pick it up immediately, then
    `salt '<minion>' state.apply`.
+
+## Before your first commit
+
+Enable the versioned pre-commit hook once per clone — it blocks commits containing secrets or
+private data (see `.githooks/check-secrets.py`, `--all` for a full audit):
+
+```sh
+git config core.hooksPath .githooks
+```

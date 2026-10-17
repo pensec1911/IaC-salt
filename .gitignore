@@ -3,6 +3,9 @@ __pycache__/
 .DS_Store
 *.swp
 
+# personal Claude Code settings
+.claude/settings.local.json
+
 # accidental key material — should never be generated/copied into this repo
 *.pem
 *_rsa
