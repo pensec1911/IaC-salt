@@ -28,10 +28,12 @@ base:
     - users
     - wazuh
 
-  # Baseline only for now — no jellyfin formula yet.
   'jellyfin':
     - users
     - wazuh-agent
+    - nfs-mount
+    - docker
+    - jellyfin
 
   # Targeting is by minion ID, which matches the Tofu VM `name` in
   # IaC-opentofu/vms/<name>/main.tf (set as hostname via cloud-init).

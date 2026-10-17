@@ -1,0 +1,19 @@
+{#- puid/pgid are pinned to the shared `media` account (same numbers as
+   arrstack's) so Jellyfin can read what the arrstack writes to the NAS —
+   LSIO images take them as PUID/PGID env vars, so they have to be known at
+   render time. The matching formulas/users account entry
+   (pillar/jellyfin.sls) must use the same numbers. #}
+{%- set defaults = {
+    'image': 'lscr.io/linuxserver/jellyfin',
+    'tag': '12.2ubu2604-ls54',
+    'container_name': 'jellyfin',
+    'puid': 970,
+    'pgid': 970,
+    'timezone': 'Etc/UTC',
+    'http_port': 8096,
+    'config_dir': '/opt/jellyfin/config',
+    'cache_dir': '/opt/jellyfin/cache',
+    'media_mount': '/mnt/media',
+    'published_server_url': '',
+} %}
+{%- set jellyfin = salt['pillar.get']('jellyfin:lookup', default=defaults, merge=True) %}
