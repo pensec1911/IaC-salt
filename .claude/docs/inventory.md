@@ -23,7 +23,7 @@ cAdvisor :8088. All scraped by Prometheus on monitoring (`pillar/prometheus.sls`
 | Host | IP | Notes |
 |---|---|---|
 | OpenBao | .20 | Secrets backend, KV-v2 mount `homelab`. Not a minion, no SSH from Claude sessions — user runs `bao` there. See [secrets.md](secrets.md). |
-| TrueNAS | .10 | NFS export `/mnt/pool01/media` (single dataset: `movies/`, `series/`, `music/`, `incomplete/` as plain dirs so hardlinks work). Owner `media` 970:970, mode 775, root squashed. Allowed hosts: .22 (arrstack), .24 (jellyfin). |
+| TrueNAS | .10 | NFS export `/mnt/pool01/media` (single dataset: `movies/`, `series/`, `music/`, `incomplete/`, `torrents/` as plain dirs so hardlinks work). Owner `media` 970:970, mode 775, root squashed. Allowed hosts: .22 (arrstack), .24 (jellyfin). |
 | Proxmox / OPNsense | — | Managed by the sibling `IaC-opentofu` / OPNsense repos. |
 
 ## External services

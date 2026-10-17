@@ -42,6 +42,14 @@ WebUI through Docker's port publish. Without it the hook fails with a 403 in the
 qBittorrent keeps its old port. Not automated because qBittorrent rewrites its config file on
 exit, so a Salt-managed edit races the running container.
 
+**One-time manual step — download paths** (same reason: qBittorrent owns its config). Torrents go
+to `/media/torrents/<tv|movies>`, Sonarr/Radarr hardlink from there into `/media/series` /
+`/media/movies` (roots of the Jellyfin libraries), so raw release folders never show up in Jellyfin.
+Same NFS dataset, so hardlinks work. In qBittorrent: default save path `/media/torrents`, default
+Torrent Management Mode **Automatic** (in Manual mode category paths are ignored), category
+`tv-sonarr` → `/media/torrents/tv`, `radarr` → `/media/torrents/movies`. Set 2026-10-17 via the
+WebUI API (`docker exec qbittorrent curl localhost:8080/api/v2/...`).
+
 `prowlarr-container` doesn't get a `media_mount` bind — it only manages indexers and talks to
 Sonarr/Radarr over their APIs, it doesn't touch files.
 
