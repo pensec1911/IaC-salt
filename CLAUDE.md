@@ -23,6 +23,7 @@ pillar/     per-minion data (git_pillar)
 | [.claude/docs/inventory.md](.claude/docs/inventory.md) | minions, IPs, ports, NAS, VPN provider, how to reach hosts |
 | [.claude/docs/operations.md](.claude/docs/operations.md) | deploy/debug commands, gotchas, runtime facts |
 | [.claude/docs/known-issues.md](.claude/docs/known-issues.md) | open bugs and todos |
+| [.claude/docs/roadmap.md](.claude/docs/roadmap.md) | planned extensions (event-driven Salt etc.) — delete an item when it ships |
 | `formulas/<name>/README.md` | what that formula manages, its pillar, its manual steps |
 
 ## Hard rules
@@ -56,6 +57,9 @@ pillar/     per-minion data (git_pillar)
    `salt '<minion>' state.apply test=True`, then without `test=True`. Full `state.apply`, not
    `state.apply <formula>`. More: [operations.md](.claude/docs/operations.md); render/sync
    problems: `/salt-render-debug`.
+
+4. After a roadmap item ships or a new formula/minion lands: run the `roadmap-curator` agent in
+   the background to prune `roadmap.md` and add fitting ideas.
 
 Keep this file short: rules and pointers only. New detail goes into the matching
 `.claude/docs/*.md` or formula README; new open problems into `known-issues.md`.
