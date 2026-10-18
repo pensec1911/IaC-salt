@@ -12,6 +12,10 @@ from the `users` formula.
 
 - `node-exporter.install` — the package, without Recommends (see `pillar.example.sls`).
 - `node-exporter.service` — `prometheus-node-exporter`, enabled and running.
+- `node-exporter.mine` — Salt Mine entry `node_exporter` (`network.ip_addrs` on `eth0`) in
+  `/etc/salt/minion.d/mine-node-exporter.conf`, pushed once via `mine.update` when that file changes.
+  `formulas/prometheus` builds its `node` scrape job from `mine.get('*', 'node_exporter')`, so a new
+  minion with this formula gets scraped without editing `pillar/prometheus.sls`.
 
 Listen address/collector flags stay the package's defaults. To change them, patch `ARGS` in
 `/etc/default/prometheus-node-exporter` with `file.blockreplace`/`file.replace`, don't replace
@@ -29,7 +33,8 @@ Every minion, right after `wazuh-agent`:
   - node-exporter
 ```
 
-Then add the host as a target of the `node` job in `pillar/prometheus.sls`.
+Prometheus picks the host up via the mine after this minion's highstate **and** the next
+`state.apply` on `monitoring`.
 
 ## Pillar
 

@@ -9,6 +9,10 @@ Depends on the `docker` formula.
 - `cadvisor.container` — privileged container with the read-only host binds cAdvisor needs
   (`/`, `/var/run`, `/sys`, `/var/lib/docker`, `/dev/disk`, `/dev/kmsg`). `--docker_only` keeps
   it to Docker containers (no per-systemd-unit series).
+- `cadvisor.mine` — Salt Mine entry `cadvisor` (`network.ip_addrs` on `eth0`) in
+  `/etc/salt/minion.d/mine-cadvisor.conf`, pushed once via `mine.update` when that file changes.
+  `formulas/prometheus` builds its `cadvisor` scrape job from `mine.get('*', 'cadvisor')`, so a new
+  minion with this formula gets scraped without editing `pillar/prometheus.sls`.
 
 No host user, no state on disk.
 
@@ -24,7 +28,9 @@ Every minion that runs `docker`, after it:
   - some-service
 ```
 
-Then add the host as a target of the `cadvisor` job in `pillar/prometheus.sls`.
+Prometheus picks the host up via the mine after this minion's highstate **and** the next
+`state.apply` on `monitoring`. Dropping the formula from a minion leaves its mine entry
+behind — clear it with `salt '<minion>' mine.delete cadvisor`.
 
 ## Pillar
 

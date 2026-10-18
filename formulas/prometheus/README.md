@@ -45,5 +45,13 @@ Alert rules: `rule_groups` is rendered 1:1 (upstream rule-file schema). Annotati
 pillar's own Jinja render tries to resolve them. Where notifications go is configured in
 `formulas/alertmanager`, not here.
 
+**Mine-backed jobs**: a job with `mine: {alias, port}` instead of (or in addition to)
+`static_configs` gets one target `<ip>:<port>` per minion returned by
+`mine.get('*', alias)`, labelled `instance: <minion id>`. The mine is read when this minion's
+highstate renders `prometheus.yml` — a new minion appears after its own highstate (which
+publishes the entry) plus one here; until then `monitoring`'s drift check shows
+`prometheus.yml` as pending. A job whose mine is empty renders `static_configs: []`
+(`ScrapeJobEmpty` alert in `pillar/prometheus.sls`).
+
 Targets in this repo set an `instance` label per host (the minion name) so dashboards and
 alerts don't show bare `IP:port`.

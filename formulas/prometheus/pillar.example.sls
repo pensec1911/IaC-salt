@@ -24,12 +24,13 @@ prometheus:
       static_configs:
         - targets:
             - localhost:9090
+    # Or let the Salt Mine supply the targets: one <ip>:<port> per minion
+    # publishing `alias` (formulas/node-exporter / cadvisor), with
+    # instance=<minion id>. Combinable with static_configs.
     # - job_name: node
-    #   static_configs:
-    #     - targets:
-    #         - some-minion:9100
-    #       labels:
-    #         role: minion
+    #   mine:
+    #     alias: node_exporter
+    #     port: 9100
 
   # Alertmanager(s) to send firing alerts to. Unset = no alerting section.
   alerting:

@@ -6,3 +6,8 @@ cadvisor:
     host_port: 8088
     # How often container stats are collected. Lower = more CPU.
     housekeeping_interval: 30s
+    # Salt Mine entry formulas/prometheus builds the `cadvisor` job from.
+    mine:
+      alias: cadvisor
+      interface: eth0
+      conf: /etc/salt/minion.d/mine-cadvisor.conf

@@ -14,7 +14,7 @@ Flat network 192.168.178.0/24 (FRITZ!Box range). Minion ID = hostname = Tofu VM 
 | `wazuh` | .27 | users, node-exporter, salt-minion, wazuh | dashboard :443, indexer :9200, API :55000, agents :1514 / enrollment :1515 |
 
 Every minion: node_exporter :9100. Docker hosts (homepage, monitoring, arrstack, jellyfin):
-cAdvisor :8088. All scraped by Prometheus on monitoring (`pillar/prometheus.sls`).
+cAdvisor :8088. All scraped by Prometheus on monitoring — targets from the Salt Mine (`node_exporter`, `cadvisor` entries), not listed in `pillar/prometheus.sls`.
 
 `salt/top.sls` and `pillar/top.sls` are authoritative — update this table when they change.
 

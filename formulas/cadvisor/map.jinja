@@ -1,10 +1,20 @@
 {#- host_port is not cAdvisor's usual 8080: qBittorrent already has that on
-   arrstack. #}
+   arrstack.
+
+   mine: Salt Mine entry the prometheus formula reads its cadvisor targets
+   from (mine.get('*', alias)) — only minions with this formula have it.
+   interface: network.ip_addrs without it also returns docker0's
+   172.17.0.1. #}
 {%- set defaults = {
     'image': 'ghcr.io/google/cadvisor',
     'tag': 'v0.60.6',
     'container_name': 'cadvisor',
     'host_port': 8088,
     'housekeeping_interval': '30s',
+    'mine': {
+        'alias': 'cadvisor',
+        'interface': 'eth0',
+        'conf': '/etc/salt/minion.d/mine-cadvisor.conf',
+    },
 } %}
 {%- set cadvisor = salt['pillar.get']('cadvisor:lookup', default=defaults, merge=True) %}

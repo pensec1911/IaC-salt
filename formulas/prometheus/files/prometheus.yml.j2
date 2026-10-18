@@ -21,9 +21,23 @@ alerting:
 
 scrape_configs:
 {%- for job in scrape_configs %}
+{#- A job with `mine:` gets one target per minion that publishes
+   mine.alias (formulas/node-exporter, formulas/cadvisor), labelled with
+   the minion ID. Rendered on this minion, so it sees the mine as of this
+   state run — a new minion shows up after its own highstate plus one here. #}
+{%- set static_configs = job.get('static_configs', []) | list %}
+{%- if job.get('mine') %}
+{%- for minion, ips in salt['mine.get']('*', job.mine.alias) | dictsort if ips %}
+{%- do static_configs.append({'targets': [ips[0] ~ ':' ~ job.mine.port], 'labels': {'instance': minion}}) %}
+{%- endfor %}
+{%- endif %}
   - job_name: {{ job.job_name }}
+{%- if not static_configs %}
+    static_configs: []
+{%- else %}
     static_configs:
-{%- for sc in job.get('static_configs', []) %}
+{%- endif %}
+{%- for sc in static_configs %}
       - targets:
 {%- for target in sc.get('targets', []) %}
           - {{ target }}

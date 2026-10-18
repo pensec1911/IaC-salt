@@ -1,9 +1,18 @@
 {#- Debian's own package rather than a container: it has to run on every
    minion, including salt-master and wazuh, which have no Docker. Listens
-   on :9100 by default (ARGS in /etc/default/prometheus-node-exporter). #}
+   on :9100 by default (ARGS in /etc/default/prometheus-node-exporter).
+
+   mine: Salt Mine entry the prometheus formula reads its node targets from
+   (mine.get('*', alias)). interface: network.ip_addrs without it also
+   returns docker0's 172.17.0.1 on the Docker hosts. #}
 {%- set defaults = {
     'pkg': 'prometheus-node-exporter',
     'service': 'prometheus-node-exporter',
     'install_recommends': False,
+    'mine': {
+        'alias': 'node_exporter',
+        'interface': 'eth0',
+        'conf': '/etc/salt/minion.d/mine-node-exporter.conf',
+    },
 } %}
 {%- set node_exporter = salt['pillar.get']('node-exporter:lookup', default=defaults, merge=True) %}

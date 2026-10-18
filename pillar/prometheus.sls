@@ -1,16 +1,8 @@
-{#- Scrape targets: minion -> IP (see .claude/docs/inventory.md). Every
-   minion runs node-exporter; the docker hosts also run cadvisor. The
-   `instance` label is set to the minion name so dashboards/alerts show
-   "arrstack" instead of "192.168.178.22:9100". #}
-{%- set node_hosts = {
-    'salt-master': '192.168.178.28',
-    'homepage': '192.168.178.23',
-    'monitoring': '192.168.178.25',
-    'arrstack': '192.168.178.22',
-    'jellyfin': '192.168.178.24',
-    'wazuh': '192.168.178.27',
-} %}
-{%- set cadvisor_hosts = ['homepage', 'monitoring', 'arrstack', 'jellyfin'] %}
+{#- node and cadvisor targets come from the Salt Mine (formulas/node-exporter,
+   formulas/cadvisor publish each minion's IP; formulas/prometheus expands
+   `mine:` jobs into one target per minion, `instance` = minion name). Only
+   monitoring's own address is still listed here, for Alertmanager. #}
+{%- set monitoring_ip = '192.168.178.25' %}
 prometheus:
   scrape_configs:
     - job_name: prometheus
@@ -22,28 +14,20 @@ prometheus:
     - job_name: alertmanager
       static_configs:
         - targets:
-            - {{ node_hosts['monitoring'] }}:9093
+            - {{ monitoring_ip }}:9093
           labels:
             instance: monitoring
     - job_name: node
-      static_configs:
-{%- for name, ip in node_hosts | dictsort %}
-        - targets:
-            - {{ ip }}:9100
-          labels:
-            instance: {{ name }}
-{%- endfor %}
+      mine:
+        alias: node_exporter
+        port: 9100
     - job_name: cadvisor
-      static_configs:
-{%- for name in cadvisor_hosts %}
-        - targets:
-            - {{ node_hosts[name] }}:8088
-          labels:
-            instance: {{ name }}
-{%- endfor %}
+      mine:
+        alias: cadvisor
+        port: 8088
 
   alerting:
-    - {{ node_hosts['monitoring'] }}:9093
+    - {{ monitoring_ip }}:9093
 
   {#- raw blocks: the annotations use Prometheus' own {{ }} templating,
      which pillar's Jinja would otherwise try to render. #}
@@ -57,6 +41,16 @@ prometheus:
             severity: critical
           annotations:
             summary: {% raw %}"{{ $labels.job }} on {{ $labels.instance }} is down"{% endraw %}
+        {#- A mine job that rendered no targets has no `up` series, so
+           TargetDown can't fire for it — e.g. monitoring applied before
+           any minion published its mine entry. #}
+        - alert: ScrapeJobEmpty
+          expr: absent(up{job="node"}) or absent(up{job="cadvisor"})
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: {% raw %}"Scrape job {{ $labels.job }} has no targets — Salt Mine empty? Apply the exporter minions, then monitoring"{% endraw %}
         - alert: DiskAlmostFull
           expr: >-
             node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
