@@ -1,0 +1,27 @@
+{#- drift_check: a minion-side Salt schedule runs `state.apply test=True`
+   every interval_minutes (+ up to splay_seconds, so the minions don't all
+   hit the master at once) and writes the outcome as node-exporter textfile
+   metrics (salt_drift_*). Prometheus alerts on them (pillar/prometheus.sls).
+
+   textfile_dir: Debian's prometheus-node-exporter reads this directory by
+   default (no --collector.textfile.directory flag needed) — verified on all
+   minions 2026-10-18. It belongs to the node-exporter package, hence the
+   require on that formula.
+
+   timeout_seconds: the dry run uses queue=True, so it waits behind a
+   state.apply already running instead of failing; the timeout caps that
+   wait plus the run itself (arrstack's dry run takes ~20 s). #}
+{%- set defaults = {
+    'drift_check': {
+        'enabled': True,
+        'interval_minutes': 60,
+        'splay_seconds': 300,
+        'timeout_seconds': 900,
+        'script': '/usr/local/sbin/salt-drift-check',
+        'textfile_dir': '/var/lib/prometheus/node-exporter',
+        'metrics_file': 'salt_drift.prom',
+        'salt_call': '/usr/bin/salt-call',
+        'python': '/usr/bin/python3',
+    },
+} %}
+{%- set salt_minion = salt['pillar.get']('salt-minion:lookup', default=defaults, merge=True) %}

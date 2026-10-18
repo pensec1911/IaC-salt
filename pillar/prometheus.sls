@@ -80,3 +80,37 @@ prometheus:
             severity: warning
           annotations:
             summary: {% raw %}"{{ $labels.instance }} CPU over 90% for 30m"{% endraw %}
+        {#- salt_drift_* come from formulas/salt-minion (hourly highstate dry
+           run). The metric only changes once per run, so `for: 90m` means
+           "still drifted at the next run" — a push that is applied within
+           the hour never alerts. #}
+        - alert: SaltDrift
+          expr: salt_drift_states_pending > 0
+          for: 90m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"{{ $labels.instance }} differs from git in {{ $value }} state(s) — run state.apply test=True"{% endraw %}
+        - alert: SaltDriftCheckFailing
+          expr: salt_drift_check_success == 0 or salt_drift_states_failed > 0
+          for: 90m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"Highstate dry run on {{ $labels.instance }} fails (render error, failing state or master unreachable)"{% endraw %}
+        - alert: SaltDriftCheckStale
+          expr: time() - salt_drift_last_run_timestamp_seconds > 3 * 3600
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"Drift check on {{ $labels.instance }} has not run for over 3h"{% endraw %}
+        {#- Stale needs the metric to exist once; this catches a minion whose
+           node-exporter is up but that never wrote it (schedule missing). #}
+        - alert: SaltDriftCheckMissing
+          expr: up{job="node"} == 1 unless on(instance) salt_drift_last_run_timestamp_seconds
+          for: 3h
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"{{ $labels.instance }} exposes no drift-check metrics — is salt-minion in its top.sls?"{% endraw %}

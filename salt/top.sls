@@ -3,12 +3,14 @@ base:
     - users
     - wazuh-agent
     - node-exporter
+    - salt-minion
     - salt-master
 
   'homepage':
     - users
     - wazuh-agent
     - node-exporter
+    - salt-minion
     - docker
     - cadvisor
     - homepage
@@ -17,6 +19,7 @@ base:
     - users
     - wazuh-agent
     - node-exporter
+    - salt-minion
     - docker
     - cadvisor
     - grafana
@@ -27,6 +30,7 @@ base:
     - users
     - wazuh-agent
     - node-exporter
+    - salt-minion
     - nfs-mount
     - docker
     - cadvisor
@@ -35,12 +39,14 @@ base:
   'wazuh':
     - users
     - node-exporter
+    - salt-minion
     - wazuh
 
   'jellyfin':
     - users
     - wazuh-agent
     - node-exporter
+    - salt-minion
     - nfs-mount
     - docker
     - cadvisor

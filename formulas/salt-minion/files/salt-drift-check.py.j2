@@ -1,0 +1,71 @@
+#!{{ dc.python }}
+# Managed by Salt (formulas/salt-minion) — do not edit here.
+#
+# Dry-runs this minion's highstate and writes the result as node-exporter
+# textfile metrics. A state counts as drifted when the dry run would change
+# it (result None, or non-empty changes); failed = result False. A render
+# error or timeout sets salt_drift_check_success 0.
+import json
+import os
+import subprocess
+import tempfile
+import time
+
+SALT_CALL = "{{ dc.salt_call }}"
+TIMEOUT = {{ dc.timeout_seconds }}
+OUT = "{{ dc.textfile_dir }}/{{ dc.metrics_file }}"
+
+
+def dry_run():
+    proc = subprocess.run(
+        [SALT_CALL, "--out=json", "--log-level=quiet",
+         "state.apply", "test=True", "queue=True"],
+        capture_output=True, text=True, timeout=TIMEOUT,
+    )
+    start = proc.stdout.find("{")
+    if start < 0:
+        return None
+    data, _ = json.JSONDecoder().raw_decode(proc.stdout[start:])
+    states = data.get("local")
+    # A render error or a lock message comes back as a list of strings.
+    return states if isinstance(states, dict) else None
+
+
+def main():
+    started = time.time()
+    try:
+        states = dry_run()
+    except (subprocess.TimeoutExpired, ValueError, OSError):
+        states = None
+
+    lines = []
+
+    def metric(name, help_, value):
+        lines.append("# HELP {} {}".format(name, help_))
+        lines.append("# TYPE {} gauge".format(name))
+        lines.append("{} {}".format(name, value))
+
+    metric("salt_drift_check_success",
+           "1 if the highstate dry run completed and rendered", int(states is not None))
+    if states is not None:
+        results = list(states.values())
+        metric("salt_drift_states_total", "States in the highstate", len(results))
+        metric("salt_drift_states_pending", "States the dry run would change",
+               sum(1 for r in results if r.get("result") is None or r.get("changes")))
+        metric("salt_drift_states_failed", "States that fail in the dry run",
+               sum(1 for r in results if r.get("result") is False))
+    metric("salt_drift_duration_seconds", "Duration of the dry run",
+           round(time.time() - started, 3))
+    metric("salt_drift_last_run_timestamp_seconds", "When the dry run finished",
+           int(time.time()))
+
+    # Atomic replace — node-exporter must never read a half-written file.
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix=".salt_drift.")
+    with os.fdopen(fd, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, OUT)
+
+
+if __name__ == "__main__":
+    main()

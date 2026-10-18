@@ -22,6 +22,14 @@ salt '<minion>' state.apply
   installed until the real run.
 - Recreating gluetun restarts every attached arrstack container (by design, via `watch`).
 
+## Drift check
+
+Every minion dry-runs its highstate hourly (`formulas/salt-minion`) and exposes the result as
+`salt_drift_*` metrics; Prometheus alerts `SaltDrift` / `SaltDriftCheckFailing` /
+`SaltDriftCheckStale` / `SaltDriftCheckMissing`. On a `SaltDrift` alert: `salt '<minion>' state.apply test=True` shows
+what differs — then either apply (git is right) or commit the change (the VM is right).
+Force a check now: `salt '<minion>' schedule.run_job drift-check`.
+
 ## Inspect / debug
 
 | Goal | Command |
