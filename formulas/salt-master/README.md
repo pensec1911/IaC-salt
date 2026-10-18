@@ -22,6 +22,10 @@ everything else, so changing it needs no master restart — changing `reactor.co
 `watch_in` handles that). Watch it work: `salt-run state.event pretty=True` on the master, then
 restart `salt-minion` somewhere.
 
+Verified on full VM reboots of jellyfin and arrstack (2026-10-18): NFS mounts are up when
+salt-minion starts, the highstate queues behind the start-time drift check and converges with
+0 changes (arrstack: VPN reconnects, forwarded port re-synced to qBittorrent).
+
 Disable with `salt-master:lookup:highstate_on_start: False`.
 
 ## Reactor: refresh mine consumers
