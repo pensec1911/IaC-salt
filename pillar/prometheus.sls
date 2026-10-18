@@ -92,6 +92,18 @@ prometheus:
             severity: warning
           annotations:
             summary: {% raw %}"Highstate dry run on {{ $labels.instance }} fails (render error, failing state or master unreachable)"{% endraw %}
+        {#- Only on enforce minions (pillar/salt-minion-enforce.sls). The
+           repair metrics carry over between runs, so only while the host is
+           still drifted/failing — a later manual fix clears it. #}
+        - alert: SaltDriftRepairFailed
+          expr: >-
+            salt_drift_repair_last_success == 0
+            and on(instance) (salt_drift_states_pending > 0 or salt_drift_states_failed > 0)
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"Self-repair state.apply on {{ $labels.instance }} had failed states — run state.apply by hand"{% endraw %}
         - alert: SaltDriftCheckStale
           expr: time() - salt_drift_last_run_timestamp_seconds > 3 * 3600
           for: 15m

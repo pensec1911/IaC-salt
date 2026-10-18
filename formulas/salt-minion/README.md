@@ -20,8 +20,34 @@ collector exposes:
 | `salt_drift_last_run_timestamp_seconds` | when it last finished |
 
 Alerts on these live in `pillar/prometheus.sls` (`SaltDrift`, `SaltDriftCheckFailing`,
-`SaltDriftCheckStale`, `SaltDriftCheckMissing`). The check **only reports** — it never applies. To see *what* drifted:
-`salt '<minion>' state.apply test=True` on the master.
+`SaltDriftCheckStale`, `SaltDriftCheckMissing`, `SaltDriftRepairFailed`). By default the
+check **only reports**. To see *what* drifted: `salt '<minion>' state.apply test=True` on the
+master.
+
+## Self-repair (enforce)
+
+With `drift_check.enforce: True` a dry run that shows drift — and no failing states — is
+followed by a real `state.apply` and a second dry run. The drift metrics then describe the host
+*after* the repair, so `SaltDrift` only fires when the repair didn't converge. Extra metrics:
+
+| Metric | Meaning |
+|---|---|
+| `salt_drift_enforce` | 1 = this minion self-repairs |
+| `salt_drift_repair_last_timestamp_seconds` | when enforce last applied for real |
+| `salt_drift_repair_last_success` | 1 = that apply had no failed states (`SaltDriftRepairFailed` on 0) |
+| `salt_drift_repair_last_states_changed` | states that apply changed |
+
+On in `pillar/salt-minion-enforce.sls` for homepage, monitoring and salt-master. Not on
+arrstack (recreating gluetun restarts the VPN stack) or jellyfin (cuts streams).
+
+Consequence: on those minions **a push deploys itself** within `interval_minutes` + splay, with
+no `test=True` first. A failing dry run (render error, failing state) blocks the repair. A
+failed repair is retried on the next run. Each of the three runs gets its own
+`timeout_seconds`, so one check can take up to 3× that.
+
+Before turning enforce on for another minion, make sure its dry run is clean: a state that
+always reports pending in `test=True` (e.g. `cmd.run` without `unless`/`onlyif`) would trigger
+a real apply every hour.
 
 Drift means the minion differs from git: a hand edit on the VM, a container changed outside
 Salt — or a commit that was pushed but not yet applied. After a push, the alert clears once

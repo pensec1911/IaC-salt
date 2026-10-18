@@ -9,8 +9,17 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 
 ## Next up (agreed order)
 
-Nothing queued — pick from "Later". Suggested order if you want one: (1) Drift check enforcement
-on `homepage`, (2) Beacons → reactor.
+### 1. Backup of service data
+
+- **Why**: everything under `/opt/<app>` that Salt doesn't render is only on the VM — arr
+  configs/DBs (~85 MB on arrstack), jellyfin config (66 MB), grafana DB (15 MB). A lost VM means
+  re-doing Sonarr/Radarr/Prowlarr setup by hand; the arr major bumps (known-issues.md) need a
+  backup first anyway. Images and rendered config are reproducible — not in scope.
+- **Sketch**: `backup` formula — restic + systemd timer per minion, repo on a NAS share via
+  `nfs-mount`, repo password from OpenBao (sdb). Paths per minion in pillar. Consistent SQLite:
+  stop the container briefly, or use the arr apps' own scheduled backup zips. Textfile metrics
+  like the drift check → `BackupStale` alert.
+- **Open**: which NAS share, retention, include prometheus data (probably not).
 
 ## Later
 
@@ -23,12 +32,12 @@ on `homepage`, (2) Beacons → reactor.
   cadvisor + Alertmanager.
 - Reactor plumbing exists (`formulas/salt-master`, `reactor.conf.j2`) — add a mapping there.
 
-### Drift check: real enforcement
+### Self-repair on jellyfin / arrstack
 
-- The hourly dry run (`formulas/salt-minion`) only reports. Once `SaltDrift` has stayed quiet
-  for a while, selected minions could re-apply on drift instead (schedule `state.apply` without
-  `test=True`, or reactor on a drift event). Risky on arrstack (container recreation restarts
-  the whole VPN stack) — start with stateless hosts like `homepage`.
+- Enforce mode runs on homepage, monitoring, salt-master (`pillar/salt-minion-enforce.sls`).
+  jellyfin/arrstack stay report-only: a repair can recreate containers (cuts streams; on
+  arrstack restarts the whole VPN stack). Possible: a maintenance window (only repair at night),
+  or enforce only once `salt_drift_repair_last_*` has been quiet on the others for a while.
 
 ### Orchestrate runs across minions
 

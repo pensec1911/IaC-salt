@@ -5,6 +5,9 @@ salt-minion:
     drift_check:
       # False removes the schedule, the script and the metrics file.
       enabled: True
+      # Self-repair: on drift, apply for real (then re-check). Only where a
+      # re-apply is harmless — not on hosts whose containers restart a stack.
+      enforce: False
       interval_minutes: 60
       splay_seconds: 300
       timeout_seconds: 900

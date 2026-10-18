@@ -5,6 +5,12 @@
 # textfile metrics. A state counts as drifted when the dry run would change
 # it (result None, or non-empty changes); failed = result False. A render
 # error or timeout sets salt_drift_check_success 0.
+#
+# With enforce on, a dry run that shows drift (and no failing states) is
+# followed by a real state.apply and a second dry run, so the drift metrics
+# describe the state *after* the repair — SaltDrift then only fires when the
+# repair did not converge. salt_drift_repair_last_* are carried over from
+# the previous file on runs without a repair.
 import json
 import os
 import subprocess
@@ -14,14 +20,16 @@ import time
 SALT_CALL = "{{ dc.salt_call }}"
 TIMEOUT = {{ dc.timeout_seconds }}
 OUT = "{{ dc.textfile_dir }}/{{ dc.metrics_file }}"
+ENFORCE = {{ dc.enforce | string }}
 
 
 RETRY_SECONDS = 30
 
 
-def salt_call(timeout):
+def salt_call(timeout, test):
     proc = subprocess.run(
-        [SALT_CALL, "--out=json", "--log-level=quiet", "state.apply", "test=True"],
+        [SALT_CALL, "--out=json", "--log-level=quiet", "state.apply"]
+        + (["test=True"] if test else []),
         capture_output=True, text=True, timeout=timeout,
     )
     start = proc.stdout.find("{")
@@ -31,29 +39,69 @@ def salt_call(timeout):
     return data.get("local")
 
 
-def dry_run(deadline):
+def state_run(deadline, test):
     # Not queue=True: a queued run only answers "Job queued for execution"
     # and its result never reaches us. Instead retry while another state run
     # holds the lock (it answers with a list: "... is running as PID ...").
     while True:
-        out = salt_call(max(1, deadline - time.time()))
+        out = salt_call(max(1, deadline - time.time()), test)
         busy = isinstance(out, list) and any("is running as PID" in str(s) for s in out)
         if not busy or time.time() + RETRY_SECONDS >= deadline:
             break
         time.sleep(RETRY_SECONDS)
     # Anything but a dict of state results (render error, still locked,
-    # unexpected shape) counts as a failed check.
+    # unexpected shape) counts as a failed run.
     if isinstance(out, dict) and out and all(isinstance(r, dict) for r in out.values()):
         return out
     return None
 
 
+def run(test=True):
+    try:
+        return state_run(time.time() + TIMEOUT, test)
+    except (subprocess.TimeoutExpired, ValueError, OSError):
+        return None
+
+
+def pending(states):
+    return sum(1 for r in states.values() if r.get("result") is None or r.get("changes"))
+
+
+def failed(states):
+    return sum(1 for r in states.values() if r.get("result") is False)
+
+
+def previous_repair_lines():
+    try:
+        with open(OUT) as f:
+            return [l.rstrip("\n") for l in f if "salt_drift_repair_last_" in l]
+    except OSError:
+        return []
+
+
 def main():
     started = time.time()
-    try:
-        states = dry_run(started + TIMEOUT)
-    except (subprocess.TimeoutExpired, ValueError, OSError):
-        states = None
+    states = run()
+    repair_lines = previous_repair_lines() if ENFORCE else []
+
+    # Failing states block the repair: applying around them could leave a
+    # half-converged host. SaltDriftCheckFailing covers that case.
+    if ENFORCE and states is not None and pending(states) and not failed(states):
+        applied = run(test=False)
+        repair_lines = []
+        for name, help_, value in (
+            ("salt_drift_repair_last_timestamp_seconds",
+             "When enforce last ran a real state.apply", int(time.time())),
+            ("salt_drift_repair_last_success",
+             "1 if that apply completed without failed states",
+             int(applied is not None and not failed(applied))),
+            ("salt_drift_repair_last_states_changed", "States that apply changed",
+             sum(1 for r in (applied or {}).values() if r.get("changes"))),
+        ):
+            repair_lines += ["# HELP {} {}".format(name, help_),
+                             "# TYPE {} gauge".format(name),
+                             "{} {}".format(name, value)]
+        states = run()
 
     lines = []
 
@@ -65,15 +113,14 @@ def main():
     metric("salt_drift_check_success",
            "1 if the highstate dry run completed and rendered", int(states is not None))
     if states is not None:
-        results = list(states.values())
-        metric("salt_drift_states_total", "States in the highstate", len(results))
-        metric("salt_drift_states_pending", "States the dry run would change",
-               sum(1 for r in results if r.get("result") is None or r.get("changes")))
-        metric("salt_drift_states_failed", "States that fail in the dry run",
-               sum(1 for r in results if r.get("result") is False))
-    metric("salt_drift_duration_seconds", "Duration of the dry run",
+        metric("salt_drift_states_total", "States in the highstate", len(states))
+        metric("salt_drift_states_pending", "States the dry run would change", pending(states))
+        metric("salt_drift_states_failed", "States that fail in the dry run", failed(states))
+    metric("salt_drift_enforce", "1 if drift is repaired by a real state.apply", int(ENFORCE))
+    lines.extend(repair_lines)
+    metric("salt_drift_duration_seconds", "Duration of the check, incl. any repair",
            round(time.time() - started, 3))
-    metric("salt_drift_last_run_timestamp_seconds", "When the dry run finished",
+    metric("salt_drift_last_run_timestamp_seconds", "When the check finished",
            int(time.time()))
 
     # Atomic replace — node-exporter must never read a half-written file.

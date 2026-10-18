@@ -3,6 +3,10 @@ base:
     - GLOBAL
     - wazuh-agent
 
+  'homepage,monitoring,salt-master':
+    - match: list
+    - salt-minion-enforce
+
   'salt-master':
     - salt-master
 

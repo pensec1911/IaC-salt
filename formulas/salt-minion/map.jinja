@@ -10,10 +10,16 @@
 
    timeout_seconds: while another state run holds the lock the script
    retries every 30 s; the timeout caps that wait plus the run itself
-   (arrstack's dry run takes ~25 s). #}
+   (arrstack's dry run takes ~25 s). With enforce it caps each of the
+   dry run, the repair apply and the second dry run.
+
+   enforce: self-repair — on drift, run a real state.apply instead of only
+   reporting. Off by default; turned on per minion in pillar where a
+   re-apply is harmless (pillar/salt-minion-enforce.sls). #}
 {%- set defaults = {
     'drift_check': {
         'enabled': True,
+        'enforce': False,
         'interval_minutes': 60,
         'splay_seconds': 300,
         'timeout_seconds': 900,
