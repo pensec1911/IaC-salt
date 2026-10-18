@@ -25,6 +25,21 @@ can't drift apart) already does. Nothing else is exposed on the LAN side. On the
 qBittorrent's torrent port is reachable only with `gluetun:port_forwarding` on (below); slskd's
 Soulseek listen port is never forwarded.
 
+### Leak guard (VPN drop)
+
+gluetun's kill switch (`OUTPUT` policy DROP, only `tun0` + the WireGuard endpoint allowed) stops
+*new* connections when the tunnel is gone, but its `ESTABLISHED,RELATED` accept isn't tied to an
+interface. Taking `tun0` down (2026-10-18) showed packets of already-open connections — FINs and
+retransmits to peers/trackers, gluetun's DNS-over-TLS — falling back to `eth0` with the tunnel
+address `10.2.0.2` as source and leaving the VM's NIC unmasqueraded. `gluetun.sls` therefore
+writes `/iptables/post-rules.txt` (bound from `<config_base>/gluetun/iptables`), which gluetun
+runs after its own firewall setup: one `DROP` per address in `wireguard_addresses` for traffic
+out of `uplink_interface`. WireGuard only (OpenVPN's tunnel address isn't known up front).
+
+Verify: `docker exec gluetun ip link set tun0 down` while capturing on the VM NIC
+(`tcpdump -i eth0 -nn src net 10.0.0.0/8`) — must stay empty; gluetun reconnects by itself
+within ~1 min.
+
 ### Port forwarding
 
 With `gluetun:port_forwarding: true` (only for providers that support it — Proton yes, Mullvad

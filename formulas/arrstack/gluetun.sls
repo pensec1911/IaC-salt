@@ -11,6 +11,32 @@ include:
    inbound connections by default even to ports docker published, unless
    explicitly allowed here. This pair is what makes "webUIs reachable on
    the LAN, everything else only via the VPN" actually work. #}
+{#- Leak guard (see map.jinja, uplink_interface): one DROP per tunnel address,
+   inserted ahead of gluetun's own rules. gluetun runs /iptables/post-rules.txt
+   after setting up its firewall. Only for WireGuard — OpenVPN's tunnel
+   address isn't known in advance. #}
+{%- set tunnel_ips = [] %}
+{%- if arrstack.gluetun.vpn_type == 'wireguard' %}
+{%-   for addr in arrstack.gluetun.wireguard_addresses.split(',') if addr.strip() and ':' not in addr %}
+{%-     do tunnel_ips.append(addr.strip().split('/')[0]) %}
+{%-   endfor %}
+{%- endif %}
+
+arrstack-gluetun-post-rules:
+  file.managed:
+    - name: {{ arrstack.config_base }}/gluetun/iptables/post-rules.txt
+    - user: root
+    - group: root
+    - mode: '0644'
+    - makedirs: True
+    - contents: |
+        # Managed by Salt (formulas/arrstack/gluetun.sls) — do not edit.
+        {%- for ip in tunnel_ips %}
+        iptables -I OUTPUT 1 -o {{ arrstack.gluetun.uplink_interface }} -s {{ ip }} -j DROP
+        {%- endfor %}
+    - require:
+      - file: arrstack-gluetun-config-dir
+
 {%- if arrstack.gluetun.port_forwarding %}
 
 {#- Port forwarding hooks: the provider assigns a random forwarded port
@@ -65,6 +91,7 @@ gluetun-container:
       - /dev/net/tun:/dev/net/tun
     - binds:
       - {{ arrstack.config_base }}/gluetun:/gluetun:rw
+      - {{ arrstack.config_base }}/gluetun/iptables:/iptables:ro
     - port_bindings:
       - {{ arrstack.qbittorrent.webui_port }}:{{ arrstack.qbittorrent.webui_port }}/tcp
       - {{ arrstack.sonarr.port }}:{{ arrstack.sonarr.port }}/tcp
@@ -88,6 +115,9 @@ gluetun-container:
       - VPN_PORT_FORWARDING_UP_COMMAND=/bin/sh /gluetun/qbittorrent-port-up.sh {% raw %}{{PORT}} {{VPN_INTERFACE}}{% endraw %}
       - VPN_PORT_FORWARDING_DOWN_COMMAND=/bin/sh /gluetun/qbittorrent-port-down.sh
       {%- endif %}
+    # watch: gluetun only reads post-rules.txt when it sets up its firewall.
+    - watch:
+      - file: arrstack-gluetun-post-rules
     - require:
       - sls: docker
       - file: arrstack-gluetun-config-dir

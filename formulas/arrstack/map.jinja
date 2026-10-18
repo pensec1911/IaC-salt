@@ -11,7 +11,15 @@
    in total — measured 2026-10-18 vs. line speed (~10 MB/s) on local disk.
    qBittorrent moves a finished torrent to /media/torrents in one sequential
    pass, so Sonarr/Radarr still hardlink on the NFS dataset. Sized by the
-   VM disk (IaC-opentofu vms/arrstack, disk_size). #}
+   VM disk (IaC-opentofu vms/arrstack, disk_size).
+
+   gluetun.uplink_interface: gluetun's own docker interface (always eth0 in
+   a container). Leak guard: packets carrying the tunnel address as source
+   must never leave through it. gluetun's firewall accepts ESTABLISHED
+   traffic on any interface, so when tun0 drops, packets of connections
+   that were open (FINs, retransmits to peers/trackers, DNS-over-TLS) fell
+   back to the default route via eth0 and left the VM unmasqueraded —
+   observed 2026-10-18 by taking tun0 down. Added as gluetun post-rules. #}
 {%- set defaults = {
     'puid': 970,
     'pgid': 970,
@@ -29,6 +37,7 @@
         'wireguard_addresses': '',
         'server_countries': '',
         'port_forwarding': False,
+        'uplink_interface': 'eth0',
     },
 
     'qbittorrent': {

@@ -54,6 +54,9 @@ Containers that must share one VPN tunnel use `network_mode: container:<vpn>`. C
   `FIREWALL_INPUT_PORTS` (built from the same values as `port_bindings`, so they can't drift).
 - Attached containers must `watch` the gluetun state: when gluetun is recreated their namespace
   is gone and they keep "running" with no network.
+- gluetun's kill switch doesn't cover packets of already-open connections when `tun0` drops —
+  `gluetun.sls` adds a post-rule dropping the tunnel address as source on `eth0` (arrstack README
+  "Leak guard").
 - **Port forwarding** (`gluetun:port_forwarding: true`, provider must support it — Proton yes,
   Mullvad no): gluetun picks only PF servers and calls hook scripts that push the (changing)
   forwarded port into qBittorrent via its API. Needs gluetun ≥ v3.41 and qBittorrent's
