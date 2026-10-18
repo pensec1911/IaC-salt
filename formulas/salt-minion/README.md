@@ -27,6 +27,11 @@ Drift means the minion differs from git: a hand edit on the VM, a container chan
 Salt — or a commit that was pushed but not yet applied. After a push, the alert clears once
 `state.apply` has run and the next check has passed.
 
+The schedule also fires right when salt-minion starts. That usually collides with the
+master's start reactor (`formulas/salt-master`), which runs the real highstate at the same
+moment — the retry below makes the check land after it, so the first metric after a reboot
+reflects the converged state.
+
 While another `state.apply` holds the lock ("function is running as PID …"), the script retries
 every 30 s until `timeout_seconds`. Not `queue=True`: a queued run only returns "Job queued
 for execution" and its result never reaches the script.
