@@ -16,25 +16,42 @@ TIMEOUT = {{ dc.timeout_seconds }}
 OUT = "{{ dc.textfile_dir }}/{{ dc.metrics_file }}"
 
 
-def dry_run():
+RETRY_SECONDS = 30
+
+
+def salt_call(timeout):
     proc = subprocess.run(
-        [SALT_CALL, "--out=json", "--log-level=quiet",
-         "state.apply", "test=True", "queue=True"],
-        capture_output=True, text=True, timeout=TIMEOUT,
+        [SALT_CALL, "--out=json", "--log-level=quiet", "state.apply", "test=True"],
+        capture_output=True, text=True, timeout=timeout,
     )
     start = proc.stdout.find("{")
     if start < 0:
         return None
     data, _ = json.JSONDecoder().raw_decode(proc.stdout[start:])
-    states = data.get("local")
-    # A render error or a lock message comes back as a list of strings.
-    return states if isinstance(states, dict) else None
+    return data.get("local")
+
+
+def dry_run(deadline):
+    # Not queue=True: a queued run only answers "Job queued for execution"
+    # and its result never reaches us. Instead retry while another state run
+    # holds the lock (it answers with a list: "... is running as PID ...").
+    while True:
+        out = salt_call(max(1, deadline - time.time()))
+        busy = isinstance(out, list) and any("is running as PID" in str(s) for s in out)
+        if not busy or time.time() + RETRY_SECONDS >= deadline:
+            break
+        time.sleep(RETRY_SECONDS)
+    # Anything but a dict of state results (render error, still locked,
+    # unexpected shape) counts as a failed check.
+    if isinstance(out, dict) and out and all(isinstance(r, dict) for r in out.values()):
+        return out
+    return None
 
 
 def main():
     started = time.time()
     try:
-        states = dry_run()
+        states = dry_run(started + TIMEOUT)
     except (subprocess.TimeoutExpired, ValueError, OSError):
         states = None
 

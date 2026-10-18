@@ -8,9 +8,9 @@
    minions 2026-10-18. It belongs to the node-exporter package, hence the
    require on that formula.
 
-   timeout_seconds: the dry run uses queue=True, so it waits behind a
-   state.apply already running instead of failing; the timeout caps that
-   wait plus the run itself (arrstack's dry run takes ~20 s). #}
+   timeout_seconds: while another state run holds the lock the script
+   retries every 30 s; the timeout caps that wait plus the run itself
+   (arrstack's dry run takes ~25 s). #}
 {%- set defaults = {
     'drift_check': {
         'enabled': True,

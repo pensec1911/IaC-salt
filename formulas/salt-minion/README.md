@@ -6,7 +6,7 @@ Minion-side Salt features. Today: **drift detection**.
 
 A Salt schedule job (`drift-check`, persisted in `/etc/salt/minion.d/_schedule.conf`) runs
 `/usr/local/sbin/salt-drift-check` every hour (+ up to 5 min splay). The script runs
-`salt-call state.apply test=True queue=True` and writes the result to
+`salt-call state.apply test=True` and writes the result to
 `/var/lib/prometheus/node-exporter/salt_drift.prom`, which node-exporter's textfile
 collector exposes:
 
@@ -27,8 +27,9 @@ Drift means the minion differs from git: a hand edit on the VM, a container chan
 Salt — or a commit that was pushed but not yet applied. After a push, the alert clears once
 `state.apply` has run and the next check has passed.
 
-`queue=True` makes the dry run wait behind a `state.apply` that is already running instead of
-failing with "function is running as PID …".
+While another `state.apply` holds the lock ("function is running as PID …"), the script retries
+every 30 s until `timeout_seconds`. Not `queue=True`: a queued run only returns "Job queued
+for execution" and its result never reaches the script.
 
 ## Usage
 
