@@ -53,5 +53,10 @@ publishes the entry) plus one here; until then `monitoring`'s drift check shows
 `prometheus.yml` as pending. A job whose mine is empty renders `static_configs: []`
 (`ScrapeJobEmpty` alert in `pillar/prometheus.sls`).
 
+On a fresh `monitoring` the first highstate misses monitoring's *own* targets (the template
+renders before its node-exporter/cadvisor mine states run) — apply twice, or pre-publish with
+`salt monitoring mine.send node_exporter mine_function=network.ip_addrs interface=eth0`
+(same for `cadvisor`).
+
 Targets in this repo set an `instance` label per host (the minion name) so dashboards and
 alerts don't show bare `IP:port`.

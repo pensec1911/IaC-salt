@@ -9,19 +9,7 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 
 ## Next up (agreed order)
 
-### 1. Salt Mine for Prometheus scrape targets
-
-- **Why**: [pillar/prometheus.sls](../../pillar/prometheus.sls) hand-maintains a minion → IP map;
-  every new VM means editing it. With mine data a new minion running `node-exporter` gets
-  scraped automatically.
-- **Sketch**: `formulas/salt-minion` (already on every minion, listed after `node-exporter`)
-  manages `/etc/salt/minion.d/mine.conf` with `mine_functions` (e.g. `network.ip_addrs`),
-  values from its `map.jinja`; the prometheus template builds targets from
-  `salt['mine.get']('*', 'network.ip_addrs')`, filtered to minions that run node-exporter / cadvisor.
-- **Open**: how to know which minions run cadvisor (wazuh has node-exporter only; mine a flag, or
-  derive from pillar); the same data could replace the hardcoded IPs in
-  [pillar/homepage.sls](../../pillar/homepage.sls); mine data refreshes on the minion's
-  `mine_interval`, so a brand-new VM appears in scrape targets only after its first highstate.
+Nothing queued — pick from "Later".
 
 ## Later
 
