@@ -45,3 +45,8 @@ salt-master:
 
     sdb_profile: osvault
     sdb_kv_path: homelab/data
+
+    # Reactor: full state.apply on every salt/minion/<id>/start event (VM
+    # fresh from Tofu, reboot, salt-minion restart). False disables it.
+    highstate_on_start: True
+    reactor_sls: salt://salt-master/reactor/minion-start.sls

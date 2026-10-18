@@ -3,7 +3,7 @@
 Manages the salt-master's own config so it pulls its state tree and pillar directly from this
 repo (gitfs + git_pillar) instead of relying on a manually-copied `/srv/salt`. Generates its own
 deploy key, pins GitHub's host key, and writes
-`/etc/salt/master.d/{gitfs,git_pillar,auto_accept,pillar_merge}.conf`.
+`/etc/salt/master.d/{gitfs,git_pillar,auto_accept,pillar_merge,reactor}.conf`.
 
 Also owns the master's OpenBao (sdb) auth (`vault.sls` → `/etc/salt/master.d/vault.conf`) — this
 is what makes `sdb://...` references in pillar (see `formulas/users`, .claude/docs/secrets.md) resolve to real values instead of erroring.
@@ -12,6 +12,17 @@ This is the one formula that isn't fully generic — `map.jinja`'s defaults poin
 repo (`pensec1911/IaC-salt`) since that's what a fresh master actually needs to bootstrap
 against. Override via `salt-master:lookup` pillar (see `pillar.example.sls`) if the repo is ever
 renamed or forked.
+
+## Reactor: highstate on minion start
+
+`reactor.conf` maps `salt/minion/*/start` to `reactor/minion-start.sls`, which runs a full
+`state.apply` (with `queue=True`) on the minion that started. A VM fresh from Tofu or a reboot
+converges without anyone running `state.apply`. The reactor SLS is served over gitfs like
+everything else, so changing it needs no master restart — changing `reactor.conf` does (the
+`watch_in` handles that). Watch it work: `salt-run state.event pretty=True` on the master, then
+restart `salt-minion` somewhere.
+
+Disable with `salt-master:lookup:highstate_on_start: False`.
 
 ## Bootstrap
 

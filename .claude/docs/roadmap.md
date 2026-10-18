@@ -9,18 +9,7 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 
 ## Next up (agreed order)
 
-### 1. Reactor: highstate on minion start
-
-- **Why**: closes the gap between Tofu and Salt — a freshly provisioned or rebooted VM converges
-  without someone running `state.apply` by hand.
-- **Sketch**: `salt-master` formula manages `/etc/salt/master.d/reactor.conf` mapping
-  `salt/minion/*/start` → a reactor SLS (shipped in the formula, path from `map.jinja`) that only
-  calls `state.apply` on `data['id']` (or an orchestrate run). Keep the reactor SLS thin.
-- **Open**: reboot storms (every reboot = full highstate — acceptable at this size?); interaction
-  with the NFS-at-boot ordering on arrstack/jellyfin (mounts must be up before docker states run).
-- **Not part of it**: key acceptance stays manual (see "Deliberately not").
-
-### 2. Salt Mine for Prometheus scrape targets
+### 1. Salt Mine for Prometheus scrape targets
 
 - **Why**: [pillar/prometheus.sls](../../pillar/prometheus.sls) hand-maintains a minion → IP map;
   every new VM means editing it. With mine data a new minion running `node-exporter` gets
@@ -43,7 +32,7 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 - `inotify` on managed config files → immediate re-apply instead of waiting for the schedule.
 - No built-in beacon for individual Docker containers — container health is better covered by
   cadvisor + Alertmanager.
-- Prerequisite: the reactor item above (reactor plumbing exists).
+- Reactor plumbing exists (`formulas/salt-master`, `reactor.conf.j2`) — add a mapping there.
 
 ### Drift check: real enforcement
 
@@ -63,9 +52,10 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
   "push = deploy").
 - Alertmanager webhook → reactor (e.g. container down → highstate on that minion).
 - Cost: salt-api is new attack surface with its own auth/TLS bootstrap (manual, per the hard
-  rules). Only worth it if the drift check and the reactor prove insufficient.
+  rules). Only worth it if the drift check and the start reactor prove insufficient.
 
 ## Deliberately not
 
-- **Auto-accepting minion keys via reactor** — key acceptance is security-critical bootstrap and
-  stays manual (CLAUDE.md hard rules).
+- **Key acceptance via reactor** — keys are currently auto-accepted master-wide
+  (`auto_accept: true`, see known-issues.md); if that changes, acceptance goes back to manual
+  (security-critical bootstrap, CLAUDE.md hard rules), not to reactor-driven auto-accept.

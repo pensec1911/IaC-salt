@@ -34,6 +34,16 @@ include:
     - watch_in:
       - service: salt-master-service
 
+/etc/salt/master.d/reactor.conf:
+  file.managed:
+    - source: salt://salt-master/files/reactor.conf.j2
+    - template: jinja
+    - user: root
+    - group: root
+    - mode: '0644'
+    - watch_in:
+      - service: salt-master-service
+
 /etc/salt/master.d/pillar_merge.conf:
   file.managed:
     - source: salt://salt-master/files/pillar_merge.conf

@@ -1,0 +1,11 @@
+{%- from "salt-master/map.jinja" import salt_master with context %}
+# Managed by formulas/salt-master — event tag -> reactor SLS. Reactor SLS
+# files stay thin: they only dispatch a job, the logic lives in states.
+{%- if salt_master.highstate_on_start %}
+reactor:
+  # A minion (re)started: VM fresh from Tofu, reboot, salt-minion restart.
+  - 'salt/minion/*/start':
+    - {{ salt_master.reactor_sls }}
+{%- else %}
+reactor: []
+{%- endif %}

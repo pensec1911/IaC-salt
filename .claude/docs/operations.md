@@ -22,6 +22,12 @@ salt '<minion>' state.apply
   installed until the real run.
 - Recreating gluetun restarts every attached arrstack container (by design, via `watch`).
 
+## Reactor
+
+A minion starting (Tofu provision, reboot, `salt-minion` restart) triggers a full
+`state.apply` on it via the master's reactor (`formulas/salt-master`). So a reboot means a
+highstate a few seconds later; check it with `salt-run jobs.list_jobs search_function=state.apply`.
+
 ## Drift check
 
 Every minion dry-runs its highstate hourly (`formulas/salt-minion`) and exposes the result as
