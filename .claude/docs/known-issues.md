@@ -14,6 +14,12 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Smaller items
 
+- Start reactor (formulas/salt-master) untested on a full VM reboot of arrstack/jellyfin — only
+  a `salt-minion` restart on homepage (2026-10-18). Open: does the highstate fire before the NFS
+  mounts are up, and do `nfs-mount` + the `require: - mount:` chains cope? Check at the next
+  planned reboot (`salt-run jobs.list_jobs search_function=state.apply`); if it fails, add a
+  delay/retry to the reactor. Delete this entry once verified.
+
 - arrstack is on the latest release *within* each major (2026-10-17). Newer majors exist and
   were deliberately not taken: Radarr 6, Prowlarr 2, qBittorrent 5 — each migrates its config/DB
   one-way, so back up `/opt/arrstack/<app>` and read the release notes before bumping.
