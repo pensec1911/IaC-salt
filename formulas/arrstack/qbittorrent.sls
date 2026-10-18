@@ -17,6 +17,7 @@ qbittorrent-container:
     - binds:
       - {{ arrstack.config_base }}/qbittorrent:/config:rw
       - {{ arrstack.media_mount }}:/media:rw
+      - {{ arrstack.qbittorrent.incomplete_dir }}:{{ arrstack.qbittorrent.incomplete_container_path }}:rw
     # watch, not just require: this container lives in gluetun's network
     # namespace, and when gluetun is recreated (image bump, env change) that
     # namespace is gone — the container keeps "running" with no network at
@@ -26,4 +27,5 @@ qbittorrent-container:
     - require:
       - user: user-media
       - file: arrstack-qbittorrent-config-dir
+      - file: arrstack-qbittorrent-incomplete-dir
       - mount: nfs-mount-media

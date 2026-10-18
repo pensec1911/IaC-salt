@@ -50,6 +50,18 @@ Torrent Management Mode **Automatic** (in Manual mode category paths are ignored
 `tv-sonarr` → `/media/torrents/tv`, `radarr` → `/media/torrents/movies`. Set 2026-10-17 via the
 WebUI API (`docker exec qbittorrent curl localhost:8080/api/v2/...`).
 
+**One-time manual step — incomplete torrents on local disk.** Torrents still downloading go to
+`/downloads/incomplete` (bound from `qbittorrent:incomplete_dir` on the VM's own disk), and
+qBittorrent moves each one to its save path under `/media/torrents` when it completes. Reason:
+torrent data arrives as small random writes, and the NAS takes those at only ~1.3 MB/s for all
+torrents combined, while the same download to local disk runs at line speed (~10 MB/s) —
+measured 2026-10-18; sequential writes like the final move are fast on NFS (~110 MB/s).
+In qBittorrent: temp path `/downloads/incomplete`, "Keep incomplete torrents in" **on**
+(`temp_path_enabled`), plus OS cache on for disk reads/writes (`disk_io_read_mode` /
+`disk_io_write_mode` = 0). Set 2026-10-18 via the WebUI API. The local disk must hold all
+active downloads at once (`max_active_downloads` 3) — size it in IaC-opentofu
+(`vms/arrstack`, `disk_size`).
+
 `prowlarr-container` doesn't get a `media_mount` bind — it only manages indexers and talks to
 Sonarr/Radarr over their APIs, it doesn't touch files.
 

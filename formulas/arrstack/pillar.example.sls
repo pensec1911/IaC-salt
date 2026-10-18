@@ -37,6 +37,10 @@ arrstack:
     qbittorrent:
       tag: 4.6.7
       webui_port: 8080
+      # Torrents in progress live on local disk, not NFS (random writes to
+      # the NAS cap at ~1.3 MB/s). Must fit max_active_downloads at once.
+      incomplete_dir: /srv/qbittorrent-incomplete
+      incomplete_container_path: /downloads/incomplete
     sonarr:
       tag: 4.0.20
       port: 8989

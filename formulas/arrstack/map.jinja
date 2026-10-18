@@ -3,7 +3,15 @@
    docker `user:` override — both need a number known at render time, the
    same reasoning as grafana/prometheus's pinned uid/gid. The matching
    formulas/users account entry (pillar/arrstack.sls) must use the same
-   numbers. #}
+   numbers.
+
+   qbittorrent.incomplete_dir: local VM disk for torrents still downloading,
+   bound to incomplete_container_path (qBittorrent's temp path). Torrents
+   write in small random blocks, which the NAS (NFS) only takes at ~1.3 MB/s
+   in total — measured 2026-10-18 vs. line speed (~10 MB/s) on local disk.
+   qBittorrent moves a finished torrent to /media/torrents in one sequential
+   pass, so Sonarr/Radarr still hardlink on the NFS dataset. Sized by the
+   VM disk (IaC-opentofu vms/arrstack, disk_size). #}
 {%- set defaults = {
     'puid': 970,
     'pgid': 970,
@@ -28,6 +36,8 @@
         'tag': '4.6.7',
         'container_name': 'qbittorrent',
         'webui_port': 8080,
+        'incomplete_dir': '/srv/qbittorrent-incomplete',
+        'incomplete_container_path': '/downloads/incomplete',
     },
     'sonarr': {
         'image': 'lscr.io/linuxserver/sonarr',

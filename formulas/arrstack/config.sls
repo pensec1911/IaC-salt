@@ -24,6 +24,17 @@ arrstack-{{ name }}-config-dir:
       - user: user-media
 {%- endfor %}
 
+{#- Local disk, not NFS — see incomplete_dir in map.jinja. #}
+arrstack-qbittorrent-incomplete-dir:
+  file.directory:
+    - name: {{ arrstack.qbittorrent.incomplete_dir }}
+    - user: {{ arrstack.puid }}
+    - group: {{ arrstack.pgid }}
+    - mode: '0755'
+    - makedirs: True
+    - require:
+      - user: user-media
+
 {#- Created as puid/pgid directly, not as root and chowned afterwards: the
    NAS squashes root (root_squash), so root on this client can't create
    anything on the share — file.directory fails with PermissionError. The
