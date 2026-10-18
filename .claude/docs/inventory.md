@@ -6,12 +6,12 @@ Flat network 192.168.178.0/24 (FRITZ!Box range). Minion ID = hostname = Tofu VM 
 
 | Minion | IP | Formulas (`salt/top.sls`) | Services / ports |
 |---|---|---|---|
-| `salt-master` | .28 | users, wazuh-agent, node-exporter, salt-master | salt-master (gitfs + git_pillar) |
-| `homepage` | .23 | users, wazuh-agent, node-exporter, docker, cadvisor, homepage | homepage :3000 |
-| `monitoring` | .25 | users, wazuh-agent, node-exporter, docker, cadvisor, grafana, prometheus, alertmanager | Grafana :3000, Prometheus :9090, Alertmanager :9093 |
-| `arrstack` | .22 | users, wazuh-agent, node-exporter, nfs-mount, docker, cadvisor, arrstack | via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal) |
-| `jellyfin` | .24 | users, wazuh-agent, node-exporter, nfs-mount, docker, cadvisor, jellyfin | Jellyfin :8096 |
-| `wazuh` | .27 | users, node-exporter, wazuh | dashboard :443, indexer :9200, API :55000, agents :1514 / enrollment :1515 |
+| `salt-master` | .28 | users, wazuh-agent, node-exporter, salt-minion, salt-master | salt-master (gitfs + git_pillar) |
+| `homepage` | .23 | users, wazuh-agent, node-exporter, salt-minion, docker, cadvisor, homepage | homepage :3000 |
+| `monitoring` | .25 | users, wazuh-agent, node-exporter, salt-minion, docker, cadvisor, grafana, prometheus, alertmanager | Grafana :3000, Prometheus :9090, Alertmanager :9093 |
+| `arrstack` | .22 | users, wazuh-agent, node-exporter, salt-minion, nfs-mount, docker, cadvisor, arrstack | via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal) |
+| `jellyfin` | .24 | users, wazuh-agent, node-exporter, salt-minion, nfs-mount, docker, cadvisor, jellyfin | Jellyfin :8096 |
+| `wazuh` | .27 | users, node-exporter, salt-minion, wazuh | dashboard :443, indexer :9200, API :55000, agents :1514 / enrollment :1515 |
 
 Every minion: node_exporter :9100. Docker hosts (homepage, monitoring, arrstack, jellyfin):
 cAdvisor :8088. All scraped by Prometheus on monitoring (`pillar/prometheus.sls`).
@@ -23,7 +23,7 @@ cAdvisor :8088. All scraped by Prometheus on monitoring (`pillar/prometheus.sls`
 | Host | IP | Notes |
 |---|---|---|
 | OpenBao | .20 | Secrets backend, KV-v2 mount `homelab`. Not a minion, no SSH from Claude sessions — user runs `bao` there. See [secrets.md](secrets.md). |
-| TrueNAS | .10 | NFS export `/mnt/pool01/media` (single dataset: `movies/`, `series/`, `music/`, `incomplete/`, `torrents/` as plain dirs so hardlinks work). Owner `media` 970:970, mode 775, root squashed. Allowed hosts: .22 (arrstack), .24 (jellyfin). |
+| TrueNAS | .10 | NFS export `/mnt/pool01/media` (single dataset: `movies/`, `series/`, `music/`, `incomplete/`, `torrents/` as plain dirs so hardlinks work). Owner `media` 970:970, mode 775, root squashed. Allowed hosts: .22 (arrstack), .24 (jellyfin). Fast sequentially (~110 MB/s), slow for small random writes (~1.3 MB/s) — why qBittorrent downloads to local disk first. |
 | Proxmox / OPNsense | — | Managed by the sibling `IaC-opentofu` / OPNsense repos. |
 
 ## External services
