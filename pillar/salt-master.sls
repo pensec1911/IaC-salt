@@ -1,5 +1,10 @@
 salt-master:
   lookup:
+    # Re-applied when a minion's Salt Mine entries change, so Prometheus
+    # (scrape targets from the mine) picks up a new VM without a manual run.
+    mine_consumers:
+      - monitoring
+
     # Not secret — the AppRole role_id from OpenBao. See
     # todo/openbao-setup.md. secret_id (the actual credential) is a file
     # placed manually on the master, never pillar/git — see

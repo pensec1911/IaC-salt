@@ -50,3 +50,9 @@ salt-master:
     # fresh from Tofu, reboot, salt-minion restart). False disables it.
     highstate_on_start: True
     reactor_sls: salt://salt-master/reactor/minion-start.sls
+    # Minions re-applied when any minion's Salt Mine entries change (new VM
+    # -> Prometheus picks it up). Empty = off.
+    mine_consumers:
+      - monitoring
+    mine_event_tag: homelab/mine/updated
+    mine_reactor_sls: salt://salt-master/reactor/mine-updated.sls

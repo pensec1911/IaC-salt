@@ -15,6 +15,7 @@
         'alias': 'cadvisor',
         'interface': 'eth0',
         'conf': '/etc/salt/minion.d/mine-cadvisor.conf',
+        'event_tag': 'homelab/mine/updated',
     },
 } %}
 {%- set cadvisor = salt['pillar.get']('cadvisor:lookup', default=defaults, merge=True) %}

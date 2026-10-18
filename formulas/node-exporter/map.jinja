@@ -13,6 +13,7 @@
         'alias': 'node_exporter',
         'interface': 'eth0',
         'conf': '/etc/salt/minion.d/mine-node-exporter.conf',
+        'event_tag': 'homelab/mine/updated',
     },
 } %}
 {%- set node_exporter = salt['pillar.get']('node-exporter:lookup', default=defaults, merge=True) %}

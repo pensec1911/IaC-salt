@@ -24,6 +24,17 @@ restart `salt-minion` somewhere.
 
 Disable with `salt-master:lookup:highstate_on_start: False`.
 
+## Reactor: refresh mine consumers
+
+`node-exporter`/`cadvisor` fire `homelab/mine/updated` when their mine conf is (re)written —
+a new VM, or a formula newly added to one. Not on reboots or unchanged runs. `reactor.conf` maps
+that tag to `reactor/mine-updated.sls`, which runs a full `state.apply` (`queue=True`) on
+`mine_consumers` (pillar: `monitoring`), so Prometheus scrapes a new VM without a manual run.
+
+The consumer list is written into `reactor.conf` as `homelab_mine_consumers` (a custom master
+option the reactor SLS reads via `opts`) — the event only says "refresh", a minion can't choose
+the target. Empty `mine_consumers` drops the mapping.
+
 ## Bootstrap
 
 See the repo root `README.md` for the one-time manual step required before gitfs can take over

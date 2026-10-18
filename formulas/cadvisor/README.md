@@ -28,8 +28,9 @@ Every minion that runs `docker`, after it:
   - some-service
 ```
 
-Prometheus picks the host up via the mine after this minion's highstate **and** the next
-`state.apply` on `monitoring`. Dropping the formula from a minion leaves its mine entry
+Prometheus picks the host up on its own: when the mine conf is first written, the state fires
+`homelab/mine/updated` and the master's reactor re-applies `monitoring` (`mine_consumers` in
+`formulas/salt-master`). Dropping the formula from a minion leaves its mine entry
 behind — clear it with `salt '<minion>' mine.delete cadvisor`.
 
 ## Pillar

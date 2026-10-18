@@ -1,11 +1,26 @@
 {%- from "salt-master/map.jinja" import salt_master with context %}
 # Managed by formulas/salt-master — event tag -> reactor SLS. Reactor SLS
 # files stay thin: they only dispatch a job, the logic lives in states.
+{%- set reactions = [] %}
 {%- if salt_master.highstate_on_start %}
+{%- do reactions.append(('salt/minion/*/start', salt_master.reactor_sls,
+    'A minion (re)started: VM fresh from Tofu, reboot, salt-minion restart.')) %}
+{%- endif %}
+{%- if salt_master.mine_consumers %}
+{%- do reactions.append((salt_master.mine_event_tag, salt_master.mine_reactor_sls,
+    'A minion changed its Salt Mine entries (formulas/node-exporter, cadvisor).')) %}
+{%- endif %}
+{%- if reactions %}
 reactor:
-  # A minion (re)started: VM fresh from Tofu, reboot, salt-minion restart.
-  - 'salt/minion/*/start':
-    - {{ salt_master.reactor_sls }}
+{%- for tag, sls, why in reactions %}
+  # {{ why }}
+  - {{ tag | yaml_encode }}:
+    - {{ sls }}
+{%- endfor %}
 {%- else %}
 reactor: []
 {%- endif %}
+
+# Not a Salt option — read by the mine reactor SLS via `opts`, since a
+# reactor SLS has no pillar of its own.
+homelab_mine_consumers: {{ salt_master.mine_consumers | json }}

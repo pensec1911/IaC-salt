@@ -48,15 +48,14 @@ pillar's own Jinja render tries to resolve them. Where notifications go is confi
 **Mine-backed jobs**: a job with `mine: {alias, port}` instead of (or in addition to)
 `static_configs` gets one target `<ip>:<port>` per minion returned by
 `mine.get('*', alias)`, labelled `instance: <minion id>`. The mine is read when this minion's
-highstate renders `prometheus.yml` — a new minion appears after its own highstate (which
-publishes the entry) plus one here; until then `monitoring`'s drift check shows
-`prometheus.yml` as pending. A job whose mine is empty renders `static_configs: []`
+highstate renders `prometheus.yml`. A new minion's own highstate publishes its entry and fires
+`homelab/mine/updated`; the master's reactor then re-applies this minion
+(`salt-master:lookup:mine_consumers`), so it shows up without a manual run. A job whose mine is empty renders `static_configs: []`
 (`ScrapeJobEmpty` alert in `pillar/prometheus.sls`).
 
 On a fresh `monitoring` the first highstate misses monitoring's *own* targets (the template
-renders before its node-exporter/cadvisor mine states run) — apply twice, or pre-publish with
-`salt monitoring mine.send node_exporter mine_function=network.ip_addrs interface=eth0`
-(same for `cadvisor`).
+renders before its own mine states run); the same event queues a second run right after, which
+adds them.
 
 Targets in this repo set an `instance` label per host (the minion name) so dashboards and
 alerts don't show bare `IP:port`.

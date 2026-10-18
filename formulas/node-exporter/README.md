@@ -33,8 +33,9 @@ Every minion, right after `wazuh-agent`:
   - node-exporter
 ```
 
-Prometheus picks the host up via the mine after this minion's highstate **and** the next
-`state.apply` on `monitoring`.
+Prometheus picks the host up on its own: when the mine conf is first written, the state fires
+`homelab/mine/updated` and the master's reactor re-applies `monitoring` (`mine_consumers` in
+`formulas/salt-master`).
 
 ## Pillar
 

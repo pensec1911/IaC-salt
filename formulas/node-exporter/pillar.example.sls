@@ -12,3 +12,5 @@ node-exporter:
       alias: node_exporter
       interface: eth0
       conf: /etc/salt/minion.d/mine-node-exporter.conf
+      # Fired when the conf changes; formulas/salt-master's reactor listens.
+      event_tag: homelab/mine/updated

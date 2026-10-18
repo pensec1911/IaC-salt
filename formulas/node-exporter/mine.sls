@@ -20,3 +20,14 @@ node-exporter-mine-update:
       - mine_functions: {{ functions | json }}
     - onchanges:
       - file: node-exporter-mine-conf
+
+{#- Tells the master the mine changed (new minion, new alias); its reactor
+   re-applies the minions that read the mine (formulas/salt-master,
+   mine_consumers). Not on every run — only when the conf file changed. #}
+node-exporter-mine-event:
+  event.send:
+    - name: {{ mine.event_tag }}
+    - onchanges:
+      - file: node-exporter-mine-conf
+    - require:
+      - module: node-exporter-mine-update

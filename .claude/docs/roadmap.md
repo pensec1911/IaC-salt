@@ -9,23 +9,10 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 
 ## Next up (agreed order)
 
-Nothing queued — pick from "Later". Suggested order if you want one: (1) Prometheus refresh on
-minion join (closes the Mine gap), (2) Drift check enforcement on `homepage`,
-(3) Beacons → reactor.
+Nothing queued — pick from "Later". Suggested order if you want one: (1) Drift check enforcement
+on `homepage`, (2) Beacons → reactor.
 
 ## Later
-
-### Prometheus refresh when a minion joins
-
-- **Why**: scrape targets now come from the Salt Mine (`formulas/prometheus`, `prometheus.yml.j2`),
-  but a new minion only shows up after the next `state.apply` on `monitoring`.
-- **Sketch**: a second mapping in `reactor.conf.j2` (same thin-reactor style as the start
-  reactor) that, on `salt/minion/*/start`, runs `state.apply` on `monitoring` after the new
-  minion's own highstate has published its mine (ordering matters — see Open).
-- **Open**: plain reactor can't wait for the new minion's highstate; likely needs a small
-  `state.orchestrate` (new minion first, then `monitoring`) — merge with "Orchestrate runs"
-  below. Fallback today: the drift check (test=True only) shows `prometheus.yml` as pending on
-  `monitoring`, so `SaltDrift` fires after ~90 min until someone applies it.
 
 ### Beacons → reactor (self-healing)
 

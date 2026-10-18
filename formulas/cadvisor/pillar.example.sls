@@ -11,3 +11,5 @@ cadvisor:
       alias: cadvisor
       interface: eth0
       conf: /etc/salt/minion.d/mine-cadvisor.conf
+      # Fired when the conf changes; formulas/salt-master's reactor listens.
+      event_tag: homelab/mine/updated
