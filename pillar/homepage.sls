@@ -89,7 +89,7 @@ homepage:
         - name: pve03
           href: https://192.168.178.13:8006
           icon: proxmox.png
-          description: arrstack, openbao, omada-controller
+          description: arrstack, openbao
 
     - name: Infrastructure
       items:
