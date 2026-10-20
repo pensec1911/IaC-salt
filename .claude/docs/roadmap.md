@@ -33,13 +33,6 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 - **Open**: runner for Actions; backup of Forgejo itself becomes critical (it holds the deploy
   source) — after the backup item.
 
-### Self-repair on jellyfin / arrstack
-
-- Enforce mode runs on homepage, monitoring, salt-master (`pillar/salt-minion-enforce.sls`).
-  jellyfin/arrstack stay report-only: a repair can recreate containers (cuts streams; on
-  arrstack restarts the whole VPN stack). Possible: a maintenance window (only repair at night),
-  or enforce only once `salt_drift_repair_last_*` has been quiet on the others for a while.
-
 ### Orchestrate runs across minions
 
 - `state.orchestrate` for ordered multi-minion rollouts (e.g. monitoring first, then the rest;

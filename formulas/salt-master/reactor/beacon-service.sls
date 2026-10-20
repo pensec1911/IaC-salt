@@ -9,8 +9,8 @@
    `id` against the sender, so a minion could name another one; the worst
    that does is start a whitelisted service there.
 
-   service.start, not a highstate: arrstack/jellyfin are report-only (a
-   highstate there may recreate containers); starting a stopped service
+   service.start, not a highstate: arrstack/jellyfin only allow a highstate
+   at night (it may recreate containers); starting a stopped service
    cuts nothing that isn't down already. #}
 {%- set allowed = opts.get('homelab_beacon_restart_services', []) %}
 {%- set name = data.get('service_name') %}

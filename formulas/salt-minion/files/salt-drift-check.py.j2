@@ -11,16 +11,24 @@
 # describe the state *after* the repair — SaltDrift then only fires when the
 # repair did not converge. salt_drift_repair_last_* are carried over from
 # the previous file on runs without a repair.
+#
+# An enforce window (start/end) limits the repair to that time of day;
+# outside it the run only reports, like enforce off.
+import datetime
 import json
 import os
 import subprocess
 import tempfile
 import time
+import zoneinfo
 
 SALT_CALL = "{{ dc.salt_call }}"
 TIMEOUT = {{ dc.timeout_seconds }}
 OUT = "{{ dc.textfile_dir }}/{{ dc.metrics_file }}"
 ENFORCE = {{ dc.enforce | string }}
+WINDOW_START = "{{ dc.enforce_window.start }}"
+WINDOW_END = "{{ dc.enforce_window.end }}"
+WINDOW_TZ = "{{ dc.enforce_window.timezone }}"
 
 
 RETRY_SECONDS = 30
@@ -71,6 +79,15 @@ def failed(states):
     return sum(1 for r in states.values() if r.get("result") is False)
 
 
+def window_open():
+    if not (WINDOW_START and WINDOW_END):
+        return True
+    now = datetime.datetime.now(zoneinfo.ZoneInfo(WINDOW_TZ)).strftime("%H:%M")
+    if WINDOW_START <= WINDOW_END:
+        return WINDOW_START <= now < WINDOW_END
+    return now >= WINDOW_START or now < WINDOW_END  # wraps midnight
+
+
 def previous_repair_lines():
     try:
         with open(OUT) as f:
@@ -81,12 +98,13 @@ def previous_repair_lines():
 
 def main():
     started = time.time()
+    in_window = window_open()
     states = run()
     repair_lines = previous_repair_lines() if ENFORCE else []
 
     # Failing states block the repair: applying around them could leave a
     # half-converged host. SaltDriftCheckFailing covers that case.
-    if ENFORCE and states is not None and pending(states) and not failed(states):
+    if ENFORCE and in_window and states is not None and pending(states) and not failed(states):
         applied = run(test=False)
         repair_lines = []
         for name, help_, value in (
@@ -117,6 +135,8 @@ def main():
         metric("salt_drift_states_pending", "States the dry run would change", pending(states))
         metric("salt_drift_states_failed", "States that fail in the dry run", failed(states))
     metric("salt_drift_enforce", "1 if drift is repaired by a real state.apply", int(ENFORCE))
+    metric("salt_drift_enforce_window_open",
+           "1 if a repair may run now (no window configured, or inside it)", int(in_window))
     lines.extend(repair_lines)
     metric("salt_drift_duration_seconds", "Duration of the check, incl. any repair",
            round(time.time() - started, 3))

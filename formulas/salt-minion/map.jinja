@@ -17,6 +17,13 @@
    reporting. Off by default; turned on per minion in pillar where a
    re-apply is harmless (pillar/salt-minion-enforce.sls).
 
+   enforce_window: limits enforce to a daily time window ("HH:MM" start/end
+   in `timezone`, may wrap midnight). Outside it the check only reports.
+   Empty start/end = always (homepage, monitoring, salt-master). Must be
+   wider than interval_minutes + splay or a night can pass without a run.
+   For hosts where a repair is disruptive but fine while nobody watches
+   (arrstack, jellyfin: pillar/salt-minion-enforce-window.sls).
+
    beacons.service: Salt's service beacon, persisted to
    /etc/salt/minion.d/beacons.conf. Fires salt/beacon/<id>/service/<name>
    only on a status change (onchangeonly), not at minion start
@@ -30,6 +37,7 @@
     'drift_check': {
         'enabled': True,
         'enforce': False,
+        'enforce_window': {'start': '', 'end': '', 'timezone': 'UTC'},
         'interval_minutes': 60,
         'splay_seconds': 300,
         'timeout_seconds': 900,

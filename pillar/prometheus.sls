@@ -92,8 +92,14 @@ prometheus:
            run). The metric only changes once per run, so `for: 90m` means
            "still drifted at the next run" — a push that is applied within
            the hour never alerts. #}
+        {#- Not while a windowed enforce minion (arrstack, jellyfin) waits
+           for its night window: drift there is expected until the repair
+           runs. Drift that survives the window fires during it (for: 90m
+           inside the 3h window); failed repairs: SaltDriftRepairFailed. #}
         - alert: SaltDrift
-          expr: salt_drift_states_pending > 0
+          expr: >-
+            salt_drift_states_pending > 0
+            unless on(instance) (salt_drift_enforce == 1 and salt_drift_enforce_window_open == 0)
           for: 90m
           labels:
             severity: warning

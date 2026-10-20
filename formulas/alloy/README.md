@@ -33,9 +33,9 @@ The push URL is built from the Salt Mine entry `loki` that `formulas/loki` publi
   runs); the mine event's reactor re-applies monitoring right after, which deploys Alloy.
 - Only monitoring is a mine consumer (`salt-master:lookup:mine_consumers`). If Loki ever moves,
   the other hosts pick up the new address on their next highstate — hourly on homepage
-  (self-repair), on arrstack/jellyfin at the next manual apply or reboot. Not added as
-  consumers on purpose: a mine change would then highstate arrstack/jellyfin, which are
-  report-only.
+  (self-repair), on arrstack/jellyfin in the next night's self-repair window (03:00–06:00).
+  Not added as consumers on purpose: a mine change would then highstate arrstack/jellyfin
+  during the day, which they only allow at night.
 
 ## Usage
 

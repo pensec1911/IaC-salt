@@ -8,6 +8,12 @@ salt-minion:
       # Self-repair: on drift, apply for real (then re-check). Only where a
       # re-apply is harmless — not on hosts whose containers restart a stack.
       enforce: False
+      # Only repair inside this daily window (HH:MM, may wrap midnight);
+      # report-only outside. Empty = always. Wider than interval + splay.
+      enforce_window:
+        start: ""
+        end: ""
+        timezone: UTC
       interval_minutes: 60
       splay_seconds: 300
       timeout_seconds: 900

@@ -38,8 +38,21 @@ followed by a real `state.apply` and a second dry run. The drift metrics then de
 | `salt_drift_repair_last_success` | 1 = that apply had no failed states (`SaltDriftRepairFailed` on 0) |
 | `salt_drift_repair_last_states_changed` | states that apply changed |
 
-On in `pillar/salt-minion-enforce.sls` for homepage, monitoring and salt-master. Not on
-arrstack (recreating gluetun restarts the VPN stack) or jellyfin (cuts streams).
+On in `pillar/salt-minion-enforce.sls` for homepage, monitoring and salt-master, at any hour.
+
+### Enforce window (arrstack, jellyfin)
+
+`drift_check.enforce_window` (`start`/`end` "HH:MM" in `timezone`, may wrap midnight) limits the
+repair to a time of day; outside it the run only reports. On in
+`pillar/salt-minion-enforce-window.sls` for arrstack (recreating gluetun restarts the VPN stack)
+and jellyfin (cuts streams): **03:00–06:00 Europe/Berlin**, three hourly runs.
+
+- A push reaches them the following night, not within the hour.
+- Extra metric `salt_drift_enforce_window_open` (1 = a repair may run now; always 1 without a
+  window). `SaltDrift` ignores enforce minions whose window is closed — their drift is expected
+  until the night. Drift that survives the window fires during it.
+- Repair now instead of at night: plain `salt '<minion>' state.apply`, as before.
+- The window must be wider than `interval_minutes` + splay, or a night can pass without a run.
 
 Consequence: on those minions **a push deploys itself** within `interval_minutes` + splay, with
 no `test=True` first. A failing dry run (render error, failing state) blocks the repair. A
@@ -73,7 +86,7 @@ services") runs `service.start <name>` on that minion — nothing more, no highs
 status changes only, not on every check and not at minion start.
 
 On in `pillar/salt-minion-beacons.sls` for `docker` on the docker hosts (homepage, monitoring,
-arrstack, jellyfin). Also on arrstack/jellyfin, which are otherwise report-only: when docker is
+arrstack, jellyfin). Also on arrstack/jellyfin, which only self-repair at night: when docker is
 down the stack is down already, starting it cuts nothing.
 
 - `docker.service` restarts itself on a crash (`Restart=always`); the beacon covers what that

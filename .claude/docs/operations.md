@@ -39,6 +39,8 @@ Every minion dry-runs its highstate hourly (`formulas/salt-minion`) and exposes 
 `SaltDriftCheckStale` / `SaltDriftCheckMissing`. On a `SaltDrift` alert: `salt '<minion>' state.apply test=True` shows
 what differs — then either apply (git is right) or commit the change (the VM is right).
 Force a check now: `salt '<minion>' schedule.run_job drift-check`.
+Self-repair (enforce): homepage, monitoring, salt-master hourly; arrstack and jellyfin only
+03:00–06:00 Berlin (`formulas/salt-minion` "Enforce window").
 
 ## Inspect / debug
 

@@ -59,7 +59,8 @@ pillar/     per-minion data (git_pillar)
    `salt-run git_pillar.update`, `salt '<minion>' saltutil.refresh_pillar`,
    `salt '<minion>' state.apply test=True`, then without `test=True`. Full `state.apply`, not
    `state.apply <formula>`. homepage, monitoring and salt-master self-repair hourly
-   (`pillar/salt-minion-enforce.sls`), so a push reaches them even without a manual apply. More: [operations.md](.claude/docs/operations.md); render/sync
+   (`pillar/salt-minion-enforce.sls`), arrstack and jellyfin nightly 03:00–06:00 Berlin
+   (`pillar/salt-minion-enforce-window.sls`) — a push reaches them even without a manual apply. More: [operations.md](.claude/docs/operations.md); render/sync
    problems: `/salt-render-debug`.
 
 4. After a roadmap item ships or a new formula/minion lands: run the `roadmap-curator` agent in

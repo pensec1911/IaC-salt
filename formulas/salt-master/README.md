@@ -46,7 +46,7 @@ A minion's service beacon (`formulas/salt-minion`, "Beacons") fires
 `reactor.conf` maps that to `reactor/beacon-service.sls`, which runs `service.start <name>` on
 that minion — only for `running: False` and only for services in `beacon_restart_services`
 (pillar: `docker`), written into `reactor.conf` as `homelab_beacon_restart_services`. No
-highstate: it must stay harmless on the report-only minions (arrstack, jellyfin).
+highstate: it must stay harmless on arrstack/jellyfin at any hour (they only self-repair at night).
 
 The master doesn't verify the `id` inside beacon events (unlike `salt/minion/<id>/start`), so a
 minion could name another one — worst case a whitelisted service gets started there. Empty
