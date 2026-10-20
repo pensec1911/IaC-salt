@@ -21,6 +21,7 @@ base:
   'arrstack':
     - nfs-mount
     - arrstack
+    - seerr
 
   'wazuh':
     - wazuh

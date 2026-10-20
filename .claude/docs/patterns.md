@@ -17,7 +17,8 @@ formula declares `require: - user: user-<name>`.
   `PUID`/`PGID`, a container `user:` override). Then pin it in pillar **and** in the formula's
   `map.jinja`, avoiding 65534/`nobody` and the 1000+ range (the per-minion login account from
   `GLOBAL` lands there).
-- Pinned today: `media` = 970:970 (arrstack + jellyfin, owns the NAS media share).
+- Pinned today: `media` = 970:970 (arrstack + jellyfin, owns the NAS media share), `seerr` =
+  971:971 (container `user:` override, image default is uid 1000).
 - `GLOBAL` creates a sudo login account named after the minion — **unless that name is a
   service's own system user** (packages silently adopt an existing user of their name, turning
   their daemons into a sudo-capable login). Such minions get a renamed login via the map in

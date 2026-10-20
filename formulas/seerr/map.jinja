@@ -1,0 +1,17 @@
+{#- uid/gid are pinned to the `seerr` system account (pillar/seerr.sls)
+   because the container gets an explicit docker `user:` override: the image
+   runs as `node` (uid 1000), which collides with the per-minion GLOBAL login
+   account, so the config dir would belong to a sudo-capable login. Same
+   approach as slskd in formulas/arrstack. The matching formulas/users
+   account entry must use the same numbers. #}
+{%- set defaults = {
+    'image': 'ghcr.io/seerr-team/seerr',
+    'tag': 'v3.5.0',
+    'container_name': 'seerr',
+    'uid': 971,
+    'gid': 971,
+    'timezone': 'Etc/UTC',
+    'http_port': 5055,
+    'config_dir': '/opt/seerr/config',
+} %}
+{%- set seerr = salt['pillar.get']('seerr:lookup', default=defaults, merge=True) %}

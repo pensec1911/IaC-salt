@@ -16,6 +16,10 @@ homepage:
           href: http://192.168.178.24:8096
           icon: jellyfin.png
           description: Media server
+        - name: Seerr
+          href: http://192.168.178.22:5055
+          icon: seerr.png
+          description: Requests
 
     # All arrstack UIs are published by the gluetun container (the others
     # share its network namespace), on the arrstack host.

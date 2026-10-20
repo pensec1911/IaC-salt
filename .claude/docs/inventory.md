@@ -9,7 +9,7 @@ Flat network 192.168.178.0/24 (FRITZ!Box range). Minion ID = hostname = Tofu VM 
 | `salt-master` | .28 | users, wazuh-agent, node-exporter, salt-minion, salt-master | salt-master (gitfs + git_pillar) |
 | `homepage` | .23 | users, wazuh-agent, node-exporter, salt-minion, docker, cadvisor, homepage | homepage :3000 |
 | `monitoring` | .25 | users, wazuh-agent, node-exporter, salt-minion, docker, cadvisor, grafana, prometheus, alertmanager | Grafana :3000, Prometheus :9090, Alertmanager :9093 |
-| `arrstack` | .22 | users, wazuh-agent, node-exporter, salt-minion, nfs-mount, docker, cadvisor, arrstack | via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal) |
+| `arrstack` | .22 | users, wazuh-agent, node-exporter, salt-minion, nfs-mount, docker, cadvisor, arrstack, seerr | Seerr :5055; via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal) |
 | `jellyfin` | .24 | users, wazuh-agent, node-exporter, salt-minion, nfs-mount, docker, cadvisor, jellyfin | Jellyfin :8096 |
 | `wazuh` | .27 | users, node-exporter, salt-minion, wazuh | dashboard :443, indexer :9200, API :55000, agents :1514 / enrollment :1515 |
 

@@ -35,6 +35,7 @@ base:
     - docker
     - cadvisor
     - arrstack
+    - seerr
 
   'wazuh':
     - users
