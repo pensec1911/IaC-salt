@@ -47,6 +47,9 @@ pillar/     per-minion data (git_pillar)
 - **Security-critical bootstrap stays manual and documented** rather than guessed (TLS certs,
   auth-plugin init, AppRole `secret_id`).
 - **Patch shipped package config** with `file.blockreplace`, don't replace it wholesale.
+- **Every web UI is on homepage**: a new service with a WebUI — Salt formula or not (Tofu VM,
+  appliance, NAS app) — gets an item in `pillar/homepage.sls` in the fitting group, in the same
+  change. Links + status dot only. Rules: [patterns.md](.claude/docs/patterns.md#homepage-entries).
 
 ## Workflow
 

@@ -34,5 +34,9 @@ Check every changed formula/pillar file against:
    than one minion.
 7. **pillar/top.sls mirrors salt/top.sls**: every minion with formula-specific pillar needs has a
    matching `pillar/top.sls` entry.
+8. **Homepage entry**: a change that adds a web UI (new formula or container with a published
+   WebUI port, a new host in `inventory.md` with a UI) also adds an item to `pillar/homepage.sls`
+   in a fitting group, per `.claude/docs/patterns.md` "Homepage entries". Removed UI → item
+   removed. Internal-only ports (no human-facing UI) need none.
 
 Report findings as a short list: file, issue, which convention it violates. Keep it terse.

@@ -88,6 +88,28 @@ Images are pinned to a specific tag in `map.jinja` (LSIO images: `<version>-ls<b
 version). Look up the current tag (Docker Hub / GitHub releases) instead of guessing; bump
 deliberately.
 
+## Homepage entries
+
+Every web UI in the homelab is an item in `pillar/homepage.sls` — added in the same change that
+brings the UI (new formula, a container added to an existing one, a new Tofu VM or appliance).
+Removed when the UI goes away.
+
+- **Group**: the existing one that fits — `Media` (Jellyfin, Seerr), `Arr` (Sonarr, Radarr,
+  Prowlarr, Bazarr), `Downloads` (qBittorrent, slskd), `Monitoring` (Grafana, Prometheus,
+  Alertmanager, Wazuh), `Proxmox` (nodes), `Infrastructure` (NAS, OpenBao, router, other
+  appliances). A new group only if none fits.
+- **href**: `http(s)://<IP>:<port>` from `inventory.md` / the formula's `map.jinja` — the URL a
+  browser on the LAN uses (arrstack apps: the port gluetun publishes on the host).
+- **icon**: a name from [dashboard-icons](https://github.com/homarr-labs/dashboard-icons) —
+  check it exists (`curl -I https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/<name>.png`).
+- **description**: a few words on what it's for.
+- **Status dot** comes for free (`siteMonitor` = href). Links + dots only — no widgets that need
+  credentials.
+- **No entry** for things without a human-facing UI: internal helpers (FlareSolverr), exporters
+  (node_exporter, cAdvisor), APIs.
+- A new VM on a Proxmox node: update that node's `description` in the `Proxmox` group too.
+- The host isn't reachable / the port is unknown: ask, don't guess the port.
+
 ## Network topology
 
 Everything Salt manages sits on one flat network (192.168.178.0/24) for now. VLAN-aware design
