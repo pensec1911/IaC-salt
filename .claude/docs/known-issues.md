@@ -14,6 +14,17 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Smaller items
 
+- **qBittorrent's WebUI freezes while it moves a finished torrent to the NAS** (2026-10-20,
+  19:37–19:44, two South Park season packs): the move from local `incomplete_dir` to
+  `/media/torrents` blocks qBittorrent 4.6's main loop — WebUI/API don't answer (LAN timeout,
+  gluetun's PF hook `signal: killed`), log shows a gap and then "System wake-up event detected".
+  Comes back by itself when the move is done; roughly minutes per tens of GB at the NAS's
+  ~110 MB/s. Inherent to the local-disk-then-move design (arrstack README). Options if it
+  bothers: qBittorrent 5 (see major bumps below — unverified whether it moves off the main
+  thread), or accept it.
+- **Proton NAT-PMP renewals fail intermittently** (`recvfrom: connection refused` to
+  `10.2.0.1:5351`, several times an hour on 2026-10-20). gluetun retries and gets the same port
+  back within seconds, so qBittorrent keeps its listen port — noise, not an outage.
 - arrstack is on the latest release *within* each major (2026-10-17). Newer majors exist and
   were deliberately not taken: Radarr 6, Prowlarr 2, qBittorrent 5 — each migrates its config/DB
   one-way, so back up `/opt/arrstack/<app>` and read the release notes before bumping.
