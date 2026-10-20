@@ -18,6 +18,12 @@ grafana:
       url: http://192.168.178.25:9093
       jsonData:
         implementation: prometheus
+    # Logs (formulas/loki), shipped by formulas/alloy on the docker hosts.
+    - name: Loki
+      uid: loki
+      type: loki
+      access: proxy
+      url: http://192.168.178.25:3100
 
   # grafana.com dashboards, pinned. To bump: new revision + its sha256
   # (curl -sL <dashboards_source> | sha256sum).

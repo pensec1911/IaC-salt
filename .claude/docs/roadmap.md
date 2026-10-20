@@ -23,16 +23,6 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 
 ## Later
 
-### Loki + Alloy (container logs)
-
-- **Why**: Wazuh covers security logs, but app logs (failed Sonarr import, Jellyfin errors)
-  are only reachable via `docker logs` on the VM. Grafana is already there.
-- **Sketch**: `loki` formula on monitoring, `alloy` formula on every docker host (scrapes the
-  docker socket, ships to Loki). Loki URL for Alloy from the mine, not hardcoded. Grafana
-  datasource via the grafana formula's provisioning.
-- **Open**: retention / disk on monitoring; whether Alloy also replaces cadvisor/node_exporter
-  later (probably not — keep it to logs).
-
 ### Forgejo + Renovate (long term)
 
 - **Why**: master pulls from GitHub today; a local Forgejo keeps repo + deploy in the LAN and

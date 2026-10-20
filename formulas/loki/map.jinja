@@ -1,0 +1,35 @@
+{#- uid/gid: the image's own user is 10001; nobody via a docker `user:`
+   override instead (same as formulas/prometheus), data_dir owned by it.
+   No host account needed.
+
+   retention_period: enforced by the compactor (retention_enabled). 30 days
+   at the homelab's volume (~70 MB journal per host, a few MB of container
+   logs) is a few GB at most on monitoring's 40 GB disk.
+
+   schema_from: the date the tsdb/v13 schema starts. A fixed date, never
+   "today": Loki reads every period from its start date, and moving it
+   would orphan what was written before. A future schema change appends a
+   new period with a later date instead of editing this one.
+
+   mine: Salt Mine entry formulas/alloy reads the Loki address from
+   (mine.get('*', alias)), same mechanism as node-exporter/cadvisor. #}
+{%- set defaults = {
+    'image': 'grafana/loki',
+    'tag': '3.7.8',
+    'container_name': 'loki',
+    'host_port': 3100,
+    'config_dir': '/opt/loki/config',
+    'data_dir': '/opt/loki/data',
+    'uid': 65534,
+    'gid': 65534,
+    'retention_period': '720h',
+    'schema_from': '2026-10-20',
+    'log_level': 'warn',
+    'mine': {
+        'alias': 'loki',
+        'interface': 'eth0',
+        'conf': '/etc/salt/minion.d/mine-loki.conf',
+        'event_tag': 'homelab/mine/updated',
+    },
+} %}
+{%- set loki = salt['pillar.get']('loki:lookup', default=defaults, merge=True) %}

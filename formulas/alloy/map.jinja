@@ -1,0 +1,42 @@
+{#- tag: v1.20.1, not v1.21.0 — 1.21.0 was a day old when this was written
+   (2026-10-20); bump deliberately.
+
+   Runs as root (the image has no USER): it reads the docker socket and the
+   host journal. The socket is root-equivalent anyway, so a uid override
+   would buy nothing. No published port — Alloy's debug UI (:12345) stays
+   inside the container.
+
+   loki_mine_alias / loki_port: the push URL is http://<ip>:<loki_port>
+   built from the Salt Mine entry formulas/loki publishes. Rendered when
+   this minion's highstate runs — a minion that applied before Loki existed
+   picks it up on its next highstate (homepage/monitoring self-repair
+   hourly; arrstack/jellyfin on the next manual apply or reboot).
+
+   journal_path: Debian keeps a persistent journal there; /etc/machine-id is
+   bound too, the journal reader needs it to find the host's files.
+   journal_max_age: how far back a fresh Alloy (no positions yet) reads.
+
+   data_dir: Alloy's positions (how far each log was shipped). On the host,
+   so a recreated container neither re-ships nor skips. #}
+{%- set defaults = {
+    'image': 'grafana/alloy',
+    'tag': 'v1.20.1',
+    'container_name': 'alloy',
+    'config_dir': '/opt/alloy/config',
+    'data_dir': '/opt/alloy/data',
+    'docker_socket': '/var/run/docker.sock',
+    'journal_path': '/var/log/journal',
+    'journal_max_age': '12h',
+    'loki_mine_alias': 'loki',
+    'loki_port': 3100,
+} %}
+{%- set alloy = salt['pillar.get']('alloy:lookup', default=defaults, merge=True) %}
+
+{#- Derived, not a default: Loki's push base URL from the Salt Mine — first
+   minion publishing loki_mine_alias, sorted by ID (there is one Loki).
+   Empty when none does yet. Here so config.sls and container.sls agree. #}
+{%- set loki_urls = [] %}
+{%- for minion, ips in salt['mine.get']('*', alloy.loki_mine_alias) | dictsort if ips %}
+{%- do loki_urls.append('http://' ~ ips[0] ~ ':' ~ alloy.loki_port) %}
+{%- endfor %}
+{%- do alloy.update({'loki_url': loki_urls[0] if loki_urls else ''}) %}

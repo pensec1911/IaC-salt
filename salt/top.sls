@@ -13,6 +13,7 @@ base:
     - salt-minion
     - docker
     - cadvisor
+    - alloy
     - homepage
 
   'monitoring':
@@ -23,6 +24,8 @@ base:
     - docker
     - cadvisor
     - blackbox-exporter
+    - loki
+    - alloy
     - grafana
     - prometheus
     - alertmanager
@@ -35,6 +38,7 @@ base:
     - nfs-mount
     - docker
     - cadvisor
+    - alloy
     - arrstack
     - seerr
 
@@ -52,6 +56,7 @@ base:
     - nfs-mount
     - docker
     - cadvisor
+    - alloy
     - jellyfin
 
   # Targeting is by minion ID, which matches the Tofu VM `name` in

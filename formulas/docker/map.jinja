@@ -6,6 +6,14 @@
   python3-docker is not importable by it. Without them every
   docker_container/docker_image state fails with "'docker_container.running'
   is not available".
+
+  daemon_config: rendered 1:1 as /etc/docker/daemon.json (none existed
+  before, so the whole file is ours). Default log driver json-file has no
+  size limit — without log-opts a chatty container fills the disk. Applies
+  to containers created after the change only; existing ones keep their
+  log config until they're recreated (next image bump). Changing it
+  restarts docker, i.e. every container on the host. Alloy reads logs via
+  the docker API (formulas/alloy), so rotation loses nothing it shipped.
 -#}
 {%- set defaults = {
     'pkgs': ['docker-ce', 'docker-ce-cli', 'containerd.io'],
@@ -15,5 +23,10 @@
     'repo_keyurl': 'https://download.docker.com/linux/debian/gpg',
     'keyring': '/etc/apt/keyrings/docker.asc',
     'service': 'docker',
+    'daemon_config_file': '/etc/docker/daemon.json',
+    'daemon_config': {
+        'log-driver': 'json-file',
+        'log-opts': {'max-size': '10m', 'max-file': '3'},
+    },
 } %}
 {%- set docker = salt['pillar.get']('docker:lookup', default=defaults, merge=True) %}

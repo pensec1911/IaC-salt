@@ -15,3 +15,12 @@ docker:
     repo_keyurl: https://download.docker.com/linux/debian/gpg
     keyring: /etc/apt/keyrings/docker.asc
     service: docker
+    # /etc/docker/daemon.json, rendered 1:1. Changing it restarts docker
+    # (all containers on the host). log-opts only affect newly created
+    # containers.
+    daemon_config_file: /etc/docker/daemon.json
+    daemon_config:
+      log-driver: json-file
+      log-opts:
+        max-size: 10m
+        max-file: "3"

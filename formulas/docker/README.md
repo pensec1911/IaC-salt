@@ -14,6 +14,15 @@ container states: the extension only gets installed during the real apply.
 Any formula that runs containers should `require: - sls: docker` rather than assuming Docker is
 already present — don't duplicate installation logic per-service.
 
+## Daemon config (log rotation)
+
+`docker.config` writes `/etc/docker/daemon.json` from `daemon_config` (whole file — Debian ships
+none). Default: `json-file` with `max-size: 10m`, `max-file: 3` per container, so container logs
+can't fill the disk. A change restarts `docker` — every container on that host, which cuts
+Jellyfin streams and makes arrstack's VPN reconnect (the same highstate then brings everything
+back). Only containers created afterwards pick up new `log-opts`; existing ones keep theirs until
+recreated.
+
 ## Usage
 
 Add `docker` to a minion's entry in `salt/top.sls`, before any formula that depends on it:
