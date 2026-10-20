@@ -81,7 +81,7 @@ homepage:
         - name: pve01
           href: https://192.168.178.11:8006
           icon: proxmox.png
-          description: homepage, wazuh, tailscale-router
+          description: homepage, wazuh
         - name: pve02
           href: https://192.168.178.12:8006
           icon: proxmox.png
