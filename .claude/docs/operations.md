@@ -28,6 +28,10 @@ A minion starting (Tofu provision, reboot, `salt-minion` restart) triggers a ful
 `state.apply` on it via the master's reactor (`formulas/salt-master`). So a reboot means a
 highstate a few seconds later; check it with `salt-run jobs.list_jobs search_function=state.apply`.
 
+A stopped `docker` on a docker host (down > 90 s, i.e. systemd gave up or someone stopped it)
+is started again via the service beacon → reactor (`formulas/salt-minion` "Beacons"). Pausing
+for maintenance: `salt '<minion>' beacons.disable_beacon service`.
+
 ## Drift check
 
 Every minion dry-runs its highstate hourly (`formulas/salt-minion`) and exposes the result as

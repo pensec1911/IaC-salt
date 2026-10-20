@@ -39,6 +39,19 @@ The consumer list is written into `reactor.conf` as `homelab_mine_consumers` (a 
 option the reactor SLS reads via `opts`) — the event only says "refresh", a minion can't choose
 the target. Empty `mine_consumers` drops the mapping.
 
+## Reactor: restart stopped services
+
+A minion's service beacon (`formulas/salt-minion`, "Beacons") fires
+`salt/beacon/<id>/service/<name>` when a watched service has been down for a while.
+`reactor.conf` maps that to `reactor/beacon-service.sls`, which runs `service.start <name>` on
+that minion — only for `running: False` and only for services in `beacon_restart_services`
+(pillar: `docker`), written into `reactor.conf` as `homelab_beacon_restart_services`. No
+highstate: it must stay harmless on the report-only minions (arrstack, jellyfin).
+
+The master doesn't verify the `id` inside beacon events (unlike `salt/minion/<id>/start`), so a
+minion could name another one — worst case a whitelisted service gets started there. Empty
+`beacon_restart_services` drops the mapping.
+
 ## Bootstrap
 
 See the repo root `README.md` for the one-time manual step required before gitfs can take over

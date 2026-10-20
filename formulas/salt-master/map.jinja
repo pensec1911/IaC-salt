@@ -45,6 +45,11 @@
   scrape targets). When any minion fires mine_event_tag (its mine conf
   changed), mine_reactor_sls runs a full state.apply on these. Empty =
   no mapping. Repo data, so the list itself lives in pillar/salt-master.sls.
+
+  beacon_restart_services: services the reactor may start again when a
+  minion's service beacon (formulas/salt-minion) reports them stopped.
+  Whitelist on the master: the event names the service, so without it a
+  minion could have the master start anything. Empty = no mapping.
 -#}
 {%- set defaults = {
     'gitfs_remote': 'ssh://git@github.com/pensec1911/IaC-salt.git',
@@ -69,5 +74,8 @@
     'mine_consumers': [],
     'mine_event_tag': 'homelab/mine/updated',
     'mine_reactor_sls': 'salt://salt-master/reactor/mine-updated.sls',
+    'beacon_restart_services': [],
+    'beacon_service_tag': 'salt/beacon/*/service/*',
+    'beacon_service_reactor_sls': 'salt://salt-master/reactor/beacon-service.sls',
 } %}
 {%- set salt_master = salt['pillar.get']('salt-master:lookup', default=defaults, merge=True) %}

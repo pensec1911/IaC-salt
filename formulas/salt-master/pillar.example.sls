@@ -56,3 +56,9 @@ salt-master:
       - monitoring
     mine_event_tag: homelab/mine/updated
     mine_reactor_sls: salt://salt-master/reactor/mine-updated.sls
+    # Services the reactor starts again when a minion's service beacon
+    # (formulas/salt-minion) reports them stopped. Empty = off.
+    beacon_restart_services:
+      - docker
+    beacon_service_tag: salt/beacon/*/service/*
+    beacon_service_reactor_sls: salt://salt-master/reactor/beacon-service.sls

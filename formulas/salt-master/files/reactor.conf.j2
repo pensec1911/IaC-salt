@@ -10,6 +10,10 @@
 {%- do reactions.append((salt_master.mine_event_tag, salt_master.mine_reactor_sls,
     'A minion changed its Salt Mine entries (formulas/node-exporter, cadvisor).')) %}
 {%- endif %}
+{%- if salt_master.beacon_restart_services %}
+{%- do reactions.append((salt_master.beacon_service_tag, salt_master.beacon_service_reactor_sls,
+    'A minion\'s service beacon reported a status change (formulas/salt-minion).')) %}
+{%- endif %}
 {%- if reactions %}
 reactor:
 {%- for tag, sls, why in reactions %}
@@ -24,3 +28,4 @@ reactor: []
 # Not a Salt option — read by the mine reactor SLS via `opts`, since a
 # reactor SLS has no pillar of its own.
 homelab_mine_consumers: {{ salt_master.mine_consumers | json }}
+homelab_beacon_restart_services: {{ salt_master.beacon_restart_services | json }}

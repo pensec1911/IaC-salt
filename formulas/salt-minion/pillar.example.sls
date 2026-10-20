@@ -16,3 +16,14 @@ salt-minion:
       metrics_file: salt_drift.prom
       salt_call: /usr/bin/salt-call
       python: /usr/bin/python3
+    beacons:
+      # Service beacon -> master reactor starts a stopped service again
+      # (only services on salt-master:lookup:beacon_restart_services).
+      service:
+        enabled: False
+        services:
+          - docker
+        interval_seconds: 10
+        # Down this long before the event fires. Must exceed the unit's
+        # StartLimitIntervalSec (docker: 60 s) — see map.jinja.
+        delay_seconds: 90

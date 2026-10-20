@@ -5,6 +5,12 @@ salt-master:
     mine_consumers:
       - monitoring
 
+    # Started again by the reactor when a minion's service beacon reports
+    # them stopped (pillar/salt-minion-beacons.sls says which minions watch
+    # what).
+    beacon_restart_services:
+      - docker
+
     # Not secret — the AppRole role_id from OpenBao. See
     # todo/openbao-setup.md. secret_id (the actual credential) is a file
     # placed manually on the master, never pillar/git — see

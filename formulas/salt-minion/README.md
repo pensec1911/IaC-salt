@@ -1,6 +1,7 @@
 # salt-minion formula
 
-Minion-side Salt features. Today: **drift detection**.
+Minion-side Salt features: **drift detection** and **beacons** (self-healing of stopped
+services).
 
 ## Drift check
 
@@ -62,6 +63,33 @@ While another `state.apply` holds the lock ("function is running as PID …"), t
 every 30 s until `timeout_seconds`. Not `queue=True`: a queued run only returns "Job queued
 for execution" and its result never reaches the script.
 
+## Beacons: restart stopped services
+
+`beacons.service` configures Salt's `service` beacon (persisted in
+`/etc/salt/minion.d/beacons.conf`, checked every `interval_seconds`). When a listed service has
+been down for `delay_seconds`, the minion fires `salt/beacon/<id>/service/<name>` with
+`running: False`; the master's reactor (`formulas/salt-master`, "Reactor: restart stopped
+services") runs `service.start <name>` on that minion — nothing more, no highstate. It fires on
+status changes only, not on every check and not at minion start.
+
+On in `pillar/salt-minion-beacons.sls` for `docker` on the docker hosts (homepage, monitoring,
+arrstack, jellyfin). Also on arrstack/jellyfin, which are otherwise report-only: when docker is
+down the stack is down already, starting it cuts nothing.
+
+- `docker.service` restarts itself on a crash (`Restart=always`); the beacon covers what that
+  doesn't: systemd gave up (start limit, 3 starts/min) or docker was stopped by hand.
+  `delay_seconds` (90) > the start-limit interval (60 s), so systemd goes first and the
+  reactor's start is no longer refused when it comes.
+- **Maintenance**: a docker stopped on purpose comes back after ~90 s. Pause it with
+  `salt '<minion>' beacons.disable_beacon service` (not saved, back after a salt-minion
+  restart or `beacons.enable_beacon service`).
+- On arrstack/jellyfin docker waits for the NFS mount (`nfs-mount` `required_by`). With the NAS
+  down the reactor's start fails once and isn't retried (one event per change); start docker
+  when the NAS is back, as before.
+
+Check what's configured: `salt '<minion>' beacons.list`. Restarts it triggered:
+`salt-run jobs.list_jobs search_function=service.start` on the master.
+
 ## Usage
 
 Every minion, after `node-exporter` (it writes into that package's textfile directory, and
@@ -81,4 +109,5 @@ Run it once by hand: `salt '<minion>' schedule.run_job drift-check`, then
 
 ## Pillar
 
-None required. See `pillar.example.sls` (`drift_check.enabled: False` removes it cleanly).
+None required. See `pillar.example.sls` (`drift_check.enabled: False` removes it cleanly;
+`beacons.service.enabled: False`, the default, removes the beacon).

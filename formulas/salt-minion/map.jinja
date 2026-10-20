@@ -15,7 +15,17 @@
 
    enforce: self-repair — on drift, run a real state.apply instead of only
    reporting. Off by default; turned on per minion in pillar where a
-   re-apply is harmless (pillar/salt-minion-enforce.sls). #}
+   re-apply is harmless (pillar/salt-minion-enforce.sls).
+
+   beacons.service: Salt's service beacon, persisted to
+   /etc/salt/minion.d/beacons.conf. Fires salt/beacon/<id>/service/<name>
+   only on a status change (onchangeonly), not at minion start
+   (emitatstartup off). The master's reactor (formulas/salt-master) starts
+   a stopped service again if it is on its whitelist. delay_seconds must
+   exceed the unit's StartLimitIntervalSec (docker: 1 min): systemd's own
+   Restart= gets the first go, and once it gave up (start limit hit) the
+   reactor's `systemctl start` would be refused until that interval passed.
+   Off by default; on per minion in pillar/salt-minion-beacons.sls. #}
 {%- set defaults = {
     'drift_check': {
         'enabled': True,
@@ -28,6 +38,14 @@
         'metrics_file': 'salt_drift.prom',
         'salt_call': '/usr/bin/salt-call',
         'python': '/usr/bin/python3',
+    },
+    'beacons': {
+        'service': {
+            'enabled': False,
+            'services': [],
+            'interval_seconds': 10,
+            'delay_seconds': 90,
+        },
     },
 } %}
 {%- set salt_minion = salt['pillar.get']('salt-minion:lookup', default=defaults, merge=True) %}

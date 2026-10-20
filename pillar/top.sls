@@ -7,6 +7,10 @@ base:
     - match: list
     - salt-minion-enforce
 
+  'homepage,monitoring,arrstack,jellyfin':
+    - match: list
+    - salt-minion-beacons
+
   'salt-master':
     - salt-master
 

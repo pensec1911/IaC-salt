@@ -23,14 +23,36 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 
 ## Later
 
-### Beacons → reactor (self-healing)
+### blackbox_exporter (HTTP probes)
 
-- `service` beacon on `docker` (and other systemd units) → reactor restarts / re-applies.
-- `diskusage` beacon on the NFS mounts (arrstack, jellyfin).
-- `inotify` on managed config files → immediate re-apply instead of waiting for the schedule.
-- No built-in beacon for individual Docker containers — container health is better covered by
-  cadvisor + Alertmanager.
-- Reactor plumbing exists (`formulas/salt-master`, `reactor.conf.j2`) — add a mapping there.
+- **Why**: cAdvisor only shows a container is running, not that the app answers. A hung
+  Sonarr or a Jellyfin stuck at startup is invisible today.
+- **Sketch**: `blackbox-exporter` formula on monitoring (docker, cadvisor pattern). Probe
+  targets from the Salt Mine like node_exporter/cadvisor — each service formula publishes its
+  URL as a mine entry, Prometheus builds `http_2xx` jobs from it. `ProbeFailed` alert in
+  alertmanager. The mine reactor (formulas/salt-master) already re-applies mine consumers.
+- **Open**: arrstack apps sit behind gluetun — probe the ports gluetun exposes; auth-protected
+  endpoints (accept 401 as "up"?).
+
+### Loki + Alloy (container logs)
+
+- **Why**: Wazuh covers security logs, but app logs (failed Sonarr import, Jellyfin errors)
+  are only reachable via `docker logs` on the VM. Grafana is already there.
+- **Sketch**: `loki` formula on monitoring, `alloy` formula on every docker host (scrapes the
+  docker socket, ships to Loki). Loki URL for Alloy from the mine, not hardcoded. Grafana
+  datasource via the grafana formula's provisioning.
+- **Open**: retention / disk on monitoring; whether Alloy also replaces cadvisor/node_exporter
+  later (probably not — keep it to logs).
+
+### Forgejo + Renovate (long term)
+
+- **Why**: master pulls from GitHub today; a local Forgejo keeps repo + deploy in the LAN and
+  gives an easy push webhook (see "Event sources via salt-api"). Renovate would open PRs for
+  the pinned image versions instead of bumping them by hand.
+- **Sketch**: own VM via Tofu, `forgejo` formula; gitfs/git_pillar remote + deploy key switch
+  over; GitHub as a mirror. Renovate as a Forgejo Actions job or a container.
+- **Open**: runner for Actions; backup of Forgejo itself becomes critical (it holds the deploy
+  source) — after the backup item.
 
 ### Self-repair on jellyfin / arrstack
 
@@ -57,3 +79,8 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 - **Key acceptance via reactor** — keys are currently auto-accepted master-wide
   (`auto_accept: true`, see known-issues.md); if that changes, acceptance goes back to manual
   (security-critical bootstrap, CLAUDE.md hard rules), not to reactor-driven auto-accept.
+- **diskusage beacon on the NFS mounts** — `DiskAlmostFull` (pillar/prometheus.sls) already
+  covers them (`nfs4` isn't excluded), and there's nothing to heal automatically.
+- **inotify beacon → re-apply on config change** — needs pyinotify in the onedir bundle, fires
+  on Salt's own writes too (double highstate), and on arrstack/jellyfin it would be self-repair
+  through the back door. The hourly enforce run covers the other minions.
