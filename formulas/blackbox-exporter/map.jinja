@@ -1,0 +1,33 @@
+{#- uid/gid: the image has no USER (runs as root); HTTP probes need no
+   privileges, so the container gets nobody via a docker `user:` override —
+   same as formulas/prometheus. No host account: nothing on disk is written
+   by it, config.yml is only read.
+
+   modules: rendered 1:1 as config.yml's `modules:` (upstream schema). A
+   dict, so pillar can add or tweak modules via merge=True.
+   http_up: "the UI answers" — 401/403 count as up (Sonarr/Radarr/Prowlarr/
+   Bazarr ask for a login, 2026-10-20), redirects are followed, and TLS
+   isn't verified (Proxmox, TrueNAS, OpenBao, Wazuh use self-signed certs —
+   the probe is about reachability, not trust). #}
+{%- set defaults = {
+    'image': 'prom/blackbox-exporter',
+    'tag': 'v0.29.0',
+    'container_name': 'blackbox-exporter',
+    'host_port': 9115,
+    'config_dir': '/opt/blackbox-exporter/config',
+    'uid': 65534,
+    'gid': 65534,
+    'modules': {
+        'http_up': {
+            'prober': 'http',
+            'timeout': '10s',
+            'http': {
+                'preferred_ip_protocol': 'ip4',
+                'follow_redirects': True,
+                'valid_status_codes': [200, 204, 401, 403],
+                'tls_config': {'insecure_skip_verify': True},
+            },
+        },
+    },
+} %}
+{%- set blackbox_exporter = salt['pillar.get']('blackbox-exporter:lookup', default=defaults, merge=True) %}

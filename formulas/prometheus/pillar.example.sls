@@ -31,6 +31,15 @@ prometheus:
     #   mine:
     #     alias: node_exporter
     #     port: 9100
+    # Or probe URLs through a blackbox exporter (formulas/blackbox-exporter):
+    # each target is passed as ?target=. homepage: True adds one target per
+    # pillar/homepage.sls item with a status dot (instance=<item name>,
+    # group=<homepage group>) — the minion then needs homepage pillar too.
+    # - job_name: blackbox
+    #   probe:
+    #     module: http_up
+    #     exporter: 192.168.178.X:9115
+    #     homepage: True
 
   # Alertmanager(s) to send firing alerts to. Unset = no alerting section.
   alerting:

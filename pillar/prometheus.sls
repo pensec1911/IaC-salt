@@ -25,6 +25,13 @@ prometheus:
       mine:
         alias: cadvisor
         port: 8088
+    # Every web UI with a status dot on homepage (pillar/homepage.sls —
+    # monitoring gets it via pillar/top.sls), probed via blackbox-exporter.
+    - job_name: blackbox
+      probe:
+        module: http_up
+        exporter: {{ monitoring_ip }}:9115
+        homepage: True
 
   alerting:
     - {{ monitoring_ip }}:9093
@@ -51,6 +58,13 @@ prometheus:
             severity: critical
           annotations:
             summary: {% raw %}"Scrape job {{ $labels.job }} has no targets — Salt Mine empty? Apply the exporter minions, then monitoring"{% endraw %}
+        - alert: ProbeFailed
+          expr: probe_success{job="blackbox"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"{{ $labels.instance }} ({{ $labels.group }}) doesn't answer — {{ $labels.url }}"{% endraw %}
         - alert: DiskAlmostFull
           expr: >-
             node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}

@@ -22,6 +22,7 @@ base:
     - salt-minion
     - docker
     - cadvisor
+    - blackbox-exporter
     - grafana
     - prometheus
     - alertmanager

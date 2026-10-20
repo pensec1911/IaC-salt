@@ -23,17 +23,6 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 
 ## Later
 
-### blackbox_exporter (HTTP probes)
-
-- **Why**: cAdvisor only shows a container is running, not that the app answers. A hung
-  Sonarr or a Jellyfin stuck at startup is invisible today.
-- **Sketch**: `blackbox-exporter` formula on monitoring (docker, cadvisor pattern). Probe
-  targets from the Salt Mine like node_exporter/cadvisor — each service formula publishes its
-  URL as a mine entry, Prometheus builds `http_2xx` jobs from it. `ProbeFailed` alert in
-  alertmanager. The mine reactor (formulas/salt-master) already re-applies mine consumers.
-- **Open**: arrstack apps sit behind gluetun — probe the ports gluetun exposes; auth-protected
-  endpoints (accept 401 as "up"?).
-
 ### Loki + Alloy (container logs)
 
 - **Why**: Wazuh covers security logs, but app logs (failed Sonarr import, Jellyfin errors)

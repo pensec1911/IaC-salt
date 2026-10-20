@@ -21,6 +21,8 @@ base:
     - grafana
     - prometheus
     - alertmanager
+    # Read by prometheus' blackbox job (probe targets = homepage items).
+    - homepage
 
   'arrstack':
     - nfs-mount

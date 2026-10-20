@@ -31,7 +31,35 @@ scrape_configs:
 {%- do static_configs.append({'targets': [ips[0] ~ ':' ~ job.mine.port], 'labels': {'instance': minion}}) %}
 {%- endfor %}
 {%- endif %}
+{#- A job with `probe:` scrapes a blackbox exporter (formulas/blackbox-exporter)
+   instead of the targets themselves: each target URL becomes the exporter's
+   ?target= param. probe.homepage: one target per pillar/homepage.sls item
+   with a status dot — same rule as formulas/homepage's services.yaml.j2
+   (siteMonitor, default href; false = none). #}
+{%- set probe = job.get('probe') %}
+{%- if probe and probe.get('homepage') %}
+{%- for group in pillar.get('homepage', {}).get('services', []) %}
+{%- for item in group.get('items', []) %}
+{%- set url = item.get('siteMonitor', item.get('href')) %}
+{%- if url %}
+{%- do static_configs.append({'targets': [url], 'labels': {'instance': item.name, 'group': group.name}}) %}
+{%- endif %}
+{%- endfor %}
+{%- endfor %}
+{%- endif %}
   - job_name: {{ job.job_name }}
+{%- if probe %}
+    metrics_path: /probe
+    params:
+      module: [{{ probe.module }}]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: url
+      - target_label: __address__
+        replacement: {{ probe.exporter }}
+{%- endif %}
 {%- if not static_configs %}
     static_configs: []
 {%- else %}
@@ -40,12 +68,12 @@ scrape_configs:
 {%- for sc in static_configs %}
       - targets:
 {%- for target in sc.get('targets', []) %}
-          - {{ target }}
+          - {{ target | json }}
 {%- endfor %}
 {%- if sc.get('labels') %}
         labels:
 {%- for key, value in sc.labels.items() %}
-          {{ key }}: {{ value }}
+          {{ key }}: {{ value | json }}
 {%- endfor %}
 {%- endif %}
 {%- endfor %}

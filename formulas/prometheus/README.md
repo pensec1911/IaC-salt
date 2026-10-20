@@ -53,6 +53,12 @@ highstate renders `prometheus.yml`. A new minion's own highstate publishes its e
 (`salt-master:lookup:mine_consumers`), so it shows up without a manual run. A job whose mine is empty renders `static_configs: []`
 (`ScrapeJobEmpty` alert in `pillar/prometheus.sls`).
 
+**Probe jobs**: a job with `probe: {module, exporter, homepage}` scrapes a blackbox exporter
+(`formulas/blackbox-exporter`) at `exporter` instead of the targets: each target URL becomes
+`?target=` (and a `url` label), `module` the exporter module. `homepage: True` adds one target per
+`pillar/homepage.sls` item with a status dot (`instance` = item name, `group` = homepage group),
+so that pillar must be assigned to this minion too. Combinable with `static_configs` of URLs.
+
 On a fresh `monitoring` the first highstate misses monitoring's *own* targets (the template
 renders before its own mine states run); the same event queues a second run right after, which
 adds them.

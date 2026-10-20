@@ -1,0 +1,2 @@
+include:
+  - blackbox-exporter.container

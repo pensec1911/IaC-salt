@@ -1,0 +1,3 @@
+{%- from "blackbox-exporter/map.jinja" import blackbox_exporter with context -%}
+# Managed by formulas/blackbox-exporter — modules from map.jinja / pillar.
+modules: {{ blackbox_exporter.modules | json }}
