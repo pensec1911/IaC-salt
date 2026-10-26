@@ -14,6 +14,16 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Smaller items
 
+- **A salt-master restart triggers a highstate on every minion, arrstack/jellyfin included,
+  at any hour** (seen 2026-10-26 12:48, when salt-api was introduced). On reconnect, the
+  minions fire `salt/minion/<id>/start`, and the start reactor (`formulas/salt-master`)
+  applies each one. This is older than salt-api and happens on every master restart, for
+  example from a change to `master.d/*.conf` (manual apply, hourly enforce, or now
+  `orch.push`). It is harmless while those hosts have no drift, but it bypasses the 03:00–06:00
+  window. Possible fixes: the start reactor only applies if the minion itself just booted (an
+  uptime check in an orchestrate step), or it runs the drift check instead of a highstate on
+  minions that already have one.
+
 - **apt-daily rarely refreshes the package lists** (seen 2026-10-26): `update-stamp` / lists on
   salt-master and homepage from 2026-10-18, wazuh and monitoring 2026-10-20; the journal shows
   `apt-daily.service` only right after boots, not the twice-daily runs (`OnCalendar=6,18:00`,
