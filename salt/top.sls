@@ -90,6 +90,7 @@ base:
     - cadvisor
     - alloy
     - forgejo
+    - forgejo-runner
     - backup
 
   # Targeting is by minion ID, which matches the Tofu VM `name` in

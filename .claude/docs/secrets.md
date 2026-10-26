@@ -39,6 +39,7 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `wazuh/registration` | `password` | `pillar/wazuh.sls` + `pillar/wazuh-agent.sls` — must be the same shared secret |
 | `salt-api/alertmanager` | `token` | `pillar/salt-master.sls` + `pillar/alertmanager.sls` — bearer token for salt-api's `/hook/alertmanager`; must be the same on both sides |
 | `forgejo/admin` | `username`, `password`, `token` | Not read by pillar — Forgejo's admin login (install wizard, formulas/forgejo README "First run") and an API token for setup work. |
+| `forgejo/runner` | `secret` | `pillar/forgejo.sls` — 40-hex offline registration secret of the Actions runner, used on both sides (forgejo `runners`, forgejo-runner). Rotate: change the last 24 chars. |
 | `salt-api/forgejo` | `hmac` | `pillar/salt-master.sls` — HMAC secret of the Forgejo push webhook to `/hook/git` (set on the webhook in `homelab/IaC-salt`); must be the same on both sides |
 | `github/mirror` | `token` | Not read by pillar — fine-grained GitHub PAT (Contents RW on IaC-salt, IaC-opentofu) for Forgejo's push mirrors; stored encrypted in Forgejo's DB too. On rotation: update both. |
 | `restic/repo` | `password` | `pillar/backup.sls` — restic repo password, shared by all minion repos. Changing it needs `restic key add` first (formulas/backup README); keep a copy outside the homelab. |

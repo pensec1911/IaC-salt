@@ -23,6 +23,11 @@ forgejo:
         -----BEGIN CERTIFICATE-----
         ...
         -----END CERTIFICATE-----
+    # Offline runner registration (formulas/forgejo-runner is the other half).
+    runners:
+      forgejo:
+        scope: homelab   # org/user name, '' = instance-wide
+        secret: {{ salt['sdb.get']('sdb://osvault/homelab/data/forgejo/runner?secret') | yaml_encode }}
     # Merged into the defaults (database, registration off). Each entry becomes FORGEJO__<section>__<KEY>. No secrets here.
     app_ini:
       server:

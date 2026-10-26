@@ -1,0 +1,33 @@
+{%- from "forgejo-runner/map.jinja" import runner with context -%}
+# Managed by formulas/forgejo-runner. Defaults from
+# `forgejo-runner generate-config` (13.x); only what differs is set here.
+log:
+  level: info
+  job_level: info
+
+runner:
+  file: .runner
+  capacity: {{ runner.capacity }}
+  timeout: 3h
+  shutdown_timeout: 3h
+  labels: {{ runner.labels | json }}
+
+# The cache server would have to be reachable from job containers inside
+# dind; nothing here needs it.
+cache:
+  enabled: false
+
+container:
+  # "" = a fresh isolated network per job.
+  network: ""
+  privileged: false
+  valid_volumes: []
+  # "-" = no docker socket mounted into job containers.
+  docker_host: "-"
+
+server:
+  connections:
+    {{ runner.connection_name }}:
+      url: {{ runner.instance_url }}
+      uuid: {{ runner.uuid }}
+      token_url: file:/data/token

@@ -14,7 +14,13 @@
    extra_ca_certs: name -> PEM of self-signed certs Forgejo must trust as a
    client (webhooks to salt-api). Written to ca_dir and added via
    SSL_CERT_DIR next to the image's system bundle, which stays in use — so
-   no global SKIP_TLS_VERIFY. #}
+   no global SKIP_TLS_VERIFY.
+
+   runners: name -> {scope, secret} — offline registration of Forgejo
+   runners (forgejo-cli actions register; formulas/forgejo-runner holds
+   the other half). scope: an org or user name, '' = instance-wide. The
+   secret is 40 hex chars from OpenBao; re-registered only when it changes
+   (a sha256 of it is kept next to the data). #}
 {%- set defaults = {
     'image': 'data.forgejo.org/forgejo/forgejo',
     'tag': '15.0.10-rootless',
@@ -27,6 +33,7 @@
     'data_dir': '/opt/forgejo/data',
     'ca_dir': '/opt/forgejo/ca',
     'extra_ca_certs': {},
+    'runners': {},
     'app_ini': {
         'database': {'DB_TYPE': 'sqlite3'},
         'service': {'DISABLE_REGISTRATION': 'true'},

@@ -14,6 +14,10 @@ formula only handles the container and its local dirs.
 - `extra_ca_certs` — self-signed certs (salt-api) written to `ca_dir` and added via
   `SSL_CERT_DIR` next to the image's CA bundle, so webhooks to salt-api verify TLS without a
   global `SKIP_TLS_VERIFY`.
+- `forgejo.runners` — offline registration of Forgejo runners from `forgejo:lookup:runners`
+  (`forgejo-cli actions register`, scope + 40-hex secret from OpenBao). It runs again only when
+  the secret changes (a sha256 marker in `data_dir`), and not before the install wizard has run.
+  The scope (org) must exist first, or the state fails. The runner itself: formulas/forgejo-runner.
 - `app.ini` settings from `forgejo:lookup:app_ini`, passed as `FORGEJO__<section>__<KEY>` env
   vars. The image writes them into `app.ini` on every start, so pillar wins over edits in the UI
   or the file for those keys; everything else in `app.ini` stays as Forgejo wrote it.

@@ -1,0 +1,50 @@
+{#- uid/gid are pinned to the shared `forgejo-runner` account
+   (pillar/forgejo.sls): the runner container runs as it via a docker
+   `user:` override and owns data_dir; the users entry must match.
+
+   Jobs never touch the VM's Docker daemon: the runner talks to its own
+   Docker-in-Docker sidecar (dind) over a private docker network, and job
+   containers run inside that. A workflow can't reach the host socket and
+   so can't stop or modify the Forgejo container (the deploy source). The
+   dind container itself is privileged — that's the price of nesting; jobs
+   are not (container.privileged stays false).
+
+   secret — the 40-hex offline-registration secret (OpenBao, via pillar),
+   shared with formulas/forgejo (forgejo:lookup:runners). The runner's uuid
+   is derived from its first 16 chars, the token is the whole secret
+   (forgejo.org docs "Offline registration"). Empty = the runner isn't set
+   up.
+
+   labels: runner.labels — what `runs-on:` in a workflow can ask for. #}
+{%- set defaults = {
+    'image': 'data.forgejo.org/forgejo/runner',
+    'tag': '13.2.0',
+    'dind_image': 'docker.io/library/docker',
+    'dind_tag': '29.9.2-dind',
+    'container_name': 'forgejo-runner',
+    'dind_container_name': 'forgejo-runner-dind',
+    'network': 'forgejo-runner',
+    'uid': 973,
+    'gid': 973,
+    'data_dir': '/opt/forgejo-runner/data',
+    'dind_dir': '/opt/forgejo-runner/dind',
+    'dind_port': 2375,
+    'instance_url': '',
+    'connection_name': 'forgejo',
+    'secret': '',
+    'capacity': 1,
+    'labels': ['docker:docker://node:22-bookworm'],
+} %}
+{%- set runner = salt['pillar.get']('forgejo-runner:lookup', default=defaults, merge=True) %}
+
+{#- uuid = the secret's first 16 chars as ASCII, hex-encoded, in UUID form
+   (what `forgejo-cli actions register` prints). Only lowercase hex is
+   valid input (`openssl rand -hex 20`). #}
+{%- set ascii_hex = {'0': '30', '1': '31', '2': '32', '3': '33', '4': '34',
+                     '5': '35', '6': '36', '7': '37', '8': '38', '9': '39',
+                     'a': '61', 'b': '62', 'c': '63', 'd': '64', 'e': '65', 'f': '66'} %}
+{%- set hx = [] %}
+{%- for c in (runner.secret or '')[:16] %}{% do hx.append(ascii_hex.get(c, '')) %}{% endfor %}
+{%- set hx = hx | join %}
+{%- do runner.update({'uuid': hx[0:8] ~ '-' ~ hx[8:12] ~ '-' ~ hx[12:16] ~ '-' ~ hx[16:20] ~ '-' ~ hx[20:32],
+                      'secret_valid': (runner.secret or '') | regex_match('^([0-9a-f]{40})$') is not none}) %}
