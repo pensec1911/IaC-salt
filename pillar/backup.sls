@@ -2,7 +2,9 @@
    /mnt/backups/<minion> on the NAS (export /mnt/pool01/backups). Only data
    Salt can't rebuild: app config/DBs under /opt, wazuh's keys and certs.
    Images and Salt-rendered config are reproducible and stay out; so do
-   logs, caches and Prometheus/Loki data (rebuilt from scratch is fine).
+   logs, caches and Prometheus/Loki data (rebuilt from scratch is fine) —
+   e.g. recyclarr/resources, the TRaSH Guides clones (~75 MB) recyclarr
+   re-fetches on every run.
 
    stop_containers: every container with a SQLite DB in the backed-up
    paths. arrstack: gluetun and flaresolverr keep running — the attached
@@ -15,6 +17,7 @@
             '/opt/arrstack/*/logs',
             '/opt/arrstack/*/logs.db*',
             '/opt/arrstack/*/MediaCover',
+            '/opt/arrstack/recyclarr/resources',
             '/opt/seerr/config/logs',
         ],
         'stop_containers': ['sonarr', 'radarr', 'prowlarr', 'bazarr', 'qbittorrent', 'slskd', 'seerr'],
