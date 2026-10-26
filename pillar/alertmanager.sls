@@ -30,7 +30,8 @@ alertmanager:
                 credentials: {{ salt['sdb.get']('sdb://osvault/homelab/data/salt-api/alertmanager?token') | yaml_encode }}
               # salt-api's self-signed cert (/etc/salt/pki/api/salt-api.crt
               # on the master, SAN IP 192.168.178.28, expires 2031-10-25).
-              # Public data. Re-issued: paste the new one here.
+              # Public data. Re-issued: paste the new one here and in
+              # pillar/forgejo.sls (extra_ca_certs).
               tls_config:
                 ca: |
                   -----BEGIN CERTIFICATE-----

@@ -13,3 +13,5 @@ rest_cherrypy:
 
 # Not a Salt option — read by reactor/alertmanager-hook.sls via `opts`.
 homelab_alertmanager_token: {{ salt_master.api_alertmanager_token | yaml_encode }}
+# Not a Salt option — read by reactor/git-hook.sls via `opts`.
+homelab_git_hmac_secret: {{ salt_master.api_git_hmac_secret | yaml_encode }}

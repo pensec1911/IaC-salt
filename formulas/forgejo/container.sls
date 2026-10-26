@@ -18,6 +18,9 @@ forgejo-container:
     - environment:
       - TZ={{ forgejo.timezone }}
       - FORGEJO__server__SSH_PORT={{ forgejo.ssh_port }}
+      {%- if forgejo.extra_ca_certs %}
+      - SSL_CERT_DIR=/etc/ssl/certs:/etc/ssl/forgejo-ca
+      {%- endif %}
       {%- for section, keys in forgejo.app_ini | dictsort %}
       {%- for key, value in keys | dictsort %}
       - FORGEJO__{{ section }}__{{ key }}={{ value }}
@@ -25,6 +28,9 @@ forgejo-container:
       {%- endfor %}
     - binds:
       - {{ forgejo.data_dir }}:/var/lib/gitea:rw
+      {%- if forgejo.extra_ca_certs %}
+      - {{ forgejo.ca_dir }}:/etc/ssl/forgejo-ca:ro
+      {%- endif %}
     - require:
       - sls: docker
       - user: user-git

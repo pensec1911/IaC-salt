@@ -16,7 +16,16 @@ salt-master:
     # gitfs/git_pillar provider — must be gitcli or pygit2; gitpython does
     # not support the privkey/pubkey auth params.
     git_provider: gitcli
-    known_host_key: AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+    # Pinned host keys of the git remotes. A dict: pillar adds hosts on top
+    # of the GitHub default.
+    known_hosts:
+      github.com:
+        enc: ssh-ed25519
+        key: AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+      192.168.178.29:
+        port: 2222
+        enc: ssh-rsa
+        key: AAAAB3Nza...
 
     # OpenBao (sdb driver) — lets pillar reference sdb://<sdb_profile>/<path>
     # instead of storing secrets in git. role_id isn't secret, it can live
@@ -76,6 +85,11 @@ salt-master:
     api_alertmanager_token: {{ salt['sdb.get']('sdb://osvault/homelab/data/salt-api/alertmanager?token') | yaml_encode }}
     alertmanager_hook_tag: salt/netapi/hook/alertmanager
     alertmanager_reactor_sls: salt://salt-master/reactor/alertmanager-hook.sls
+    # Shared HMAC secret of the git server's push webhook to /hook/git.
+    # Empty = no mapping. Always from OpenBao:
+    api_git_hmac_secret: {{ salt['sdb.get']('sdb://osvault/homelab/data/salt-api/forgejo?hmac') | yaml_encode }}
+    git_hook_tag: salt/netapi/hook/git
+    git_reactor_sls: salt://salt-master/reactor/git-hook.sls
     # Push = deploy: gitfs' update event (fileserver_events) with new commits
     # starts push_orch_sls (formulas/orch).
     push_deploy: False

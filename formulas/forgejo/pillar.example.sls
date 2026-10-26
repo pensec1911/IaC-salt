@@ -15,6 +15,14 @@ forgejo:
     http_port: 3000        # host port for the web UI
     ssh_port: 2222         # host port for git over SSH, also the port in clone URLs
     data_dir: /opt/forgejo/data
+    ca_dir: /opt/forgejo/ca
+    # Self-signed certs Forgejo trusts as a client (webhooks), added next to
+    # the system bundle. Public data.
+    extra_ca_certs:
+      salt-api: |
+        -----BEGIN CERTIFICATE-----
+        ...
+        -----END CERTIFICATE-----
     # Merged into the defaults (database, registration off). Each entry becomes FORGEJO__<section>__<KEY>. No secrets here.
     app_ini:
       server:

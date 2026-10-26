@@ -23,6 +23,15 @@ salt-master:
     # nightly window or manual apply.
     push_deploy: True
 
+    # Forgejo's SSH host key (built-in server, :2222), read from
+    # /opt/forgejo/data/ssh/gitea.rsa.pub on the minion and matched against
+    # ssh-keyscan, 2026-10-26. Public data.
+    known_hosts:
+      192.168.178.29:
+        port: 2222
+        enc: ssh-rsa
+        key: AAAAB3NzaC1yc2EAAAADAQABAAACAQC8ekmTEyT42SZmnQL+fR443nsym87XYrjkgyv6+VWzHIKFZ0fBXQ0JOHb1JyhRrPun7iUmfrJB+XQ6XmM3Zk1YoziUnDli3KP6kde6Dx5a99V64A1V6kAikiHJiVoc2MRi7BKrwzBvqNaez1CgncqAzJRxAaahdai38ZOPqx9e0V2Ogol7nPjYi/3jvknX/w1hIeOWl4WQjvN6Okg9Vyiw9qVWcHutCt2LxcIpiLzwEe4bPNMW3zuYDS3asJe2H4AbgB/M2vGm+iA8yvlxAhWfWAycRaxgOH6OvmmTl9G2ML/1wmYBtdRMm1fHutQAYS98Uus0jrhoE0zeWrNJzqmCsEyUYz1MxZTywoBJzf4A6OniKB3CZzak7ob82p6JVPPeqB3ch68zOOulKSfOsm2iNcpsECrc4ebaWoYXfDZCNPsBrrDjjyACBARqdgH2yNuifzc+3TAxfI42Gg7EXUht8s0O196JZjAgnyVjvNMHyvytf6VhqKMfNiiLkyPVnVf0Pv2qK3GTdMiFvPFZB9n0yNJHh16JDcQLoUZ3kcgS6GgqtPbaWy73qexVU0wVjVvxV2IwO8zzhAzBrKgGAypqfezfqGREb83Qu1eqQn15EWC3/sOFOMCnccjZzoB23ebbOEd7l/ao8HCXUanogKt2VPfS8cixHfLgyam2+yNrAQ==
+
     # Not secret — the AppRole role_id from OpenBao. See
     # todo/openbao-setup.md. secret_id (the actual credential) is a file
     # placed manually on the master, never pillar/git — see

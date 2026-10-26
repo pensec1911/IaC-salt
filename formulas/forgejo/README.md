@@ -11,6 +11,9 @@ formula only handles the container and its local dirs.
 - `forgejo.container` — the container, run as that account (docker `user:`), publishing the web
   UI on `http_port` (3000) and git-over-SSH on `ssh_port` (2222; Forgejo's built-in SSH server,
   so the host's port 22 stays with sshd).
+- `extra_ca_certs` — self-signed certs (salt-api) written to `ca_dir` and added via
+  `SSL_CERT_DIR` next to the image's CA bundle, so webhooks to salt-api verify TLS without a
+  global `SKIP_TLS_VERIFY`.
 - `app.ini` settings from `forgejo:lookup:app_ini`, passed as `FORGEJO__<section>__<KEY>` env
   vars. The image writes them into `app.ini` on every start, so pillar wins over edits in the UI
   or the file for those keys; everything else in `app.ini` stays as Forgejo wrote it.

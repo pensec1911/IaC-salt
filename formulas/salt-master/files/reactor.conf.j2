@@ -18,6 +18,10 @@
 {%- do reactions.append((salt_master.alertmanager_hook_tag, salt_master.alertmanager_reactor_sls,
     'Alertmanager posted to salt-api /hook/alertmanager (pillar/alertmanager.sls).')) %}
 {%- endif %}
+{%- if salt_master.api_enabled and salt_master.api_git_hmac_secret %}
+{%- do reactions.append((salt_master.git_hook_tag, salt_master.git_reactor_sls,
+    'The git server posted a push to salt-api /hook/git (HMAC-signed).')) %}
+{%- endif %}
 {%- if salt_master.push_deploy %}
 {%- do reactions.append((salt_master.push_event_tag, salt_master.push_reactor_sls,
     'gitfs fetched; changed = a push arrived (fileserver_events in gitfs.conf).')) %}

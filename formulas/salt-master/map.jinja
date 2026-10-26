@@ -63,6 +63,16 @@
   into api.conf as homelab_alertmanager_token for the reactor SLS, so
   api.conf is 0640 like vault.conf.
 
+  known_hosts: host -> {enc, key, port?}, pinned into the system-wide
+  ssh_known_hosts for the git remotes gitfs/git_pillar pull from (and the
+  hosts they may move to). A dict, so pillar adds hosts on top of GitHub.
+
+  api_git_hmac_secret — shared secret of the git server's push webhook to
+  /hook/git (from OpenBao via pillar). The reactor checks the body's
+  HMAC-SHA256 (X-Hub-Signature-256) and runs fileserver.update, so a push
+  deploys within seconds instead of the next gitfs poll. Empty = no
+  mapping. Written into api.conf like the Alertmanager token.
+
   push_deploy: fileserver_events on, and gitfs' update event (fired after
   every gitfs fetch, `changed` true when new commits arrived) starts
   push_orch_sls (formulas/orch) — "push = deploy" within
@@ -77,7 +87,12 @@
     'salt_user': 'salt',
     'git_provider': 'pygit2',
     'git_branch': 'main',
-    'known_host_key': 'AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl',
+    'known_hosts': {
+        'github.com': {
+            'enc': 'ssh-ed25519',
+            'key': 'AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl',
+        },
+    },
     'vault_addr': 'https://vault.example.internal:8200',
     'vault_role_id': '',
     'vault_secret_id_file': '/etc/salt/vault-secret-id',
@@ -103,6 +118,9 @@
     'api_alertmanager_token': '',
     'alertmanager_hook_tag': 'salt/netapi/hook/alertmanager',
     'alertmanager_reactor_sls': 'salt://salt-master/reactor/alertmanager-hook.sls',
+    'api_git_hmac_secret': '',
+    'git_hook_tag': 'salt/netapi/hook/git',
+    'git_reactor_sls': 'salt://salt-master/reactor/git-hook.sls',
     'push_deploy': False,
     'push_event_tag': 'salt/fileserver/gitfs/update',
     'push_reactor_sls': 'salt://salt-master/reactor/gitfs-update.sls',

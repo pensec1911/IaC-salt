@@ -89,7 +89,14 @@ container on homepage is started again within minutes, while on arrstack by day 
 refreshes the drift metrics. Alertmanager only sends `TargetDown|ProbeFailed`, repeating hourly
 while they fire.
 
-Test it from the master with the token (`sudo grep homelab_alertmanager_token /etc/salt/master.d/api.conf`),
+`/hook/git` → `reactor/git-hook.sls`, mapped only when `api_git_hmac_secret` is set (OpenBao
+`salt-api/forgejo`, key `hmac`, the same secret the Forgejo webhook signs with). It requires
+`X-Hub-Signature-256: sha256=<HMAC-SHA256 of the raw body>` and a push to the deployed branch,
+then runs `fileserver.update`. The gitfs update event that follows starts the push deploy as
+usual (`reactor/gitfs-update.sls`), so a push lands in seconds instead of after the next 60 s
+poll. Forgejo trusts the self-signed cert via `forgejo:lookup:extra_ca_certs`.
+
+Test the Alertmanager hook from the master with the token (`sudo grep homelab_alertmanager_token /etc/salt/master.d/api.conf`),
 watching `salt-run state.event pretty=True`:
 
 ```sh
@@ -116,7 +123,7 @@ sudo cat $D/salt-api.crt   # → pillar/alertmanager.sls tls_config.ca
 
 Clients pin this cert (Alertmanager: `tls_config.ca` in `pillar/alertmanager.sls`). Current
 one: issued 2026-10-26, expires 2031-10-25. To re-issue, run the same commands, update the PEM
-in pillar, and restart salt-api. The master isn't backed up, so a rebuilt master needs this
+in pillar (`pillar/alertmanager.sls` and `pillar/forgejo.sls`), and restart salt-api. The master isn't backed up, so a rebuilt master needs this
 step again.
 
 ## Bootstrap

@@ -64,13 +64,20 @@ gitfs-deploy-pubkey-perms:
     - require:
       - cmd: gitfs-deploy-key
 
-# Published GitHub host key, pinned here instead of trusting ssh-keyscan
-# output at apply time (avoids a first-connection MITM window). Written to
-# the system-wide /etc/ssh/ssh_known_hosts (no `user:` given) rather than
-# root's ~/.ssh/known_hosts — git runs as the salt user, so a root-only
-# entry would never be consulted and host key verification would fail.
-github-known-host:
+# Host keys of the git remotes (GitHub's published one, Forgejo's from
+# pillar), pinned here instead of trusting ssh-keyscan output at apply time
+# (avoids a first-connection MITM window). Written to the system-wide
+# /etc/ssh/ssh_known_hosts (no `user:` given) rather than root's
+# ~/.ssh/known_hosts — git runs as the salt user, so a root-only entry
+# would never be consulted and host key verification would fail.
+{%- for host, hk in salt_master.known_hosts | dictsort %}
+
+known-host-{{ host }}:
   ssh_known_hosts.present:
-    - name: github.com
-    - enc: ssh-ed25519
-    - key: {{ salt_master.known_host_key }}
+    - name: {{ host }}
+    {%- if hk.get('port') %}
+    - port: {{ hk.port }}
+    {%- endif %}
+    - enc: {{ hk.enc }}
+    - key: {{ hk.key }}
+{%- endfor %}
