@@ -1,0 +1,197 @@
+{%- from "backup/map.jinja" import backup with context -%}
+{%- set rt = backup.restore_test -%}
+#!{{ backup.python }}
+# Managed by Salt (formulas/backup) — do not edit here.
+#
+# Weekly restore test, started by {{ rt.unit }}.service: proves the repo is
+# readable and the data usable, which the nightly run's structure-only
+# `restic check` doesn't. Steps: `restic check --read-data-subset` (random
+# pack sample), restore this host's latest snapshot into a temp dir with
+# --verify, then `PRAGMA integrity_check` on every SQLite file in it. The
+# outcome goes out as node-exporter textfile metrics (restore_test_*).
+# RESTIC_REPOSITORY / RESTIC_PASSWORD_FILE / RESTIC_CACHE_DIR come from the
+# unit's EnvironmentFile. Containers keep running — it only reads the repo.
+import json
+import os
+import shutil
+import sqlite3
+import subprocess
+import sys
+import tempfile
+import time
+
+RESTIC = "{{ backup.restic_bin }}"
+MOUNT = "{{ backup.repo_base }}"
+HOST = "{{ grains['id'] }}"
+RETRY_LOCK = "{{ backup.retry_lock }}"
+READ_DATA_SUBSET = "{{ rt.read_data_subset }}"
+TMP_DIR = "{{ rt.tmp_dir }}"
+MIN_FREE_BYTES = {{ rt.min_free_bytes | int }}
+OUT = "{{ backup.textfile_dir }}/{{ rt.metrics_file }}"
+
+SQLITE_MAGIC = b"SQLite format 3\x00"
+
+
+def log(msg):
+    print(msg, file=sys.stderr, flush=True)
+
+
+def restic(*args):
+    proc = subprocess.run([RESTIC, *args], capture_output=True, text=True)
+    if proc.stderr:
+        sys.stderr.write(proc.stderr)
+    if proc.returncode != 0:
+        log("restic {} failed (exit {})".format(args[0], proc.returncode))
+    return proc
+
+
+def restic_json(*args):
+    proc = restic(*args, "--json")
+    if proc.returncode != 0:
+        return None
+    try:
+        return json.loads(proc.stdout)
+    except ValueError:
+        log("restic {} printed no JSON".format(args[0]))
+        return None
+
+
+def is_sqlite(path):
+    try:
+        with open(path, "rb") as f:
+            return f.read(len(SQLITE_MAGIC)) == SQLITE_MAGIC
+    except OSError:
+        return False
+
+
+def check_sqlite(root):
+    """(files checked, files failing integrity_check)."""
+    checked, bad = 0, 0
+    for dirpath, _, names in os.walk(root):
+        for name in names:
+            path = os.path.join(dirpath, name)
+            if os.path.islink(path) or not is_sqlite(path):
+                continue
+            checked += 1
+            # A plain (read-write) open on the temp copy, so a restored
+            # -wal file is applied like the app would on startup.
+            try:
+                con = sqlite3.connect(path)
+                try:
+                    rows = con.execute("PRAGMA integrity_check").fetchall()
+                finally:
+                    con.close()
+            except sqlite3.Error as e:
+                rows = [(str(e),)]
+            if rows != [("ok",)]:
+                bad += 1
+                log("{}: integrity_check: {}".format(
+                    os.path.relpath(path, root),
+                    "; ".join(str(r[0]) for r in rows[:5])))
+    return checked, bad
+
+
+def run():
+    """Restore stats of a fully successful test, else None."""
+    if not os.path.ismount(MOUNT):
+        log("{} is not mounted".format(MOUNT))
+        return None
+    repo = os.environ["RESTIC_REPOSITORY"]
+    if not os.path.exists(os.path.join(repo, "config")):
+        log("no repo at {} — has a backup ever run?".format(repo))
+        return None
+
+    if restic("check", "--read-data-subset", READ_DATA_SUBSET,
+              "--retry-lock", RETRY_LOCK).returncode != 0:
+        return None
+
+    snapshots = restic_json("snapshots", "--host", HOST, "--latest", "1")
+    if not snapshots:
+        log("no snapshot for host {}".format(HOST))
+        return None
+    snap = snapshots[-1]["id"]
+    stats = restic_json("stats", "--mode", "restore-size", snap)
+    if stats is None:
+        return None
+    size = stats.get("total_size", 0)
+    if not stats.get("total_file_count"):
+        log("snapshot {} is empty".format(snap[:8]))
+        return None
+    free = shutil.disk_usage(TMP_DIR).free
+    if free - size < MIN_FREE_BYTES:
+        log("not enough space in {}: snapshot {} bytes, {} free".format(
+            TMP_DIR, size, free))
+        return None
+
+    target = tempfile.mkdtemp(dir=TMP_DIR, prefix="restic-restore-test.")
+    try:
+        if restic("restore", snap, "--target", target, "--verify",
+                  "--retry-lock", RETRY_LOCK).returncode != 0:
+            return None
+        checked, bad = check_sqlite(target)
+    finally:
+        shutil.rmtree(target, ignore_errors=True)
+    log("snapshot {}: {} bytes restored and verified, {} SQLite files checked, "
+        "{} failed".format(snap[:8], size, checked, bad))
+    if bad:
+        return None
+    return {"bytes": size, "files": stats.get("total_file_count", 0),
+            "sqlite": checked}
+
+
+def previous_success():
+    try:
+        with open(OUT) as f:
+            for line in f:
+                if line.startswith("restore_test_last_success_timestamp_seconds "):
+                    return int(float(line.split()[1]))
+    except (OSError, ValueError, IndexError):
+        pass
+    return 0
+
+
+def main():
+    started = time.time()
+    try:
+        result = run()
+    except OSError as e:
+        log("restore test failed: {}".format(e))
+        result = None
+    ok = result is not None
+
+    lines = []
+
+    def metric(name, help_, value):
+        lines.append("# HELP {} {}".format(name, help_))
+        lines.append("# TYPE {} gauge".format(name))
+        lines.append("{} {}".format(name, value))
+
+    metric("restore_test_success",
+           "1 if the last restore test (check sample, restore, SQLite integrity) succeeded",
+           int(ok))
+    if ok:
+        metric("restore_test_restored_bytes", "Bytes the last restore test restored",
+               result["bytes"])
+        metric("restore_test_restored_files", "Files the last restore test restored",
+               result["files"])
+        metric("restore_test_sqlite_files", "SQLite files the last restore test checked",
+               result["sqlite"])
+    metric("restore_test_duration_seconds", "Duration of the last restore test",
+           round(time.time() - started, 3))
+    metric("restore_test_last_run_timestamp_seconds",
+           "When the last restore test finished", int(time.time()))
+    metric("restore_test_last_success_timestamp_seconds",
+           "When the last successful restore test finished (0 = never)",
+           int(time.time()) if ok else previous_success())
+
+    # Atomic replace — node-exporter must never read a half-written file.
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix=".restore-test.")
+    with os.fdopen(fd, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, OUT)
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

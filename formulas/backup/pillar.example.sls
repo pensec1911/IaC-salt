@@ -37,6 +37,18 @@ backup:
     restic_bin: /usr/bin/restic
     docker_bin: /usr/bin/docker
     python: /usr/bin/python3
+    # Weekly restore test: check a sample of the pack data, restore the latest
+    # snapshot into tmp_dir with --verify, integrity_check every SQLite file.
+    restore_test:
+      on_calendar: "Sun *-*-* 04:00:00 Europe/Berlin"
+      randomized_delay: 30min
+      timeout: 60min
+      read_data_subset: 5%
+      tmp_dir: /var/tmp
+      min_free_bytes: 2147483648   # left free after the restore, else fail
+      unit: restic-restore-test
+      script: /usr/local/sbin/restic-restore-test
+      metrics_file: restore-test.prom
 
 # The share itself comes from formulas/nfs-mount.
 nfs_mounts:

@@ -159,6 +159,24 @@ prometheus:
             severity: warning
           annotations:
             summary: {% raw %}"{{ $labels.instance }} has no successful backup for over 36h"{% endraw %}
+        {#- restore_test_* from formulas/backup (weekly restore test, Sunday
+           ~04:00): repo sample readable, latest snapshot restores, SQLite
+           files pass integrity_check. Stale after 8 days covers a missed
+           week; last_success starts at 0 like the backup metric. #}
+        - alert: RestoreTestFailed
+          expr: restore_test_success == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"Restore test on {{ $labels.instance }} failed — journalctl -u restic-restore-test"{% endraw %}
+        - alert: RestoreTestStale
+          expr: time() - restore_test_last_success_timestamp_seconds > 8 * 86400
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"{{ $labels.instance }} has no successful restore test for over 8 days"{% endraw %}
         {#- node_timex_* from node-exporter's timex collector; every minion
            syncs from the FRITZ!Box via formulas/ntp. #}
         - alert: ClockNotSynced

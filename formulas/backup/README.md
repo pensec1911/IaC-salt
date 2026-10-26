@@ -16,6 +16,7 @@ Salt-rendered config are reproducible and not backed up.
   `restic-backup.timer`: daily 02:00 Europe/Berlin + up to 10 min random delay, 45 min timeout, `Persistent`
   (a night missed while the VM was off runs at the next boot). That's before the 03:00
   enforce window of arrstack/jellyfin, so a self-repair never recreates a container mid-run.
+- `restic-restore-test.service` + weekly timer — see "Restore test".
 - `stop_containers` are stopped before the run and started again afterwards (`ExecStopPost`,
   so also after a failure or timeout): the apps' SQLite databases aren't safe to copy while
   open. arrstack: ~1 min without Sonarr/Radarr/qBittorrent/…; gluetun stays up.
@@ -56,6 +57,28 @@ What each minion backs up: the map in `pillar/backup.sls`. Schema: `pillar.examp
 Alerts in `pillar/prometheus.sls`: `BackupFailed` (`backup_success == 0`), `BackupStale`
 (no success for 36 h, also fires for a host that never succeeded). A run that never started
 (unit failed on the mount) writes nothing — `BackupStale` catches it once metrics existed.
+
+## Restore test
+
+Weekly, `restic-restore-test.timer` (Sunday 04:00 Europe/Berlin + up to 30 min random delay,
+`Persistent`) starts `/usr/local/sbin/restic-restore-test`, which proves more than the
+nightly structure-only `check`:
+
+1. `restic check --read-data-subset 5%` — a random sample of the pack data is actually read
+   and hashed, so over the weeks the whole repo gets touched.
+2. The minion's latest snapshot is restored with `--verify` into a temp dir under `/var/tmp`
+   (deleted afterwards). Fails up front if less than 2 GiB would stay free.
+3. `PRAGMA integrity_check` on every SQLite file in it (detected by header, `-wal` applied).
+
+It only reads the repo — no containers are stopped, so overlapping the arrstack/jellyfin
+enforce window is fine. Metrics in `restore-test.prom`: `restore_test_success`,
+`restore_test_last_success_timestamp_seconds`, `restore_test_last_run_timestamp_seconds`,
+`restore_test_duration_seconds`, and after a success `restore_test_restored_bytes` /
+`_files` / `restore_test_sqlite_files`. Alerts: `RestoreTestFailed`, `RestoreTestStale`
+(no success for 8 days). Schedule, sample size, temp dir: `restore_test` in `map.jinja`.
+
+Run it now: `systemctl start restic-restore-test.service`, then
+`journalctl -u restic-restore-test -n 50`.
 
 ## NAS side (manual, one-time)
 

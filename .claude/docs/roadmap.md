@@ -25,15 +25,6 @@ No order agreed; pick as needed.
 - **Open**: reboot policy (manual vs. window, cf. `pillar/salt-minion-enforce-window.sls`);
   whether docker/containerd packages are blacklisted from auto-upgrade.
 
-### Periodic restore test for the backups
-
-- **Why**: `formulas/backup` alerts on failed/stale runs, but not on a repo that is unreadable
-  or holds an unusable SQLite DB.
-- **Sketch**: weekly systemd timer per backup minion: `restic check --read-data-subset=5%`,
-  plus a restore of one path to a temp dir and `PRAGMA integrity_check` on a SQLite file; result
-  as a textfile metric, alert next to `BackupFailed`/`BackupStale`.
-- **Open**: temp space on the minion; read load on the NAS.
-
 ### Wazuh alerts into Alertmanager
 
 - **Why**: Wazuh findings only show in its dashboard; everything else pages through

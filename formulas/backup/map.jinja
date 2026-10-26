@@ -27,7 +27,15 @@
    backup, then --prune.
 
    textfile_dir: node-exporter's textfile collector directory (see
-   formulas/salt-minion map.jinja) — hence the require on node-exporter. #}
+   formulas/salt-minion map.jinja) — hence the require on node-exporter.
+
+   restore_test: a weekly second unit that proves the repo is usable —
+   `restic check --read-data-subset`, a --verify restore of the latest
+   snapshot into a temp dir under tmp_dir, PRAGMA integrity_check on every
+   SQLite file in it. It only reads the repo, so containers keep running and
+   the Sunday-morning slot may overlap the enforce window. min_free_bytes:
+   headroom left in tmp_dir after the restore, else the test fails instead
+   of filling the disk. #}
 {%- set defaults = {
     'pkg': 'restic',
     'restic_bin': '/usr/bin/restic',
@@ -51,5 +59,16 @@
     'script': '/usr/local/sbin/restic-backup',
     'textfile_dir': '/var/lib/prometheus/node-exporter',
     'metrics_file': 'backup.prom',
+    'restore_test': {
+        'unit': 'restic-restore-test',
+        'script': '/usr/local/sbin/restic-restore-test',
+        'on_calendar': 'Sun *-*-* 04:00:00 Europe/Berlin',
+        'randomized_delay': '30min',
+        'timeout': '60min',
+        'read_data_subset': '5%',
+        'tmp_dir': '/var/tmp',
+        'min_free_bytes': 2147483648,
+        'metrics_file': 'restore-test.prom',
+    },
 } %}
 {%- set backup = salt['pillar.get']('backup:lookup', default=defaults, merge=True) %}

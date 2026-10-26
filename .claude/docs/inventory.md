@@ -18,7 +18,8 @@ cAdvisor :8088. All scraped by Prometheus on monitoring — targets from the Sal
 Docker hosts also run Alloy (no port), shipping container logs + journal to Loki on monitoring
 (Grafana → Explore, datasource `Loki`).
 arrstack, jellyfin, monitoring and wazuh back up nightly (~02:00 Berlin) to the NAS via restic
-(`formulas/backup`, `BackupFailed` / `BackupStale`).
+(`formulas/backup`, `BackupFailed` / `BackupStale`), with a weekly restore test (Sunday ~04:00,
+`RestoreTestFailed` / `RestoreTestStale`).
 
 `salt/top.sls` and `pillar/top.sls` are authoritative — update this table when they change.
 

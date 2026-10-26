@@ -57,3 +57,13 @@ backup-script:
     - require:
       - pkg: backup-packages
       - sls: node-exporter
+
+backup-restore-test-script:
+  file.managed:
+    - name: {{ backup.restore_test.script }}
+    - source: salt://backup/files/restic-restore-test.py.j2
+    - template: jinja
+    - mode: '0755'
+    - require:
+      - pkg: backup-packages
+      - sls: node-exporter

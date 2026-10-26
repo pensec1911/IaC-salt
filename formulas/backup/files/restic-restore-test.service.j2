@@ -1,0 +1,16 @@
+{%- from "backup/map.jinja" import backup with context -%}
+# Managed by Salt (formulas/backup) — do not edit.
+[Unit]
+Description=restic restore test against the NAS repo
+Wants=network-online.target
+After=network-online.target
+# Fails (no metrics written -> RestoreTestStale) instead of running without the share.
+RequiresMountsFor={{ backup.repo_base }}
+
+[Service]
+Type=oneshot
+EnvironmentFile={{ backup.config_dir }}/env
+ExecStart={{ backup.restore_test.script }}
+TimeoutStartSec={{ backup.restore_test.timeout }}
+Nice=10
+IOSchedulingClass=idle

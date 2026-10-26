@@ -1,0 +1,12 @@
+{%- from "backup/map.jinja" import backup with context -%}
+# Managed by Salt (formulas/backup) — do not edit.
+[Unit]
+Description=Weekly restic restore test
+
+[Timer]
+OnCalendar={{ backup.restore_test.on_calendar }}
+RandomizedDelaySec={{ backup.restore_test.randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target
