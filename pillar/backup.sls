@@ -22,6 +22,11 @@
         ],
         'stop_containers': ['sonarr', 'radarr', 'prowlarr', 'bazarr', 'qbittorrent', 'slskd', 'seerr'],
     },
+    'forgejo': {
+        'paths': ['/opt/forgejo'],
+        'excludes': [],
+        'stop_containers': ['forgejo'],
+    },
     'jellyfin': {
         'paths': ['/opt/jellyfin'],
         'excludes': ['/opt/jellyfin/config/cache', '/opt/jellyfin/config/log'],

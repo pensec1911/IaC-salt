@@ -38,6 +38,7 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `wazuh/api` | `wui_password` | `pillar/wazuh.sls` — server API user `wazuh-wui` (dashboard → API) |
 | `wazuh/registration` | `password` | `pillar/wazuh.sls` + `pillar/wazuh-agent.sls` — must be the same shared secret |
 | `salt-api/alertmanager` | `token` | `pillar/salt-master.sls` + `pillar/alertmanager.sls` — bearer token for salt-api's `/hook/alertmanager`; must be the same on both sides |
+| `forgejo/admin` | `username`, `password` | Not read by pillar — Forgejo's admin login, created in the install wizard and stored by hand (formulas/forgejo README "First run"). |
 | `restic/repo` | `password` | `pillar/backup.sls` — restic repo password, shared by all minion repos. Changing it needs `restic key add` first (formulas/backup README); keep a copy outside the homelab. |
 
 Check `grep -rn "sdb://" pillar/` for the authoritative list.

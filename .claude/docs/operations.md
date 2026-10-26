@@ -5,7 +5,7 @@ All `salt` commands run on the master (`ssh salt-master`, then `sudo salt …`).
 
 ## Deploy a change
 
-A push to `main` deploys itself about a minute later on homepage, monitoring and salt-master
+A push to `main` deploys itself about a minute later on homepage, monitoring, forgejo and salt-master
 (and on arrstack/jellyfin between 03:00 and 06:00) via `orch.push`: gitfs event → reactor, dry
 run first, `formulas/orch` README. Everything else (wazuh, arrstack/jellyfin by day, or
 checking first) goes through `/deploy`.

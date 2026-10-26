@@ -89,7 +89,7 @@ homepage:
         - name: pve03
           href: https://192.168.178.13:8006
           icon: proxmox.png
-          description: arrstack, openbao
+          description: arrstack, forgejo, openbao
 
     - name: Infrastructure
       items:
@@ -97,6 +97,10 @@ homepage:
           href: https://192.168.178.10
           icon: truenas-scale.png
           description: NAS — media share
+        - name: Forgejo
+          href: http://192.168.178.29:3000
+          icon: forgejo.png
+          description: Git — deploy source
         - name: OpenBao
           href: https://192.168.178.20:8200/ui/
           icon: openbao.png

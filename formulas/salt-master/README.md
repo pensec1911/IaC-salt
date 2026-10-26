@@ -59,7 +59,7 @@ With `push_deploy`, `gitfs.conf` sets `fileserver_events: True`. The master then
 `salt/fileserver/gitfs/update` after every gitfs fetch (every `gitfs_update_interval`, 60 s).
 `reactor/gitfs-update.sls` acts only on `changed: true`, i.e. new commits on `main`, and starts
 `salt-run state.orchestrate orch.push` (`formulas/orch`). That is `orch.rollout` restricted to
-the minions whose drift check may repair right now: homepage, monitoring and salt-master at any
+the minions whose drift check may repair right now: homepage, monitoring, forgejo and salt-master at any
 hour; arrstack and jellyfin only 03:00–06:00 (otherwise the nightly enforce picks the push up);
 wazuh never (manual apply). Dry run on all first, then one at a time, stops at the first failure.
 

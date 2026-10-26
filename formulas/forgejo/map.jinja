@@ -1,0 +1,28 @@
+{#- uid/gid are pinned to the shared `git` account (pillar/forgejo.sls):
+   the rootless image runs as it via a docker `user:` override, so the
+   numbers are needed at render time and the users entry must match.
+
+   app_ini: section -> {KEY: value}, passed as FORGEJO__<section>__<KEY>
+   env vars; the image's environment-to-ini writes them into app.ini on
+   every container start. server.SSH_PORT (the port in clone URLs) is
+   always ssh_port, set by container.sls. A section with a dot (e.g. repository.signing)
+   must be spelled with _0X2E_ in place of the dot. Secrets (SECRET_KEY,
+   INTERNAL_TOKEN, JWT) are not set here — the first-run wizard generates
+   them into app.ini (README "First run"). #}
+{%- set defaults = {
+    'image': 'data.forgejo.org/forgejo/forgejo',
+    'tag': '15.0.10-rootless',
+    'container_name': 'forgejo',
+    'uid': 972,
+    'gid': 972,
+    'timezone': 'Etc/UTC',
+    'http_port': 3000,
+    'ssh_port': 2222,
+    'data_dir': '/opt/forgejo/data',
+    'config_dir': '/opt/forgejo/config',
+    'app_ini': {
+        'database': {'DB_TYPE': 'sqlite3'},
+        'service': {'DISABLE_REGISTRATION': 'true'},
+    },
+} %}
+{%- set forgejo = salt['pillar.get']('forgejo:lookup', default=defaults, merge=True) %}

@@ -78,6 +78,20 @@ base:
     - jellyfin
     - backup
 
+  'forgejo':
+    - users
+    - ntp
+    - wazuh-agent
+    - node-exporter
+    - unattended-upgrades
+    - salt-minion
+    - nfs-mount
+    - docker
+    - cadvisor
+    - alloy
+    - forgejo
+    - backup
+
   # Targeting is by minion ID, which matches the Tofu VM `name` in
   # IaC-opentofu/vms/<name>/main.tf (set as hostname via cloud-init).
   # Formula names below resolve into ../formulas/<name>/ (gitfs merges

@@ -4,7 +4,7 @@ base:
     - wazuh-agent
     - ntp
 
-  'homepage,monitoring,salt-master':
+  'homepage,monitoring,salt-master,forgejo':
     - match: list
     - salt-minion-enforce
 
@@ -12,11 +12,11 @@ base:
     - match: list
     - salt-minion-enforce-window
 
-  'homepage,monitoring,arrstack,jellyfin':
+  'homepage,monitoring,arrstack,jellyfin,forgejo':
     - match: list
     - salt-minion-beacons
 
-  'arrstack,jellyfin,monitoring,wazuh':
+  'arrstack,jellyfin,monitoring,wazuh,forgejo':
     - match: list
     - backup
 
@@ -49,3 +49,6 @@ base:
 
   'jellyfin':
     - jellyfin
+
+  'forgejo':
+    - forgejo

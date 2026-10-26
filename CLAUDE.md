@@ -65,7 +65,7 @@ pillar/     per-minion data (git_pillar)
    this sequence and stops for OK before the real apply. Manually, on the master (`ssh salt-master`): `salt-run fileserver.update`,
    `salt-run git_pillar.update`, `salt '<minion>' saltutil.refresh_pillar`,
    `salt '<minion>' state.apply test=True`, then without `test=True`. Full `state.apply`, not
-   `state.apply <formula>`. homepage, monitoring and salt-master self-repair hourly
+   `state.apply <formula>`. homepage, monitoring, forgejo and salt-master self-repair hourly
    (`pillar/salt-minion-enforce.sls`), arrstack and jellyfin nightly 03:00–06:00 Berlin
    (`pillar/salt-minion-enforce-window.sls`) — a push reaches them even without a manual apply.
    On top of that, a push deploys itself about a minute later via `orch.push` on every minion

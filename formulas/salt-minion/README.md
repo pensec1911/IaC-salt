@@ -38,7 +38,7 @@ followed by a real `state.apply` and a second dry run. The drift metrics then de
 | `salt_drift_repair_last_success` | 1 = that apply had no failed states (`SaltDriftRepairFailed` on 0) |
 | `salt_drift_repair_last_states_changed` | states that apply changed |
 
-On in `pillar/salt-minion-enforce.sls` for homepage, monitoring and salt-master, at any hour.
+On in `pillar/salt-minion-enforce.sls` for homepage, monitoring, forgejo and salt-master, at any hour.
 
 ### Enforce window (arrstack, jellyfin)
 

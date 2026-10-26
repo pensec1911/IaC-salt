@@ -82,7 +82,7 @@ after a push to `main`. Not meant to be run by hand, though it can be (`salt-run
 1. `git_pillar.update`, because git_pillar polls on its own and may still be a commit behind.
 2. Like `orch.rollout`, plus `push:enforce_check`: only minions that answer
    `salt-drift-check --enforce-allowed` with `yes` take part, which means enforce is on and its
-   window is open (`formulas/salt-minion`). By day that is homepage, monitoring and salt-master.
+   window is open (`formulas/salt-minion`). By day that is homepage, monitoring, forgejo and salt-master.
    Between 03:00 and 06:00 arrstack and jellyfin join. wazuh never does (no enforce). The rest
    stay with the drift check: `SaltDrift` (outside the window it is suppressed) and the nightly
    repair, or `/deploy`.
