@@ -55,6 +55,12 @@ No order agreed; pick as needed.
 
 - `state.orchestrate` for ordered multi-minion rollouts (e.g. monitoring first, then the rest;
   or `test=True` everywhere, then apply). Worth it once there's a real cross-minion dependency.
+- First candidate: a reboot run for minions with `os_reboot_required` set (see
+  `formulas/unattended-upgrades`, `RebootRequired` alert). Reboots are manual today; an
+  orchestrate file could reboot one minion at a time, wait for the start reactor to bring
+  services back and for the minion to answer, with `salt-master` last. Open: arrstack/jellyfin
+  only inside the 03:00-06:00 window; whether the per-minion `automatic_reboot` option already
+  covers enough of it.
 
 ### Event sources via salt-api
 
