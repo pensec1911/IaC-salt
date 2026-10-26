@@ -58,7 +58,8 @@ pillar/     per-minion data (git_pillar)
 ## Workflow
 
 1. New service: `/new-service <name>` (scaffolds per convention). Secrets: `/salt-secrets`.
-   Health check: `/homelab-status`. Image updates: `image-bump` agent (background).
+   Health check: `/homelab-status`. Image updates: Renovate PRs in Forgejo (hourly, merged by hand); `image-bump` agent for a
+   release-notes review.
 2. After editing `.sls`/`map.jinja`/pillar: the `salt-reviewer` agent can check conventions.
 3. Commit + push (the pre-push hook renders every minion on the master first and blocks on
    errors — never bypass it to push a render error), then `/deploy <minion>|all` — it runs

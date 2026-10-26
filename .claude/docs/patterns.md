@@ -88,6 +88,12 @@ Images are pinned to a specific tag in `map.jinja` (LSIO images: `<version>-ls<b
 version). Look up the current tag (Docker Hub / GitHub releases) instead of guessing; bump
 deliberately.
 
+Renovate (repo `homelab/renovate`, hourly on the forgejo runner) opens a PR per bump. It finds
+the pins with a regex manager in `renovate.json`, which expects the `'image'` line directly
+above the `'tag'` line (also `'dind_image'`/`'dind_tag'`). Keep that shape in new formulas, or
+Renovate won't see them. Odd tag schemes get a `versioning` rule there (LSIO Jellyfin), and
+Forgejo is held on its LTS line. Merging is a deploy, so read the PR's release notes first.
+
 ## Homepage entries
 
 Every web UI in the homelab is an item in `pillar/homepage.sls` — added in the same change that

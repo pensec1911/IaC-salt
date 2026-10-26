@@ -33,6 +33,12 @@ chars in OpenBao and apply forgejo. A missing or malformed secret fails the stat
 fresh Forgejo: install wizard → the `homelab` org → apply (registration waits for the wizard and
 fails while the org is missing).
 
+## First apply
+
+The first `state.apply test=True` fails on the dind container ("networks are not present":
+test mode doesn't create the network), so `orch.push` aborts its rollout. Apply once by hand
+(`/deploy forgejo`). From then on the network exists and dry runs are clean (2026-10-26).
+
 ## Pillar
 
 See `pillar.example.sls`. Real values live in `pillar/forgejo.sls`.
