@@ -10,7 +10,7 @@ formulas/   reusable, pillar-driven formula per service — nothing environment-
 salt/       top.sls only: minion ID -> formulas
 pillar/     per-minion data (git_pillar)
 .claude/    docs/, skills, agents, commands for working on this repo
-.githooks/  pre-commit secret scanner (enabled via core.hooksPath, set by a SessionStart hook)
+.githooks/  pre-commit secret scanner + pre-push render check (core.hooksPath, set by a SessionStart hook)
 ```
 
 ## Docs — read the relevant one before working in that area
@@ -55,7 +55,8 @@ pillar/     per-minion data (git_pillar)
 
 1. New service: `/new-service <name>` (scaffolds per convention). Secrets: `/salt-secrets`.
 2. After editing `.sls`/`map.jinja`/pillar: the `salt-reviewer` agent can check conventions.
-3. Commit + push, then on the master (`ssh salt-master`): `salt-run fileserver.update`,
+3. Commit + push (the pre-push hook renders every minion on the master first and blocks on
+   errors — never bypass it to push a render error), then on the master (`ssh salt-master`): `salt-run fileserver.update`,
    `salt-run git_pillar.update`, `salt '<minion>' saltutil.refresh_pillar`,
    `salt '<minion>' state.apply test=True`, then without `test=True`. Full `state.apply`, not
    `state.apply <formula>`. homepage, monitoring and salt-master self-repair hourly

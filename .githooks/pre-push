@@ -1,0 +1,42 @@
+#!/bin/sh
+# Render check before a push reaches the master ("push = deploy"): every minion's highstate is
+# rendered on salt-master from the commit being pushed (.githooks/render-check.py). Only pushes
+# to main that touch formulas/, salt/ or pillar/ are checked.
+#
+# Host: $RENDER_CHECK_HOST (default: the `salt-master` ssh alias).
+# Master unreachable and you have to push anyway: SKIP_RENDER_CHECK=1 git push
+# (the secret scan is the pre-commit hook and is not affected).
+
+HOST=${RENDER_CHECK_HOST:-salt-master}
+ZERO=0000000000000000000000000000000000000000
+
+if [ -n "${SKIP_RENDER_CHECK:-}" ]; then
+    echo "render-check: skipped (SKIP_RENDER_CHECK)" >&2
+    exit 0
+fi
+
+rc=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ "$remote_ref" = "refs/heads/main" ] || continue
+    [ "$local_sha" = "$ZERO" ] && continue   # branch deletion
+
+    if [ "$remote_sha" != "$ZERO" ] && git cat-file -e "$remote_sha" 2>/dev/null &&
+        [ -z "$(git diff --name-only "$remote_sha" "$local_sha" -- formulas salt pillar .githooks/render-check.py)" ]; then
+        echo "render-check: no changes under formulas/ salt/ pillar/ — skipped" >&2
+        continue
+    fi
+
+    echo "render-check: rendering $(git rev-parse --short "$local_sha") on $HOST …" >&2
+    git archive "$local_sha" formulas salt pillar .githooks/render-check.py |
+        ssh -o BatchMode=yes -o ConnectTimeout=10 "$HOST" \
+            'd=$(mktemp -d) && tar -x -C "$d" && python3 "$d/.githooks/render-check.py" "$d"; rc=$?; rm -rf "$d"; exit $rc' >&2
+    status=$?
+    if [ $status -eq 255 ]; then
+        echo "render-check: cannot reach $HOST — push blocked. SKIP_RENDER_CHECK=1 git push to override." >&2
+        rc=1
+    elif [ $status -ne 0 ]; then
+        echo "render-check: push blocked — fix the render errors above (/salt-render-debug)." >&2
+        rc=1
+    fi
+done
+exit $rc

@@ -15,15 +15,6 @@ _Nothing agreed yet — pick from "Later"._
 
 No order agreed; pick as needed.
 
-### Render check before push ("push = deploy")
-
-- **Why**: the master pulls this repo itself, so a broken Jinja/YAML in a formula or pillar only
-  shows up after the push, on the master (`/salt-render-debug`).
-- **Sketch**: a `.githooks/pre-push` (next to the secret scanner) or a GitHub Actions job running
-  `salt-lint` plus a `salt-call --local state.show_sls` / `pillar` render with stub sdb values.
-- **Open**: sdb lookups need a stub profile so rendering works without OpenBao; salt-lint rules
-  that clash with the formula convention need an ignore list.
-
 ### OS patching formula
 
 - **Why**: only the Docker images are pinned and bumped deliberately; the Debian/Ubuntu base on

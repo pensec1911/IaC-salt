@@ -22,6 +22,23 @@ salt '<minion>' state.apply
   installed until the real run.
 - Recreating gluetun restarts every attached arrstack container (by design, via `watch`).
 
+## Render check (pre-push)
+
+`.githooks/pre-push` runs on every push to `main` that touches `formulas/`, `salt/` or
+`pillar/`: it `git archive`s the pushed commit to salt-master and runs
+`.githooks/render-check.py` there — `salt-call --local --id=<minion> state.show_highstate` per
+minion in `salt/top.sls`, in a throwaway config dir (doesn't touch the running master or its
+gitfs cache), ~5 s. sdb is stubbed, so OpenBao isn't involved. Blocks the push on:
+
+- a Jinja/YAML render error in any state or pillar file (output shows Salt's error, no traceback);
+- a requisite pointing at a state that doesn't exist for that minion;
+- a bare `sdb://` anywhere in a rendered state.
+
+Not covered: `file.managed` templates (rendered only at apply time) and grain-dependent logic
+(the master's grains stand in — all VMs are Debian 13, so that's close). Run it by hand:
+`git archive HEAD formulas salt pillar .githooks/render-check.py | ssh salt-master 'd=$(mktemp -d); tar -x -C $d; python3 $d/.githooks/render-check.py $d; rm -rf $d'`.
+Master unreachable: `SKIP_RENDER_CHECK=1 git push` (the secret scan is pre-commit, unaffected).
+
 ## Reactor
 
 A minion starting (Tofu provision, reboot, `salt-minion` restart) triggers a full
