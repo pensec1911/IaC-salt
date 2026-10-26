@@ -18,5 +18,6 @@ Reference `formulas/docker` or `formulas/homepage` for the established pattern, 
 `.claude/docs/patterns.md` (NFS share → `nfs-mount` pillar + `require: - mount:`, pinned
 uid/gid, VPN sidecar). Pin the image to the current upstream tag — look it up, don't guess.
 Afterwards add the minion/ports to `.claude/docs/inventory.md`, and if the service has a web UI,
-its item in `pillar/homepage.sls` (fitting group — `.claude/docs/patterns.md` "Homepage entries"). Don't guess at
+its item in `pillar/homepage.sls` (fitting group — `.claude/docs/patterns.md` "Homepage entries"). If it keeps
+state on disk, its entry in `pillar/backup.sls` (`.claude/docs/patterns.md` "Backup entries"). Don't guess at
 values — ask if something isn't clear from an existing formula.

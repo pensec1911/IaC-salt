@@ -50,6 +50,10 @@ pillar/     per-minion data (git_pillar)
 - **Every web UI is on homepage**: a new service with a WebUI — Salt formula or not (Tofu VM,
   appliance, NAS app) — gets an item in `pillar/homepage.sls` in the fitting group, in the same
   change. Links + status dot only. Rules: [patterns.md](.claude/docs/patterns.md#homepage-entries).
+- **Every piece of state Salt can't rebuild is backed up**: a new service or container with its
+  own config/DB on disk gets its paths (and SQLite containers in `stop_containers`) in
+  `pillar/backup.sls` in the same change; a new minion also gets `backup` in both top files.
+  The weekly restore test validates it automatically. Rules: [patterns.md](.claude/docs/patterns.md#backup-entries).
 
 ## Workflow
 

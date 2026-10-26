@@ -110,6 +110,27 @@ Removed when the UI goes away.
 - A new VM on a Proxmox node: update that node's `description` in the `Proxmox` group too.
 - The host isn't reachable / the port is unknown: ask, don't guess the port.
 
+## Backup entries
+
+Every service with state Salt can't rebuild (app config, databases, keys/certs) is in
+`pillar/backup.sls` — added in the same change that brings the service. Removed when it goes away.
+
+- **paths**: the data dirs (usually under `/opt/<service>`). Not images, not Salt-rendered config,
+  not logs/caches/metadata the app re-fetches → `excludes`.
+- **stop_containers**: every container with a SQLite DB in those paths (not safe to copy while
+  open). Containers sharing a network namespace (gluetun) stop/start fine; the sidecar stays up.
+- **New minion**: `backup` in `salt/top.sls` (after `node-exporter` and `nfs-mount`) and the
+  minion in the `backup` list match in `pillar/top.sls`. Nothing on the NAS — hosts are `*`.
+- **Validation comes for free**: the weekly restore test (formulas/backup README "Restore test")
+  restores the latest snapshot and runs `PRAGMA integrity_check` on every SQLite file;
+  `RestoreTestFailed`/`RestoreTestStale` alert. After adding paths, run
+  `systemctl start restic-backup.service` then `restic-restore-test.service` once.
+- **Postgres/MySQL/other server DBs**: a file copy of a running server isn't consistent and the
+  restore test only checks SQLite. Needs a dump step before the run (not built yet) — add it to
+  formulas/backup, don't just list the data dir.
+- **No entry** for stateless services (exporters, FlareSolverr) or data that's fine to lose
+  (Prometheus/Loki TSDB).
+
 ## Network topology
 
 Everything Salt manages sits on one flat network (192.168.178.0/24) for now. VLAN-aware design

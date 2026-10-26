@@ -38,5 +38,10 @@ Check every changed formula/pillar file against:
    WebUI port, a new host in `inventory.md` with a UI) also adds an item to `pillar/homepage.sls`
    in a fitting group, per `.claude/docs/patterns.md` "Homepage entries". Removed UI → item
    removed. Internal-only ports (no human-facing UI) need none.
+9. **Backup entry**: a change that adds a service/container with persistent state on disk (a
+   bind-mounted config/data dir, DB, keys) also adds its paths to `pillar/backup.sls`, SQLite
+   containers to `stop_containers`, caches/logs to `excludes`; a new minion with such state gets
+   `backup` in `salt/top.sls` and `pillar/top.sls`. A server DB (Postgres/MySQL) listed only as a
+   data dir without a dump step is a finding. Per `.claude/docs/patterns.md` "Backup entries".
 
 Report findings as a short list: file, issue, which convention it violates. Keep it terse.
