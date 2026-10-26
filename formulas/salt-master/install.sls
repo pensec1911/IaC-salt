@@ -66,17 +66,19 @@ gitfs-deploy-pubkey-perms:
 
 # Host keys of the git remotes (GitHub's published one, Forgejo's from
 # pillar), pinned here instead of trusting ssh-keyscan output at apply time
-# (avoids a first-connection MITM window). Written to the system-wide
-# /etc/ssh/ssh_known_hosts (no `user:` given) rather than root's
-# ~/.ssh/known_hosts — git runs as the salt user, so a root-only entry
-# would never be consulted and host key verification would fail.
+# (avoids a first-connection MITM window). Into the salt user's own
+# ~/.ssh/known_hosts: pygit2 (libgit2) reads only $HOME/.ssh/known_hosts of
+# the user it runs as, never /etc/ssh/ssh_known_hosts. Unhashed where a
+# port is set — the state refuses port together with hashing.
 {%- for host, hk in salt_master.known_hosts | dictsort %}
 
 known-host-{{ host }}:
   ssh_known_hosts.present:
     - name: {{ host }}
+    - user: {{ salt_master.salt_user }}
     {%- if hk.get('port') %}
     - port: {{ hk.port }}
+    - hash_known_hosts: False
     {%- endif %}
     - enc: {{ hk.enc }}
     - key: {{ hk.key }}
