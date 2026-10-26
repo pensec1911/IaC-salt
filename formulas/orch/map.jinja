@@ -25,14 +25,22 @@
    query_timeout: seconds to wait for the flag_file query; minions that
    don't answer are skipped (not rebooted) this run.
 
-   rollout: ordered highstate across minions, by hand only (no timer — it's
-   a deploy). Every minion in tgt that answers within query_timeout gets a
+   rollout: ordered highstate across minions, by hand (orch.rollout; no
+   timer — it's a deploy) or on a push (orch.push, below). Every minion in tgt that answers within query_timeout gets a
    test=True highstate first (dry_run; any failing state stops the run
    before anything changes), then a real one, one minion at a time:
    order first, the rest alphabetically, master_id last — its highstate
    may restart salt-master and cut the run's own output, so nothing waits
    on it. apply_timeout: seconds per highstate (queued behind a running
-   drift check).
+   drift check). enforce_check: empty = every minion that answers; see
+   orch/rollout.jinja.
+
+   push: overrides on top of rollout for orch.push, the run
+   formulas/salt-master's reactor starts on a push. enforce_check keeps it
+   to minions whose drift check may repair right now (formulas/salt-minion
+   --enforce-allowed) — by day that leaves out arrstack/jellyfin, and wazuh
+   (no enforce) always. The path is salt-minion's drift_check:script; if
+   that moves, this must follow, or push selects no minion at all.
 
    timer: starts the run daily at on_calendar. Deliberately not Persistent —
    a night missed while the master was down must not become a reboot run
@@ -68,6 +76,10 @@
         'dry_run': True,
         'query_timeout': 30,
         'apply_timeout': 900,
+        'enforce_check': '',
+    },
+    'push': {
+        'enforce_check': '/usr/local/sbin/salt-drift-check --enforce-allowed',
     },
 } %}
 {%- set orch = salt['pillar.get']('orch:lookup', default=defaults, merge=True) %}

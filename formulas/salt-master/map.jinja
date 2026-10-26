@@ -50,6 +50,23 @@
   minion's service beacon (formulas/salt-minion) reports them stopped.
   Whitelist on the master: the event names the service, so without it a
   minion could have the master start anything. Empty = no mapping.
+
+  api_enabled: salt-api (rest_cherrypy) on api_port, HTTPS only, for
+  webhooks into the reactor. No external_auth is configured, so /login and
+  /run accept nobody — only /hook/<path> works, without Salt auth
+  (webhook_disable_auth), and each reactor SLS checks its sender itself.
+  api_ssl_crt/api_ssl_key: self-signed, placed by hand (README "salt-api
+  TLS"); the state only checks they exist and fixes the key's perms.
+
+  api_alertmanager_token — the bearer token Alertmanager sends to
+  /hook/alertmanager (from OpenBao via pillar). Empty = no mapping. Written
+  into api.conf as homelab_alertmanager_token for the reactor SLS, so
+  api.conf is 0640 like vault.conf.
+
+  push_deploy: fileserver_events on, and gitfs' update event (fired after
+  every gitfs fetch, `changed` true when new commits arrived) starts
+  push_orch_sls (formulas/orch) — "push = deploy" within
+  gitfs_update_interval (60 s).
 -#}
 {%- set defaults = {
     'gitfs_remote': 'ssh://git@github.com/pensec1911/IaC-salt.git',
@@ -77,5 +94,18 @@
     'beacon_restart_services': [],
     'beacon_service_tag': 'salt/beacon/*/service/*',
     'beacon_service_reactor_sls': 'salt://salt-master/reactor/beacon-service.sls',
+    'api_enabled': False,
+    'api_host': '0.0.0.0',
+    'api_port': 8000,
+    'api_tls_dir': '/etc/salt/pki/api',
+    'api_ssl_crt': '/etc/salt/pki/api/salt-api.crt',
+    'api_ssl_key': '/etc/salt/pki/api/salt-api.key',
+    'api_alertmanager_token': '',
+    'alertmanager_hook_tag': 'salt/netapi/hook/alertmanager',
+    'alertmanager_reactor_sls': 'salt://salt-master/reactor/alertmanager-hook.sls',
+    'push_deploy': False,
+    'push_event_tag': 'salt/fileserver/gitfs/update',
+    'push_reactor_sls': 'salt://salt-master/reactor/gitfs-update.sls',
+    'push_orch_sls': 'orch.push',
 } %}
 {%- set salt_master = salt['pillar.get']('salt-master:lookup', default=defaults, merge=True) %}

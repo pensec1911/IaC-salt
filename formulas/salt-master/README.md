@@ -3,7 +3,8 @@
 Manages the salt-master's own config so it pulls its state tree and pillar directly from this
 repo (gitfs + git_pillar) instead of relying on a manually-copied `/srv/salt`. Generates its own
 deploy key, pins GitHub's host key, and writes
-`/etc/salt/master.d/{gitfs,git_pillar,auto_accept,pillar_merge,reactor}.conf`.
+`/etc/salt/master.d/{gitfs,git_pillar,auto_accept,pillar_merge,reactor,api}.conf`. Runs salt-api
+for webhooks (`api.sls`).
 
 Also owns the master's OpenBao (sdb) auth (`vault.sls` → `/etc/salt/master.d/vault.conf`) — this
 is what makes `sdb://...` references in pillar (see `formulas/users`, .claude/docs/secrets.md) resolve to real values instead of erroring.
@@ -51,6 +52,72 @@ highstate: it must stay harmless on arrstack/jellyfin at any hour (they only sel
 The master doesn't verify the `id` inside beacon events (unlike `salt/minion/<id>/start`), so a
 minion could name another one — worst case a whitelisted service gets started there. Empty
 `beacon_restart_services` drops the mapping.
+
+## Reactor: deploy on push
+
+With `push_deploy`, `gitfs.conf` sets `fileserver_events: True`. The master then fires
+`salt/fileserver/gitfs/update` after every gitfs fetch (every `gitfs_update_interval`, 60 s).
+`reactor/gitfs-update.sls` acts only on `changed: true`, i.e. new commits on `main`, and starts
+`salt-run state.orchestrate orch.push` (`formulas/orch`). That is `orch.rollout` restricted to
+the minions whose drift check may repair right now: homepage, monitoring and salt-master at any
+hour; arrstack and jellyfin only 03:00–06:00 (otherwise the nightly enforce picks the push up);
+wazuh never (manual apply). Dry run on all first, then one at a time, stops at the first failure.
+
+So a push reaches the enforce minions about a minute later, not up to an hour later. Any push
+to `main` counts, docs-only too (it ends in a 0-change highstate). The event comes from the
+master's own maintenance process, so no webhook or minion can trigger it. Results:
+`salt-run jobs.list_jobs search_function=runner.state.orchestrate`, or watch
+`salt-run state.event pretty=True` during a push. Turn it off with `push_deploy: False`.
+
+## salt-api
+
+`api.sls` installs `salt-api`, pinned to the installed salt-master version (it depends on
+exactly that version, so the newest one would upgrade the master on the side). It runs
+rest_cherrypy on `:8000`, HTTPS only. There is no `external_auth`, so `/login` and `/run`
+accept nobody. Only `/hook/<path>` works, without Salt auth (`webhook_disable_auth`). It fires
+`salt/netapi/hook/<path>` with `{body, post, headers}`. Tags that aren't mapped in
+`reactor.conf` do nothing. Each mapped reactor SLS checks its sender itself.
+
+`/hook/alertmanager` → `reactor/alertmanager-hook.sls`, mapped only when
+`api_alertmanager_token` is set. It requires `Authorization: Bearer <token>` (OpenBao
+`salt-api/alertmanager`, the same entry Alertmanager sends from, `pillar/alertmanager.sls`).
+For each firing alert it runs the drift check (`schedule.run_job drift-check`,
+`formulas/salt-minion`) on the minion the alert names. The minion comes from the IP in the
+`url` label (ProbeFailed, ipcidr match) or from `instance` (TargetDown, the minion id). It runs
+the drift check, not a highstate, so the enforce flag and window still decide: a stopped
+container on homepage is started again within minutes, while on arrstack by day the alert only
+refreshes the drift metrics. Alertmanager only sends `TargetDown|ProbeFailed`, repeating hourly
+while they fire.
+
+Test it from the master with the token (`sudo grep homelab_alertmanager_token /etc/salt/master.d/api.conf`),
+watching `salt-run state.event pretty=True`:
+
+```sh
+curl -s --cacert /etc/salt/pki/api/salt-api.crt -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' https://192.168.178.28:8000/hook/alertmanager \
+  -d '{"alerts":[{"status":"firing","labels":{"alertname":"TargetDown","instance":"homepage"}}]}'
+```
+
+### salt-api TLS (manual, one-time)
+
+The cert is self-signed, and the key never leaves the master. The state only checks that both
+files exist and enforces `0640 root:salt` on the key (salt-api runs as `salt`):
+
+```sh
+D=/etc/salt/pki/api   # api_tls_dir; the state creates it (0750 root:salt)
+sudo install -d -m 0750 -o root -g salt $D
+sudo bash -c "umask 027; openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+  -nodes -days 1825 -subj /O=homelab/CN=salt-api \
+  -addext subjectAltName=IP:192.168.178.28 -addext basicConstraints=critical,CA:TRUE \
+  -keyout $D/salt-api.key -out $D/salt-api.crt"
+sudo chown root:salt $D/salt-api.*; sudo chmod 0644 $D/salt-api.crt
+sudo cat $D/salt-api.crt   # → pillar/alertmanager.sls tls_config.ca
+```
+
+Clients pin this cert (Alertmanager: `tls_config.ca` in `pillar/alertmanager.sls`). Current
+one: issued 2026-10-26, expires 2031-10-25. To re-issue, run the same commands, update the PEM
+in pillar, and restart salt-api. The master isn't backed up, so a rebuilt master needs this
+step again.
 
 ## Bootstrap
 

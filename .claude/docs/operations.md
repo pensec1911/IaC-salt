@@ -5,6 +5,11 @@ All `salt` commands run on the master (`ssh salt-master`, then `sudo salt …`).
 
 ## Deploy a change
 
+A push to `main` deploys itself about a minute later on homepage, monitoring and salt-master
+(and on arrstack/jellyfin between 03:00 and 06:00) via `orch.push`: gitfs event → reactor, dry
+run first, `formulas/orch` README. Everything else (wazuh, arrstack/jellyfin by day, or
+checking first) goes through `/deploy`.
+
 `/deploy <minion>|all` (`.claude/commands/deploy.md`) runs this, summarizes the dry run and
 stops for OK before applying. Overall health: `/homelab-status`.
 
@@ -56,6 +61,15 @@ A change across several minions: `salt-run state.orchestrate orch.rollout`. It r
 highstate on all of them first, then applies one minion at a time (monitoring first, salt-master
 last) and stops on the first failure. Narrowing `tgt` (e.g. leaving out arrstack and jellyfin by
 day): `formulas/orch` README.
+
+A push: `salt/fileserver/gitfs/update` with `changed: true` → `orch.push` (see "Deploy a
+change"). Check it with `salt-run jobs.list_jobs search_function=runner.state.orchestrate`.
+
+Alertmanager → salt-api (`https://192.168.178.28:8000/hook/alertmanager`, bearer token) →
+reactor: on `TargetDown` / `ProbeFailed` the named minion runs its drift check right away, so it
+repairs if enforce is allowed now. Otherwise it only reports. `formulas/salt-master` "salt-api".
+salt-api log: `journalctl -u salt-api`. Alertmanager's side:
+`alertmanager_notifications_failed_total{integration="webhook"}` on monitoring.
 
 A stopped `docker` on a docker host (down > 90 s, i.e. systemd gave up or someone stopped it)
 is started again via the service beacon → reactor (`formulas/salt-minion` "Beacons"). Pausing

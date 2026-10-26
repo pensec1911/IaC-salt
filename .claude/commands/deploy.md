@@ -12,6 +12,10 @@ Steps (operations.md "Deploy a change"). All `salt` commands via `ssh salt-maste
 2. **Targets.** `all` = every minion whose formulas or pillar the commits since the last deploy
    touch: map changed paths under `formulas/<f>`, `pillar/<f>.sls` to minions via `salt/top.sls`
    and `pillar/top.sls` (`GLOBAL`, `'*'`-pillar → every minion). Name the list before going on.
+   homepage, monitoring and salt-master (and arrstack/jellyfin from 03:00 to 06:00) already got
+   the push from `orch.push` a minute after it landed. Check
+   `salt-run jobs.list_jobs search_function=runner.state.orchestrate` and drop them if it
+   succeeded.
 3. **Sync.** `salt-run fileserver.update`, `salt-run git_pillar.update`, then
    `salt '<targets>' saltutil.refresh_pillar` (list targeting: `-L a,b`).
 4. **Dry run.** `salt -L <targets> state.apply test=True --state-output=changes --state-verbose=False`.

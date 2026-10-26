@@ -1,0 +1,79 @@
+{#- The rollout itself, shared by orch.rollout (by hand) and orch.push (a
+   push, via formulas/salt-master's reactor). Rendered once up front: the
+   minion list is fixed when the run starts. Knobs: orch/map.jinja.
+
+   r.enforce_check: if set, only minions that answer this command with
+   "yes" take part — the drift check's own verdict on whether a repair may
+   run there right now (formulas/salt-minion: enforce on, window open). A
+   minion without the script, or one that doesn't answer, is left out.
+
+   after: id of an orchestrate state (salt.*) the first step requires. #}
+{%- macro rollout(r, after='') %}
+{%- set pings = salt['saltutil.cmd'](r.tgt, 'test.ping', tgt_type=r.tgt_type, timeout=r.query_timeout) %}
+{%- set up = [] %}
+{%- for id, ret in pings | dictsort %}
+{%-   if ret.get('ret') is sameas true %}
+{%-     do up.append(id) %}
+{%-   endif %}
+{%- endfor %}
+{%- if r.enforce_check and up %}
+{%-   set answers = salt['saltutil.cmd'](up | join(','), 'cmd.run', arg=[r.enforce_check], tgt_type='list', timeout=r.query_timeout) %}
+{%-   set allowed = [] %}
+{%-   for id in up if (answers.get(id, {}).get('ret') | string).strip() == 'yes' %}
+{%-     do allowed.append(id) %}
+{%-   endfor %}
+{%-   set up = allowed %}
+{%- endif %}
+{%- set ordered = [] %}
+{%- for id in r.order if id in up and id != r.master_id %}
+{%-   do ordered.append(id) %}
+{%- endfor %}
+{%- for id in up if id not in r.order and id != r.master_id %}
+{%-   do ordered.append(id) %}
+{%- endfor %}
+{%- if r.master_id and r.master_id in up %}
+{%-   do ordered.append(r.master_id) %}
+{%- endif %}
+
+{%- if r.dry_run and ordered %}
+{#- One test=True highstate on all of them: a render error or failing state
+   anywhere stops the run before any minion changes. #}
+dry-run:
+  salt.state:
+    - tgt: {{ ordered | join(',') | yaml_encode }}
+    - tgt_type: list
+    - highstate: True
+    - test: True
+    - queue: True
+    - timeout: {{ r.apply_timeout }}
+{%-   if after %}
+    - require:
+      - salt: {{ after }}
+{%-   endif %}
+{%- endif %}
+
+{%- for id in ordered %}
+apply-{{ id }}:
+  salt.state:
+    - tgt: {{ id | yaml_encode }}
+    - highstate: True
+    - queue: True
+    - timeout: {{ r.apply_timeout }}
+{%-   if not loop.first %}
+    - require:
+      - salt: apply-{{ loop.previtem }}
+{%-   elif r.dry_run %}
+    - require:
+      - salt: dry-run
+{%-   elif after %}
+    - require:
+      - salt: {{ after }}
+{%-   endif %}
+{%- endfor %}
+
+{%- if not ordered %}
+nothing-to-roll-out:
+  test.succeed_without_changes:
+    - name: no minion in {{ r.tgt }} to roll out to
+{%- endif %}
+{%- endmacro %}

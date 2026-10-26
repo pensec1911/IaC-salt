@@ -6,6 +6,11 @@
 # namespace so `include: - docker` and `salt://homepage/...` both resolve.
 fileserver_backend:
   - git
+{%- if salt_master.push_deploy %}
+# Fires salt/fileserver/gitfs/update after every fetch — the reactor
+# deploys a push from it (formulas/salt-master, push_deploy).
+fileserver_events: True
+{%- endif %}
 
 gitfs_provider: {{ salt_master.git_provider }}
 # Maps the repo's branch onto the `base` environment top.sls declares.

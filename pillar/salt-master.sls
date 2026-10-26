@@ -11,6 +11,18 @@ salt-master:
     beacon_restart_services:
       - docker
 
+    # salt-api for webhooks (formulas/salt-master README "salt-api"). TLS
+    # cert/key placed by hand on the master; Alertmanager pins the cert
+    # (pillar/alertmanager.sls). The token must match the one Alertmanager
+    # sends — same OpenBao entry.
+    api_enabled: True
+    api_alertmanager_token: {{ salt['sdb.get']('sdb://osvault/homelab/data/salt-api/alertmanager?token') | yaml_encode }}
+
+    # A push to main deploys itself within ~60 s on the minions that may
+    # self-repair right now (orch.push, formulas/orch); the rest keep their
+    # nightly window or manual apply.
+    push_deploy: True
+
     # Not secret — the AppRole role_id from OpenBao. See
     # todo/openbao-setup.md. secret_id (the actual credential) is a file
     # placed manually on the master, never pillar/git — see

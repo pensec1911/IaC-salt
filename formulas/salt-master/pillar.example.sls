@@ -62,3 +62,23 @@ salt-master:
       - docker
     beacon_service_tag: salt/beacon/*/service/*
     beacon_service_reactor_sls: salt://salt-master/reactor/beacon-service.sls
+
+    # salt-api (rest_cherrypy, HTTPS) for webhooks into the reactor. Cert and
+    # key are placed by hand (README "salt-api TLS"); only /hook works.
+    api_enabled: False
+    api_host: 0.0.0.0
+    api_port: 8000
+    api_tls_dir: /etc/salt/pki/api
+    api_ssl_crt: /etc/salt/pki/api/salt-api.crt
+    api_ssl_key: /etc/salt/pki/api/salt-api.key
+    # Bearer token Alertmanager sends to /hook/alertmanager. Empty = no
+    # mapping. Always from OpenBao:
+    api_alertmanager_token: {{ salt['sdb.get']('sdb://osvault/homelab/data/salt-api/alertmanager?token') | yaml_encode }}
+    alertmanager_hook_tag: salt/netapi/hook/alertmanager
+    alertmanager_reactor_sls: salt://salt-master/reactor/alertmanager-hook.sls
+    # Push = deploy: gitfs' update event (fileserver_events) with new commits
+    # starts push_orch_sls (formulas/orch).
+    push_deploy: False
+    push_event_tag: salt/fileserver/gitfs/update
+    push_reactor_sls: salt://salt-master/reactor/gitfs-update.sls
+    push_orch_sls: orch.push

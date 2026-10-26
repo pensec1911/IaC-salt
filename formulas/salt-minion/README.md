@@ -47,15 +47,19 @@ repair to a time of day; outside it the run only reports. On in
 `pillar/salt-minion-enforce-window.sls` for arrstack (recreating gluetun restarts the VPN stack)
 and jellyfin (cuts streams): **03:00–06:00 Europe/Berlin**, three hourly runs.
 
-- A push reaches them the following night, not within the hour.
+- A push reaches them the following night (the drift check, or `orch.push` if it lands between
+  03:00 and 06:00), not within the hour.
 - Extra metric `salt_drift_enforce_window_open` (1 = a repair may run now; always 1 without a
   window). `SaltDrift` ignores enforce minions whose window is closed — their drift is expected
   until the night. Drift that survives the window fires during it.
 - Repair now instead of at night: plain `salt '<minion>' state.apply`, as before.
 - The window must be wider than `interval_minutes` + splay, or a night can pass without a run.
 
-Consequence: on those minions **a push deploys itself** within `interval_minutes` + splay, with
-no `test=True` first. A failing dry run (render error, failing state) blocks the repair. A
+Consequence: on those minions **a push deploys itself**. Usually `orch.push` does it a minute
+after the push (`formulas/orch`, with a dry run first). If that doesn't happen, the next check
+does it within `interval_minutes` + splay, with no `test=True` first. `orch.push` asks
+`salt-drift-check --enforce-allowed` (prints `yes` when enforce is on and the window is open,
+and checks nothing else) to decide which minions it may touch. A failing dry run (render error, failing state) blocks the repair. A
 failed repair is retried on the next run. Each of the three runs gets its own
 `timeout_seconds`, so one check can take up to 3× that.
 

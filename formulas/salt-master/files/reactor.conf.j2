@@ -14,6 +14,14 @@
 {%- do reactions.append((salt_master.beacon_service_tag, salt_master.beacon_service_reactor_sls,
     'A minion\'s service beacon reported a status change (formulas/salt-minion).')) %}
 {%- endif %}
+{%- if salt_master.api_enabled and salt_master.api_alertmanager_token %}
+{%- do reactions.append((salt_master.alertmanager_hook_tag, salt_master.alertmanager_reactor_sls,
+    'Alertmanager posted to salt-api /hook/alertmanager (pillar/alertmanager.sls).')) %}
+{%- endif %}
+{%- if salt_master.push_deploy %}
+{%- do reactions.append((salt_master.push_event_tag, salt_master.push_reactor_sls,
+    'gitfs fetched; changed = a push arrived (fileserver_events in gitfs.conf).')) %}
+{%- endif %}
 {%- if reactions %}
 reactor:
 {%- for tag, sls, why in reactions %}
@@ -29,3 +37,4 @@ reactor: []
 # reactor SLS has no pillar of its own.
 homelab_mine_consumers: {{ salt_master.mine_consumers | json }}
 homelab_beacon_restart_services: {{ salt_master.beacon_restart_services | json }}
+homelab_push_orch_sls: {{ salt_master.push_orch_sls | json }}

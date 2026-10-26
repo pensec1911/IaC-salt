@@ -39,3 +39,9 @@ orch:
       dry_run: True          # test=True highstate on all before the first apply
       query_timeout: 30      # s, test.ping
       apply_timeout: 900     # s, per highstate
+      # Command whose stdout must be "yes" for a minion to take part; empty
+      # = all that answer test.ping.
+      enforce_check: ""
+    push:
+      # Overrides on top of rollout for orch.push (deploy on push).
+      enforce_check: /usr/local/sbin/salt-drift-check --enforce-allowed

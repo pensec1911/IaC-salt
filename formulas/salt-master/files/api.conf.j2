@@ -1,0 +1,15 @@
+{%- from "salt-master/map.jinja" import salt_master with context %}
+# Managed by formulas/salt-master — salt-api, for webhooks into the reactor.
+# No external_auth anywhere: /login and /run accept nobody. /hook/<path>
+# needs no Salt auth and only fires salt/netapi/hook/<path>; the reactor SLS
+# mapped to a tag (reactor.conf) checks the sender itself.
+rest_cherrypy:
+  host: {{ salt_master.api_host }}
+  port: {{ salt_master.api_port }}
+  ssl_crt: {{ salt_master.api_ssl_crt }}
+  ssl_key: {{ salt_master.api_ssl_key }}
+  webhook_url: /hook
+  webhook_disable_auth: True
+
+# Not a Salt option — read by reactor/alertmanager-hook.sls via `opts`.
+homelab_alertmanager_token: {{ salt_master.api_alertmanager_token | yaml_encode }}

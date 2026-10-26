@@ -5,6 +5,8 @@ Two runs:
 
 - `orch.reboot`: a nightly rolling reboot of the minions with a pending reboot.
 - `orch.rollout`: an ordered highstate across minions, started by hand. It does a dry run on all of them first.
+- `orch.push`: `orch.rollout` limited to the minions that may self-repair right now, started
+  by the master's reactor when a push arrives (`formulas/salt-master` "deploy on push").
 
 ## What it manages
 
@@ -12,7 +14,8 @@ Two runs:
   `salt-run state.orchestrate orch.reboot`) and `orch-reboot.timer`, daily 03:15
   Europe/Berlin, 40 min timeout, **not** `Persistent` (a night the master was down doesn't turn
   into a reboot run at boot).
-- `orch/reboot.sls`, `orch/rollout.sls`: the orchestrate SLS files. They aren't in `init.sls`
+- `orch/reboot.sls`, `orch/rollout.sls`, `orch/push.sls`: the orchestrate SLS files (the
+  rollout itself is a macro in `orch/rollout.jinja`, shared by the last two). They aren't in `init.sls`
   because they're never applied to a minion.
 
 ## orch.reboot
@@ -70,6 +73,27 @@ salt-run state.orchestrate orch.rollout \
 salt-run state.orchestrate orch.rollout \
   pillar='{"orch": {"lookup": {"rollout": {"tgt": "monitoring,homepage", "tgt_type": "list"}}}}'
 ```
+
+## orch.push
+
+Started by the reactor on `salt/fileserver/gitfs/update` with new commits, so about a minute
+after a push to `main`. Not meant to be run by hand, though it can be (`salt-run state.orchestrate orch.push`).
+
+1. `git_pillar.update`, because git_pillar polls on its own and may still be a commit behind.
+2. Like `orch.rollout`, plus `push:enforce_check`: only minions that answer
+   `salt-drift-check --enforce-allowed` with `yes` take part, which means enforce is on and its
+   window is open (`formulas/salt-minion`). By day that is homepage, monitoring and salt-master.
+   Between 03:00 and 06:00 arrstack and jellyfin join. wazuh never does (no enforce). The rest
+   stay with the drift check: `SaltDrift` (outside the window it is suppressed) and the nightly
+   repair, or `/deploy`.
+3. Dry run on all of them, then one at a time, salt-master last. The first failure stops it.
+
+No lock between runs: two pushes a few minutes apart start two runs. They serialise per
+minion (`queue`), and salt-master's own highstate (always last) may cut the other run short.
+The next push or the hourly drift check catches up.
+
+The drift check on those minions would apply the push within the hour anyway. This only makes
+it immediate and ordered.
 
 ## Pillar id
 

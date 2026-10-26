@@ -14,10 +14,15 @@
 #
 # An enforce window (start/end) limits the repair to that time of day;
 # outside it the run only reports, like enforce off.
+#
+# --enforce-allowed: only prints "yes" if a repair may run here right now
+# (enforce on, window open), else "no", and checks nothing. Asked by
+# orch.push (formulas/orch) before it deploys a push to this minion.
 import datetime
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import time
 import zoneinfo
@@ -152,4 +157,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[1:] == ["--enforce-allowed"]:
+        print("yes" if ENFORCE and window_open() else "no")
+    else:
+        main()
