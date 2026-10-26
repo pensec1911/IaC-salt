@@ -143,8 +143,6 @@ protection on `main` requires the check, so a PR merged in the UI can't skip it.
   the current one.
 - The key: the private half is only the IaC-salt Actions secret `RENDER_CHECK_SSH_KEY`, the
   public half is in pillar. If it's lost, generate a new pair and replace both.
-- First apply: the dry run fails ("User 'render-check' does not exist") until the user exists,
-  so `orch.push` aborts. Apply salt-master once by hand.
 
 ## Bootstrap
 
