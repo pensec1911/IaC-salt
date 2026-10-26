@@ -52,6 +52,11 @@ Reboots after updates are automatic: `orch-reboot.timer` on the master (03:15 Be
 `salt-run state.orchestrate orch.reboot`, one pending minion at a time, salt-master last
 (`formulas/orch`). Preview with `test=True`; output in `journalctl -u orch-reboot.service`.
 
+A change across several minions: `salt-run state.orchestrate orch.rollout`. It runs a `test=True`
+highstate on all of them first, then applies one minion at a time (monitoring first, salt-master
+last) and stops on the first failure. Narrowing `tgt` (e.g. leaving out arrstack and jellyfin by
+day): `formulas/orch` README.
+
 A stopped `docker` on a docker host (down > 90 s, i.e. systemd gave up or someone stopped it)
 is started again via the service beacon → reactor (`formulas/salt-minion` "Beacons"). Pausing
 for maintenance: `salt '<minion>' beacons.disable_beacon service`.

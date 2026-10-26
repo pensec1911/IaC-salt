@@ -1,7 +1,10 @@
 # orch formula
 
 Orchestrate runs across minions, executed on the master with `salt-run state.orchestrate`.
-So far one run: `orch.reboot`, a nightly rolling reboot of the minions with a pending reboot.
+Two runs:
+
+- `orch.reboot`: a nightly rolling reboot of the minions with a pending reboot.
+- `orch.rollout`: an ordered highstate across minions, started by hand. It does a dry run on all of them first.
 
 ## What it manages
 
@@ -9,8 +12,8 @@ So far one run: `orch.reboot`, a nightly rolling reboot of the minions with a pe
   `salt-run state.orchestrate orch.reboot`) and `orch-reboot.timer`, daily 03:15
   Europe/Berlin, 40 min timeout, **not** `Persistent` (a night the master was down doesn't turn
   into a reboot run at boot).
-- `orch/reboot.sls`: the orchestrate SLS itself. It isn't in `init.sls` because it's never
-  applied to a minion.
+- `orch/reboot.sls`, `orch/rollout.sls`: the orchestrate SLS files. They aren't in `init.sls`
+  because they're never applied to a minion.
 
 ## orch.reboot
 
@@ -39,6 +42,36 @@ and stays within arrstack/jellyfin's 03:00–06:00 window
 (`pillar/salt-minion-enforce-window.sls`). unattended-upgrades runs ~06:00–07:00 UTC, so a
 reboot it requires happens the following night. `RebootRequired` (`for: 26h`) only fires when
 that night's run didn't take care of it.
+
+## orch.rollout
+
+For a change that spans several minions. It takes the place of the per-minion
+`state.apply test=True` → `state.apply` sequence from CLAUDE.md, run after
+`fileserver.update` / `git_pillar.update`. Not scheduled.
+
+1. Every minion in `tgt` that answers `test.ping` takes part. Minions that are down are left
+   out, not waited for.
+2. `dry-run`: a single `test=True` highstate on all of them. A render error or a state that
+   would fail on any minion stops the run before anything changes.
+3. A real highstate on each minion, one at a time (`order` first, the rest alphabetically,
+   queued behind a running drift check). The first failure stops the chain, so later minions
+   stay untouched.
+4. `master_id` last. Its highstate may restart salt-master (`watch_in` on its config), which can
+   cut the run's own output. Check the result afterwards with `salt-run jobs.list_jobs`.
+
+arrstack and jellyfin are included by default. By day, a highstate there can recreate
+containers (VPN stack, Jellyfin streams), so leave them out unless the change is meant for them:
+
+```sh
+salt-run state.orchestrate orch.rollout test=True   # dry run on all, applies shown as test
+salt-run state.orchestrate orch.rollout
+salt-run state.orchestrate orch.rollout \
+  pillar='{"orch": {"lookup": {"rollout": {"tgt": "* and not L@arrstack,jellyfin", "tgt_type": "compound"}}}}'
+salt-run state.orchestrate orch.rollout \
+  pillar='{"orch": {"lookup": {"rollout": {"tgt": "monitoring,homepage", "tgt_type": "list"}}}}'
+```
+
+## Pillar id
 
 The pillar is compiled for the master's runner id `salt-master_master`, not `salt-master`.
 `pillar/top.sls` therefore targets `pillar/orch.sls` at both.

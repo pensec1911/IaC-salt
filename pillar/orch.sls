@@ -13,3 +13,14 @@ orch:
         - arrstack
         - jellyfin
       master_id: salt-master
+    rollout:
+      # monitoring first (mine consumer, watches the rest), media hosts and
+      # the master last. arrstack/jellyfin are applied too — narrow tgt by
+      # day (README "orch.rollout").
+      order:
+        - monitoring
+        - homepage
+        - wazuh
+        - arrstack
+        - jellyfin
+      master_id: salt-master

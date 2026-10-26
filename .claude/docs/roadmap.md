@@ -36,12 +36,6 @@ No order agreed; pick as needed.
 - **Open**: runner for Actions; backup of Forgejo itself becomes critical (it holds the deploy
   source) — an entry in `pillar/backup.sls`.
 
-### Orchestrate runs across minions
-
-- The rolling reboot shipped as `formulas/orch` (`orch.reboot`). Next possible run there:
-  ordered multi-minion rollouts (e.g. monitoring first, then the rest; or `test=True`
-  everywhere, then apply). Worth it once there's a real cross-minion dependency.
-
 ### Event sources via salt-api
 
 - Git push webhook → `fileserver.update` + `git_pillar.update` + highstate (fully automatic

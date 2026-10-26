@@ -25,6 +25,15 @@
    query_timeout: seconds to wait for the flag_file query; minions that
    don't answer are skipped (not rebooted) this run.
 
+   rollout: ordered highstate across minions, by hand only (no timer — it's
+   a deploy). Every minion in tgt that answers within query_timeout gets a
+   test=True highstate first (dry_run; any failing state stops the run
+   before anything changes), then a real one, one minion at a time:
+   order first, the rest alphabetically, master_id last — its highstate
+   may restart salt-master and cut the run's own output, so nothing waits
+   on it. apply_timeout: seconds per highstate (queued behind a running
+   drift check).
+
    timer: starts the run daily at on_calendar. Deliberately not Persistent —
    a night missed while the master was down must not become a reboot run
    at boot time, outside the window. timeout bounds a hung run; keep
@@ -50,6 +59,15 @@
             'timeout': '40min',
             'salt_run': '/usr/bin/salt-run',
         },
+    },
+    'rollout': {
+        'tgt': '*',
+        'tgt_type': 'glob',
+        'order': [],
+        'master_id': '',
+        'dry_run': True,
+        'query_timeout': 30,
+        'apply_timeout': 900,
     },
 } %}
 {%- set orch = salt['pillar.get']('orch:lookup', default=defaults, merge=True) %}
