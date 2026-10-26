@@ -23,7 +23,9 @@ jobs:
           SSH_KEY: ${{ secrets.RENDER_CHECK_SSH_KEY }}
         run: |
           install -d -m 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          # The secret form stores CRLF line ends; OpenSSH rejects those
+          # ("error in libcrypto").
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           # salt-master's host key (public), pinned.
           echo '192.168.178.28 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEAc3ofR4GItjEDwDF52KOy7teGy1WB83CbpuVRl2W0D' > ~/.ssh/known_hosts
