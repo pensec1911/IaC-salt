@@ -159,3 +159,19 @@ prometheus:
             severity: warning
           annotations:
             summary: {% raw %}"{{ $labels.instance }} has no successful backup for over 36h"{% endraw %}
+        {#- node_timex_* from node-exporter's timex collector; every minion
+           syncs from the FRITZ!Box via formulas/ntp. #}
+        - alert: ClockNotSynced
+          expr: node_timex_sync_status == 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"{{ $labels.instance }} clock is not NTP-synchronised — timedatectl timesync-status"{% endraw %}
+        - alert: ClockOffset
+          expr: abs(node_timex_offset_seconds) > 0.5
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"{{ $labels.instance }} clock is {{ $value | humanizeDuration }} off its NTP source"{% endraw %}

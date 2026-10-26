@@ -1,6 +1,7 @@
 base:
   'salt-master':
     - users
+    - ntp
     - wazuh-agent
     - node-exporter
     - salt-minion
@@ -8,6 +9,7 @@ base:
 
   'homepage':
     - users
+    - ntp
     - wazuh-agent
     - node-exporter
     - salt-minion
@@ -18,6 +20,7 @@ base:
 
   'monitoring':
     - users
+    - ntp
     - wazuh-agent
     - node-exporter
     - salt-minion
@@ -34,6 +37,7 @@ base:
 
   'arrstack':
     - users
+    - ntp
     - wazuh-agent
     - node-exporter
     - salt-minion
@@ -47,6 +51,7 @@ base:
 
   'wazuh':
     - users
+    - ntp
     - node-exporter
     - salt-minion
     - wazuh
@@ -55,6 +60,7 @@ base:
 
   'jellyfin':
     - users
+    - ntp
     - wazuh-agent
     - node-exporter
     - salt-minion

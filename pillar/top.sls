@@ -2,6 +2,7 @@ base:
   '*':
     - GLOBAL
     - wazuh-agent
+    - ntp
 
   'homepage,monitoring,salt-master':
     - match: list

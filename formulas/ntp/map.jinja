@@ -1,0 +1,18 @@
+{#- servers: NTP= for systemd-timesyncd. Empty default: without pillar the
+   drop-in sets nothing and timesyncd keeps Debian's behaviour.
+
+   fallback_servers: FallbackNTP=. Empty on purpose (an empty assignment
+   clears Debian's debian.pool.ntp.org default): with one internal source
+   every VM is wrong *together* if that source is wrong, instead of a VM
+   that can't reach it drifting off onto the public pool.
+
+   Per-link servers from DHCP (systemd-networkd) are still used alongside
+   NTP= — on this network that's the same FRITZ!Box via IPv6. #}
+{%- set defaults = {
+    'pkg': 'systemd-timesyncd',
+    'service': 'systemd-timesyncd',
+    'dropin': '/etc/systemd/timesyncd.conf.d/salt.conf',
+    'servers': [],
+    'fallback_servers': [],
+} %}
+{%- set ntp = salt['pillar.get']('ntp:lookup', default=defaults, merge=True) %}
