@@ -36,7 +36,7 @@ gitfs cache), ~5 s. sdb is stubbed, so OpenBao isn't involved. Blocks the push o
 
 Not covered: `file.managed` templates (rendered only at apply time) and grain-dependent logic
 (the master's grains stand in — all VMs are Debian 13, so that's close). Run it by hand:
-`git archive HEAD formulas salt pillar .githooks/render-check.py | ssh salt-master 'd=$(mktemp -d); tar -x -C $d; python3 $d/.githooks/render-check.py $d; rm -rf $d'`.
+`git archive HEAD formulas salt pillar .githooks/render-check.py | ssh salt-master 'd=$(mktemp -d); tar -x -m -C $d; python3 $d/.githooks/render-check.py $d; rm -rf $d'`.
 Master unreachable: `SKIP_RENDER_CHECK=1 git push` (the secret scan is pre-commit, unaffected).
 
 ## Reactor

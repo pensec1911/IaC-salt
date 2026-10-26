@@ -29,7 +29,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     echo "render-check: rendering $(git rev-parse --short "$local_sha") on $HOST …" >&2
     git archive "$local_sha" formulas salt pillar .githooks/render-check.py |
         ssh -o BatchMode=yes -o ConnectTimeout=10 "$HOST" \
-            'd=$(mktemp -d) && tar -x -C "$d" && python3 "$d/.githooks/render-check.py" "$d"; rc=$?; rm -rf "$d"; exit $rc' >&2
+            'd=$(mktemp -d) && tar -x -m -C "$d" && python3 "$d/.githooks/render-check.py" "$d"; rc=$?; rm -rf "$d"; exit $rc' >&2
     status=$?
     if [ $status -eq 255 ]; then
         echo "render-check: cannot reach $HOST — push blocked. SKIP_RENDER_CHECK=1 git push to override." >&2
