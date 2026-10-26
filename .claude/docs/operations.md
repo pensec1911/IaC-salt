@@ -5,6 +5,9 @@ All `salt` commands run on the master (`ssh salt-master`, then `sudo salt …`).
 
 ## Deploy a change
 
+`/deploy <minion>|all` (`.claude/commands/deploy.md`) runs this, summarizes the dry run and
+stops for OK before applying. Overall health: `/homelab-status`.
+
 ```sh
 # after git push
 salt-run fileserver.update             # states (else wait ≤60 s for the gitfs poll)
