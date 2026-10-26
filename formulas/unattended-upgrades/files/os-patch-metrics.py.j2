@@ -1,0 +1,100 @@
+{%- from "unattended-upgrades/map.jinja" import unattended_upgrades with context -%}
+{%- set m = unattended_upgrades.metrics -%}
+#!{{ m.python }}
+# Managed by Salt (formulas/unattended-upgrades) — do not edit here.
+#
+# Started hourly (and once after boot) by {{ m.unit }}.timer: writes the
+# patch state as node-exporter textfile metrics (os_*) — reboot pending
+# (Debian's kernel postinst hook touches {{ m.reboot_required_file }}), upgrades
+# apt would install, when the lists were updated and unattended-upgrades
+# last ran. Read-only: simulates, never installs.
+import os
+import subprocess
+import sys
+import tempfile
+import time
+
+APT_GET = "{{ m.apt_get }}"
+REBOOT_FILE = "{{ m.reboot_required_file }}"
+STAMP = "{{ m.stamp_file }}"
+UPDATE_STAMP = "{{ m.update_stamp_file }}"
+OUT = "{{ m.textfile_dir }}/{{ m.metrics_file }}"
+
+
+def log(msg):
+    print(msg, file=sys.stderr, flush=True)
+
+
+def pending():
+    """(all, security) upgrades apt would install now, or None on failure."""
+    # NoLocking: may run while apt-daily holds the lock; a simulation
+    # against half-updated lists is at worst off by one run.
+    proc = subprocess.run(
+        [APT_GET, "-s", "-o", "Debug::NoLocking=1", "dist-upgrade"],
+        capture_output=True, text=True, env={**os.environ, "LC_ALL": "C"})
+    if proc.returncode != 0:
+        sys.stderr.write(proc.stderr)
+        log("apt-get -s dist-upgrade failed (exit {})".format(proc.returncode))
+        return None
+    total = security = 0
+    # "Inst <pkg> [<old>] (<new> Debian-Security:13/stable-security [amd64])"
+    for line in proc.stdout.splitlines():
+        if not line.startswith("Inst "):
+            continue
+        total += 1
+        if "-security" in line.partition(" (")[2].lower():
+            security += 1
+    return total, security
+
+
+def mtime(path):
+    try:
+        return int(os.stat(path).st_mtime)
+    except OSError:
+        return 0
+
+
+def main():
+    counts = pending()
+    reboot_since = mtime(REBOOT_FILE)
+
+    lines = []
+
+    def metric(name, help_, value):
+        lines.append("# HELP {} {}".format(name, help_))
+        lines.append("# TYPE {} gauge".format(name))
+        lines.append("{} {}".format(name, value))
+
+    metric("os_reboot_required",
+           "1 if {} exists (an upgrade needs a reboot)".format(REBOOT_FILE),
+           int(reboot_since > 0))
+    if reboot_since:
+        metric("os_reboot_required_since_timestamp_seconds",
+               "When the reboot became necessary", reboot_since)
+    metric("os_patch_metrics_success",
+           "1 if the apt simulation for the pending counts succeeded",
+           int(counts is not None))
+    if counts is not None:
+        metric("os_upgrades_pending",
+               "Upgrades apt would install, all repos", counts[0])
+        metric("os_security_upgrades_pending",
+               "Upgrades from Debian-Security apt would install", counts[1])
+    metric("os_unattended_upgrade_last_run_timestamp_seconds",
+           "When unattended-upgrades last ran (0 = never)", mtime(STAMP))
+    metric("os_apt_lists_updated_timestamp_seconds",
+           "When apt-daily last updated the package lists (0 = never)",
+           mtime(UPDATE_STAMP))
+    metric("os_patch_metrics_last_run_timestamp_seconds",
+           "When this script last ran", int(time.time()))
+
+    # Atomic replace — node-exporter must never read a half-written file.
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix=".os_patch.")
+    with os.fdopen(fd, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, OUT)
+    return 0 if counts is not None else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

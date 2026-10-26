@@ -6,12 +6,12 @@ Flat network 192.168.178.0/24 (FRITZ!Box range). Minion ID = hostname = Tofu VM 
 
 | Minion | IP | Formulas (`salt/top.sls`) | Services / ports |
 |---|---|---|---|
-| `salt-master` | .28 | users, ntp, wazuh-agent, node-exporter, salt-minion, salt-master | salt-master (gitfs + git_pillar) |
-| `homepage` | .23 | users, ntp, wazuh-agent, node-exporter, salt-minion, docker, cadvisor, alloy, homepage | homepage :3000 |
-| `monitoring` | .25 | users, ntp, wazuh-agent, node-exporter, salt-minion, docker, cadvisor, blackbox-exporter, loki, alloy, grafana, prometheus, alertmanager, nfs-mount, backup | Grafana :3000, Prometheus :9090, Alertmanager :9093, blackbox_exporter :9115, Loki :3100 |
-| `arrstack` | .22 | users, ntp, wazuh-agent, node-exporter, salt-minion, nfs-mount, docker, cadvisor, alloy, arrstack, seerr, backup | Seerr :5055; via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal) |
-| `jellyfin` | .24 | users, ntp, wazuh-agent, node-exporter, salt-minion, nfs-mount, docker, cadvisor, alloy, jellyfin, backup | Jellyfin :8096 |
-| `wazuh` | .27 | users, ntp, node-exporter, salt-minion, wazuh, nfs-mount, backup | dashboard :443, indexer :9200, API :55000, agents :1514 / enrollment :1515 |
+| `salt-master` | .28 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, salt-master | salt-master (gitfs + git_pillar) |
+| `homepage` | .23 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, docker, cadvisor, alloy, homepage | homepage :3000 |
+| `monitoring` | .25 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, docker, cadvisor, blackbox-exporter, loki, alloy, grafana, prometheus, alertmanager, nfs-mount, backup | Grafana :3000, Prometheus :9090, Alertmanager :9093, blackbox_exporter :9115, Loki :3100 |
+| `arrstack` | .22 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, nfs-mount, docker, cadvisor, alloy, arrstack, seerr, backup | Seerr :5055; via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal) |
+| `jellyfin` | .24 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, nfs-mount, docker, cadvisor, alloy, jellyfin, backup | Jellyfin :8096 |
+| `wazuh` | .27 | users, ntp, node-exporter, unattended-upgrades, salt-minion, wazuh, nfs-mount, backup | dashboard :443, indexer :9200, API :55000, agents :1514 / enrollment :1515 |
 
 Every minion: node_exporter :9100. Docker hosts (homepage, monitoring, arrstack, jellyfin):
 cAdvisor :8088. All scraped by Prometheus on monitoring — targets from the Salt Mine (`node_exporter`, `cadvisor` entries), not listed in `pillar/prometheus.sls`. Every homepage item with a status dot is also HTTP-probed via blackbox_exporter (`ProbeFailed`).
@@ -20,6 +20,9 @@ Docker hosts also run Alloy (no port), shipping container logs + journal to Loki
 arrstack, jellyfin, monitoring and wazuh back up nightly (~02:00 Berlin) to the NAS via restic
 (`formulas/backup`, `BackupFailed` / `BackupStale`), with a weekly restore test (Sunday ~04:00,
 `RestoreTestFailed` / `RestoreTestStale`).
+Every minion patches itself daily from Debian main + Debian-Security via unattended-upgrades
+(`formulas/unattended-upgrades`; Docker/Salt/Wazuh repos excluded); reboots are manual
+(`RebootRequired`).
 
 `salt/top.sls` and `pillar/top.sls` are authoritative — update this table when they change.
 

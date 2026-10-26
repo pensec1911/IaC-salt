@@ -14,6 +14,14 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Smaller items
 
+- **apt-daily rarely refreshes the package lists** (seen 2026-10-26): `update-stamp` / lists on
+  salt-master and homepage from 2026-10-18, wazuh and monitoring 2026-10-20; the journal shows
+  `apt-daily.service` only right after boots, not the twice-daily runs (`OnCalendar=6,18:00`,
+  `RandomizedDelaySec=12h`, `Persistent=true`). So u-u ran today against week-old lists.
+  Cause not investigated (frequent reboots resetting the random delay? clock jumps?).
+  `AptListsStale` (formulas/unattended-upgrades) will surface it; check
+  `systemctl list-timers apt-daily.timer` over a few days before changing anything.
+
 - **qBittorrent's WebUI freezes while it moves a finished torrent to the NAS** (2026-10-20,
   19:37–19:44, two South Park season packs): the move from local `incomplete_dir` to
   `/media/torrents` blocks qBittorrent 4.6's main loop — WebUI/API don't answer (LAN timeout,

@@ -193,3 +193,48 @@ prometheus:
             severity: warning
           annotations:
             summary: {% raw %}"{{ $labels.instance }} clock is {{ $value | humanizeDuration }} off its NTP source"{% endraw %}
+        {#- os_* from formulas/unattended-upgrades (hourly + after boot).
+           Reboots are manual; 12h lets a morning u-u run (~06:00 UTC) be
+           rebooted the same evening before it alerts. #}
+        - alert: RebootRequired
+          expr: os_reboot_required == 1
+          for: 12h
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"{{ $labels.instance }} needs a reboot after updates — cat /run/reboot-required.pkgs"{% endraw %}
+        {#- u-u installs security updates daily; still pending after 48h
+           means a failing run, a held/blacklisted package or a dependency
+           u-u won't resolve. #}
+        - alert: SecurityUpgradesPending
+          expr: os_security_upgrades_pending > 0
+          for: 48h
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"{{ $labels.instance }} has {{ $value }} security upgrade(s) pending for 2 days — unattended-upgrade --dry-run --debug"{% endraw %}
+        - alert: UnattendedUpgradeStale
+          expr: time() - os_unattended_upgrade_last_run_timestamp_seconds > 3 * 86400
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"unattended-upgrades on {{ $labels.instance }} has not run for over 3 days — systemctl status apt-daily-upgrade"{% endraw %}
+        {#- apt-daily (lists) runs at 06/18:00 + up to 12h random delay;
+           without fresh lists u-u and the pending counts see nothing new. #}
+        - alert: AptListsStale
+          expr: time() - os_apt_lists_updated_timestamp_seconds > 3 * 86400
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"Package lists on {{ $labels.instance }} not updated for over 3 days — journalctl -u apt-daily"{% endraw %}
+        - alert: PatchMetricsStale
+          expr: >-
+            os_patch_metrics_success == 0
+            or time() - os_patch_metrics_last_run_timestamp_seconds > 3 * 3600
+          for: 3h
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"Patch metrics on {{ $labels.instance }} failing or stale — journalctl -u os-patch-metrics"{% endraw %}

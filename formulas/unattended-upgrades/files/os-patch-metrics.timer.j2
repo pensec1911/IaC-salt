@@ -1,0 +1,12 @@
+{%- from "unattended-upgrades/map.jinja" import unattended_upgrades with context -%}
+# Managed by Salt (formulas/unattended-upgrades) — do not edit.
+[Unit]
+Description=Hourly patch-state metrics
+
+[Timer]
+OnBootSec={{ unattended_upgrades.metrics.on_boot }}
+OnCalendar={{ unattended_upgrades.metrics.on_calendar }}
+RandomizedDelaySec={{ unattended_upgrades.metrics.randomized_delay }}
+
+[Install]
+WantedBy=timers.target

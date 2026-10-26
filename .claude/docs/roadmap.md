@@ -15,16 +15,6 @@ _Nothing agreed yet — pick from "Later"._
 
 No order agreed; pick as needed.
 
-### OS patching formula
-
-- **Why**: only the Docker images are pinned and bumped deliberately; the Debian/Ubuntu base on
-  every minion has no patch story.
-- **Sketch**: `unattended-upgrades` formula, config patched with `file.blockreplace` (shipped
-  package config), included for all minions in `salt/top.sls`. A textfile collector writes
-  `/var/run/reboot-required` presence as a metric; `RebootRequired` alert in `pillar/prometheus.sls`.
-- **Open**: reboot policy (manual vs. window, cf. `pillar/salt-minion-enforce-window.sls`);
-  whether docker/containerd packages are blacklisted from auto-upgrade.
-
 ### Wazuh alerts into Alertmanager
 
 - **Why**: Wazuh findings only show in its dashboard; everything else pages through

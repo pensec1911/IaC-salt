@@ -1,0 +1,9 @@
+{%- from "unattended-upgrades/map.jinja" import unattended_upgrades with context -%}
+# Managed by Salt (formulas/unattended-upgrades) — do not edit.
+[Unit]
+Description=Patch state as node-exporter textfile metrics
+
+[Service]
+Type=oneshot
+ExecStart={{ unattended_upgrades.metrics.script }}
+Nice=10

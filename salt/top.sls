@@ -4,6 +4,7 @@ base:
     - ntp
     - wazuh-agent
     - node-exporter
+    - unattended-upgrades
     - salt-minion
     - salt-master
 
@@ -12,6 +13,7 @@ base:
     - ntp
     - wazuh-agent
     - node-exporter
+    - unattended-upgrades
     - salt-minion
     - docker
     - cadvisor
@@ -23,6 +25,7 @@ base:
     - ntp
     - wazuh-agent
     - node-exporter
+    - unattended-upgrades
     - salt-minion
     - docker
     - cadvisor
@@ -40,6 +43,7 @@ base:
     - ntp
     - wazuh-agent
     - node-exporter
+    - unattended-upgrades
     - salt-minion
     - nfs-mount
     - docker
@@ -53,6 +57,7 @@ base:
     - users
     - ntp
     - node-exporter
+    - unattended-upgrades
     - salt-minion
     - wazuh
     - nfs-mount
@@ -63,6 +68,7 @@ base:
     - ntp
     - wazuh-agent
     - node-exporter
+    - unattended-upgrades
     - salt-minion
     - nfs-mount
     - docker

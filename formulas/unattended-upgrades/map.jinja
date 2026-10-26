@@ -1,0 +1,56 @@
+{#- Debian's unattended-upgrades, already installed and enabled by the
+   trixie cloud image (verified on all minions 2026-10-26) — this formula
+   pins that state down and makes it visible in Prometheus.
+
+   Origins stay as shipped in 50unattended-upgrades: Debian main (point
+   releases) + Debian-Security. The third-party repos (Docker, Salt's
+   Artifactory, Wazuh) are therefore never upgraded unattended — docker-ce/
+   containerd, salt-minion and wazuh-agent only move when bumped on purpose
+   (the agent has to match the manager's version). No Package-Blacklist
+   needed for them.
+
+   dropin: settings go into an extra apt.conf.d file sorted after
+   50unattended-upgrades/20auto-upgrades; for scalar options the later file
+   wins, list options (package_blacklist) are appended. The shipped files
+   stay untouched.
+
+   automatic_reboot: off — reboots are manual (RebootRequired alert in
+   pillar/prometheus.sls). A reboot cuts Jellyfin streams, the arrstack VPN
+   stack, the master and the Wazuh indexer. If turned on per minion,
+   automatic_reboot_time is when u-u reboots after an upgrade that needs it.
+
+   apt_timers: apt-daily (package lists, twice a day) and apt-daily-upgrade
+   (the u-u run, ~06:00 + up to 60 min random delay) — Debian's own timers.
+
+   metrics: an hourly oneshot (plus once shortly after boot, so
+   RebootRequired clears right after a reboot) writes os_* textfile metrics
+   into node-exporter's textfile directory (see formulas/salt-minion
+   map.jinja) — hence the require on node-exporter. Pending upgrades come
+   from `apt-get -s dist-upgrade` against the current lists, without the apt
+   lock — only as fresh as the lists, hence the separate list-update
+   timestamp (update_stamp_file, written by apt-daily). #}
+{%- set defaults = {
+    'pkg': 'unattended-upgrades',
+    'dropin': '/etc/apt/apt.conf.d/52unattended-upgrades-salt',
+    'automatic_reboot': False,
+    'automatic_reboot_time': '04:00',
+    'remove_unused_kernel_packages': True,
+    'remove_unused_dependencies': False,
+    'package_blacklist': [],
+    'apt_timers': ['apt-daily.timer', 'apt-daily-upgrade.timer'],
+    'metrics': {
+        'unit': 'os-patch-metrics',
+        'script': '/usr/local/sbin/os-patch-metrics',
+        'on_calendar': 'hourly',
+        'on_boot': '2min',
+        'randomized_delay': '5min',
+        'python': '/usr/bin/python3',
+        'apt_get': '/usr/bin/apt-get',
+        'reboot_required_file': '/run/reboot-required',
+        'stamp_file': '/var/lib/apt/periodic/unattended-upgrades-stamp',
+        'update_stamp_file': '/var/lib/apt/periodic/update-stamp',
+        'textfile_dir': '/var/lib/prometheus/node-exporter',
+        'metrics_file': 'os_patch.prom',
+    },
+} %}
+{%- set unattended_upgrades = salt['pillar.get']('unattended-upgrades:lookup', default=defaults, merge=True) %}
