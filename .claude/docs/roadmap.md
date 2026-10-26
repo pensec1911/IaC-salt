@@ -15,6 +15,17 @@ _Nothing agreed yet — pick from "Later"._
 
 No order agreed; pick as needed.
 
+### Alertmanager receiver (notification channel)
+
+- **Why**: `pillar/alertmanager.sls` is empty, so the "null" receiver applies. Alerts from
+  `pillar/prometheus.sls` (DiskAlmostFull, RebootRequired, CertificateExpiringSoon) and
+  Wazuh (level >= 10, critical CVEs) are only visible if someone opens the UI or Grafana.
+- **Sketch**: pick one channel (ntfy, Telegram or mail), set `alertmanager:config` in
+  `pillar/alertmanager.sls` with the URL/token via `sdb.get` from OpenBao; route by severity,
+  group Wazuh alerts so a CVE burst is one message.
+- **Open**: which channel (self-hosted ntfy needs its own formula + homepage entry); whether
+  alerts should still arrive when the monitoring VM itself is down (dead-man's switch).
+
 ### Recyclarr for Sonarr/Radarr profiles
 
 - **Why**: quality profiles and custom formats live only in the arrstack web UIs (and the
