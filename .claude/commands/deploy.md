@@ -8,7 +8,7 @@ Deploy to: $ARGUMENTS
 Steps (operations.md "Deploy a change"). All `salt` commands via `ssh salt-master "sudo …"`.
 
 1. **Pushed?** `git status` and `git log origin/main..HEAD` — unpushed commits: push first
-   (the pre-push render check must pass; never bypass it). The master only sees what's on GitHub.
+   (the pre-push render check must pass; never bypass it). The master only sees what's on Forgejo (`origin`).
 2. **Targets.** `all` = every minion whose formulas or pillar the commits since the last deploy
    touch: map changed paths under `formulas/<f>`, `pillar/<f>.sls` to minions via `salt/top.sls`
    and `pillar/top.sls` (`GLOBAL`, `'*'`-pillar → every minion). Name the list before going on.

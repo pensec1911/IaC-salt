@@ -2,7 +2,7 @@
 
 Manages the salt-master's own config so it pulls its state tree and pillar directly from this
 repo (gitfs + git_pillar) instead of relying on a manually-copied `/srv/salt`. Generates its own
-deploy key, pins GitHub's host key, and writes
+deploy key, pins the git servers' host keys (GitHub, Forgejo), and writes
 `/etc/salt/master.d/{gitfs,git_pillar,auto_accept,pillar_merge,reactor,api}.conf`. Runs salt-api
 for webhooks (`api.sls`).
 

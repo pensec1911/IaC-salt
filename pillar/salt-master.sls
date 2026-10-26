@@ -27,6 +27,13 @@ salt-master:
     # nightly window or manual apply.
     push_deploy: True
 
+    # The deploy source: Forgejo (homelab/IaC-salt, read-only deploy key
+    # "salt-master gitfs"), since 2026-10-26. GitHub is only a push mirror of
+    # it. To fall back while Forgejo is down: set the GitHub URL here (same
+    # commits) — or, if nothing deploys any more, by hand in
+    # /etc/salt/master.d/{gitfs,git_pillar}.conf and restart salt-master.
+    gitfs_remote: ssh://git@192.168.178.29:2222/homelab/IaC-salt.git
+
     # Forgejo's SSH host key (built-in server, :2222), read from
     # /opt/forgejo/data/ssh/gitea.rsa.pub on the minion and matched against
     # ssh-keyscan, 2026-10-26. Public data.

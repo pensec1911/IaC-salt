@@ -14,6 +14,11 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Smaller items
 
+- **bootstrap.sh still assumes GitHub** for the deploy key (registers it via `gh`). Since
+  2026-10-26 the master pulls from Forgejo (`pillar/salt-master.sls` `gitfs_remote`), so on a
+  rebuilt master the key goes to Forgejo `homelab/IaC-salt` → Settings → Deploy keys (read-only)
+  instead. Forgejo must be up for a master rebuild; GitHub's mirror works as a fallback remote.
+
 - **A salt-master restart triggers a highstate on every minion, arrstack/jellyfin included,
   at any hour** (seen 2026-10-26 12:48, when salt-api was introduced). On reconnect, the
   minions fire `salt/minion/<id>/start`, and the start reactor (`formulas/salt-master`)

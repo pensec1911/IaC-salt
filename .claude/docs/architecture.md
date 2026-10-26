@@ -27,8 +27,11 @@ The master pulls straight from this repo — no manual sync:
 
 - **gitfs** serves states (both `formulas` and `salt` roots, branch `main` as `base`).
 - **git_pillar** serves `pillar/`.
-- Auth: a read-only GitHub deploy key generated on the master itself.
-- Poll interval: `gitfs_update_interval`, default 60 s.
+- Source: Forgejo `homelab/IaC-salt` (`salt-master:lookup:gitfs_remote` in pillar), GitHub only
+  mirrors it.
+- Auth: a read-only deploy key generated on the master itself.
+- Poll interval: `gitfs_update_interval`, default 60 s. A push to main also fetches at once via
+  Forgejo's webhook to salt-api `/hook/git` (formulas/salt-master README "salt-api").
 
 All of that is configured by `formulas/salt-master` — the one formula that isn't fully generic
 (its `map.jinja` defaults point at `pensec1911/IaC-salt`; override via `salt-master:lookup` if the

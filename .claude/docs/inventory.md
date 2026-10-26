@@ -44,7 +44,12 @@ nightly from 03:15 Berlin, one minion at a time, salt-master last (`formulas/orc
   `gluetun/proton`) and the IPv4 address (`10.2.0.2/32`, pillar) are used — gluetun picks the
   server itself (`SERVER_COUNTRIES`), so the server chosen when generating the config doesn't
   matter. IPv6 address from the config must be left out (gluetun refuses to start with it).
-- **GitHub**: `pensec1911/IaC-salt`, read-only deploy key from the master.
+- **Forgejo** (.29, `homelab/IaC-salt`, `homelab/IaC-opentofu`): the source of truth and the deploy
+  source. Read-only deploy key from the master. A push webhook to salt-api `/hook/git` makes the
+  master fetch at once.
+- **GitHub**: `pensec1911/IaC-salt`, `pensec1911/IaC-opentofu` are push mirrors of Forgejo
+  (sync on every push, PAT `github/mirror`). Never push there directly: the next mirror sync
+  overwrites it.
 
 ## Access from a Claude session
 

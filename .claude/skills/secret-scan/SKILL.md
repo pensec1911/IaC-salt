@@ -5,7 +5,7 @@ description: Use before committing/pushing, when asked whether anything sensitiv
 
 # Secret / private-data scan
 
-This repo is pushed to GitHub. Nothing may land there that's a credential or personal data.
+This repo is pushed to Forgejo and mirrored to GitHub. Nothing may land there that's a credential or personal data.
 
 ## 1. Automated check
 
