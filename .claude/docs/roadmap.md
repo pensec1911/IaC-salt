@@ -26,17 +26,16 @@ No order agreed; pick as needed.
 - **Open**: which channel (self-hosted ntfy needs its own formula + homepage entry); whether
   alerts should still arrive when the monitoring VM itself is down (dead-man's switch).
 
-### Forgejo + Renovate (long term)
+### Renovate (on Forgejo)
 
-- **Why**: master pulls from GitHub today; a local Forgejo keeps repo + deploy in the LAN and
-  gives a push webhook in the LAN. salt-api is already running (`formulas/salt-master`), so this
-would be `/hook/git` plus a reactor that checks the HMAC (`hashutil.github_signature`) and runs
-`fileserver.update`; deploy on push already follows from the gitfs event. Renovate would open PRs for
-  the pinned image versions instead of bumping them by hand.
-- **Sketch**: own VM via Tofu, `forgejo` formula; gitfs/git_pillar remote + deploy key switch
-  over; GitHub as a mirror. Renovate as a Forgejo Actions job or a container.
-- **Open**: runner for Actions; backup of Forgejo itself becomes critical (it holds the deploy
-  source) — an entry in `pillar/backup.sls`.
+- **Why**: Forgejo (formulas/forgejo, .29) is the deploy source since 2026-10-26; image tags in
+  `formulas/*/map.jinja` and the Tofu providers are still bumped by hand (`image-bump` agent).
+- **Sketch**: forgejo-runner on the forgejo VM (Docker), Renovate as a scheduled Forgejo Actions
+  workflow under a bot account; a regex manager for the `'image'`/`'tag'` pairs in `map.jinja`.
+  PRs only, merged by hand (a merge to IaC-salt is a deploy). Forgejo itself stays on its LTS
+  line (15.x) until the next LTS.
+- **Open**: runner registration secret (OpenBao), bot token scope; whether the runner also takes
+  over IaC-opentofu's `make ci` from GitHub Actions.
 
 ## Deliberately not
 
