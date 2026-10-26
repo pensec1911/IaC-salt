@@ -24,7 +24,7 @@
     },
     'forgejo': {
         'paths': ['/opt/forgejo'],
-        'excludes': [],
+        'excludes': ['/opt/forgejo/data/tmp', '/opt/forgejo/data/repo-archive'],
         'stop_containers': ['forgejo'],
     },
     'jellyfin': {
