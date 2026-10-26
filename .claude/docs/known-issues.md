@@ -12,6 +12,18 @@ Remove an entry once fixed (the fix lives in git history).
   (formulas/salt-master) does not widen this — an accepted minion can already pull its own
   highstate/pillar.
 
+## Backup gaps
+
+- **salt-master and OpenBao are not backed up** (`pillar/backup.sls` covers arrstack, forgejo,
+  jellyfin, monitoring, wazuh only). salt-master holds state Salt can't rebuild:
+  `/etc/salt/pki/master` (a new master key makes every minion refuse the master — they cache
+  its pubkey — so each needs `minion_master.pub` removed by hand) and the salt-api cert under
+  `/etc/salt/pki/api`. OpenBao (.20, not a minion) holds every secret the pillar resolves, and
+  nothing snapshots it. Options: salt-master gets `backup` in both top files plus its pki paths
+  (needs the NAS export allowed for .28 and `nfs-mount`); for OpenBao a `bao operator raft
+  snapshot save` timer to the NAS — either by hand on the host or by making it a minion, which
+  is a security decision (CLAUDE.md: security-critical bootstrap stays manual).
+
 ## Smaller items
 
 - **bootstrap.sh still assumes GitHub** for the deploy key (registers it via `gh`). Since
