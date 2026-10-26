@@ -25,9 +25,7 @@ forgejo-container:
       {%- endfor %}
     - binds:
       - {{ forgejo.data_dir }}:/var/lib/gitea:rw
-      - {{ forgejo.config_dir }}:/etc/gitea:rw
     - require:
       - sls: docker
       - user: user-git
       - file: forgejo-data-dir
-      - file: forgejo-config-dir

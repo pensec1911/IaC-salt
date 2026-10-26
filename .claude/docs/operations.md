@@ -10,6 +10,12 @@ A push to `main` deploys itself about a minute later on homepage, monitoring, fo
 run first, `formulas/orch` README. Everything else (wazuh, arrstack/jellyfin by day, or
 checking first) goes through `/deploy`.
 
+**New minion**: Tofu creates the VM and the start reactor applies the highstate on its first
+boot, but only with what the master has at that point. A VM created before its `top.sls`
+entry is pushed gets nothing, and `orch.push` skips it because its drift check (which decides
+self-repair) only arrives with that first highstate. So run the first `/deploy <minion>` by
+hand (forgejo, 2026-10-26).
+
 `/deploy <minion>|all` (`.claude/commands/deploy.md`) runs this, summarizes the dry run and
 stops for OK before applying. Overall health: `/homelab-status`.
 

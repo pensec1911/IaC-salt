@@ -6,8 +6,8 @@ formula only handles the container and its local dirs.
 
 ## What it manages
 
-- `forgejo.config` — `data_dir` (repos, SQLite DB, attachments) and `config_dir` (`app.ini`),
-  default `/opt/forgejo/{data,config}`, owned by the pinned `git` account (972:972).
+- `forgejo.config` — `data_dir` (default `/opt/forgejo/data`: repos, SQLite DB, attachments
+  and `custom/conf/app.ini`), owned by the pinned `git` account (972:972).
 - `forgejo.container` — the container, run as that account (docker `user:`), publishing the web
   UI on `http_port` (3000) and git-over-SSH on `ssh_port` (2222; Forgejo's built-in SSH server,
   so the host's port 22 stays with sshd).
@@ -35,8 +35,8 @@ secret.
 Open `http://<host>:3000`. The install wizard is pre-filled from the env (SQLite, domain, ports)
 — keep those values. Create the admin account there and store its password in OpenBao
 (`homelab/forgejo/admin`, keys `username`/`password`). The wizard generates
-`SECRET_KEY`/`INTERNAL_TOKEN`/JWT secrets into `config_dir/app.ini` and sets `INSTALL_LOCK`;
-they are never in pillar or git, and come back with a restore of `config_dir` (backup).
+`SECRET_KEY`/`INTERNAL_TOKEN`/JWT secrets into `data_dir/custom/conf/app.ini` and sets `INSTALL_LOCK`;
+they are never in pillar or git, and come back with a restore of `data_dir` (backup).
 
 Losing `app.ini` without a backup means: 2FA secrets and encrypted settings (push-mirror
 credentials) are unreadable — restore it, don't re-run the wizard against the old DB.
@@ -45,3 +45,5 @@ credentials) are unreadable — restore it, don't re-run the wizard against the 
 
 - Users, orgs, repos, mirrors, deploy keys, webhooks — UI/API, persisted in the DB.
 - TLS — plain HTTP in the LAN like the other UIs.
+- Git over SSH on 2222 only starts once the wizard has run (install mode serves just the
+  wizard page).

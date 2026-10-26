@@ -15,7 +15,6 @@ forgejo:
     http_port: 3000        # host port for the web UI
     ssh_port: 2222         # host port for git over SSH, also the port in clone URLs
     data_dir: /opt/forgejo/data
-    config_dir: /opt/forgejo/config
     # Merged into the defaults (database, registration off). Each entry becomes FORGEJO__<section>__<KEY>. No secrets here.
     app_ini:
       server:

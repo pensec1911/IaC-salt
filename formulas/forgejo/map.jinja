@@ -4,7 +4,8 @@
 
    app_ini: section -> {KEY: value}, passed as FORGEJO__<section>__<KEY>
    env vars; the image's environment-to-ini writes them into app.ini on
-   every container start. server.SSH_PORT (the port in clone URLs) is
+   every container start (app.ini lives in data_dir:
+   custom/conf/app.ini). server.SSH_PORT (the port in clone URLs) is
    always ssh_port, set by container.sls. A section with a dot (e.g. repository.signing)
    must be spelled with _0X2E_ in place of the dot. Secrets (SECRET_KEY,
    INTERNAL_TOKEN, JWT) are not set here — the first-run wizard generates
@@ -19,7 +20,6 @@
     'http_port': 3000,
     'ssh_port': 2222,
     'data_dir': '/opt/forgejo/data',
-    'config_dir': '/opt/forgejo/config',
     'app_ini': {
         'database': {'DB_TYPE': 'sqlite3'},
         'service': {'DISABLE_REGISTRATION': 'true'},
