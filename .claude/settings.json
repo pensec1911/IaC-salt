@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(git *)",
-      "Bash(python3 .githooks/check-secrets.py*)"
+      "Bash(python3 .githooks/check-secrets.py*)",
+      "Bash(python3 .claude/skills/homelab-status/status.py*)",
+      "Bash(ssh salt-master \"sudo salt-run fileserver.update\")",
+      "Bash(ssh salt-master \"sudo salt-run git_pillar.update\")",
+      "Bash(ssh salt-master \"sudo salt-run jobs.*\")",
+      "Bash(ssh salt-master \"sudo salt * saltutil.refresh_pillar\")",
+      "Bash(ssh salt-master \"sudo salt * test.ping\")",
+      "Bash(ssh salt-master \"sudo salt * state.apply test=True*\")",
+      "Bash(ssh salt-master \"sudo salt * state.show_sls *\")",
+      "Bash(ssh salt-master \"sudo salt * pillar.get *\")",
+      "Bash(ssh salt-master \"sudo salt-key -L\")"
     ]
   },
   "hooks": {
