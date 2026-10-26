@@ -18,6 +18,10 @@ salt-master:
     api_enabled: True
     api_alertmanager_token: {{ salt['sdb.get']('sdb://osvault/homelab/data/salt-api/alertmanager?token') | yaml_encode }}
 
+    # Forgejo's push webhook to /hook/git signs with this (HMAC-SHA256);
+    # the same secret is set on the webhook in homelab/IaC-salt.
+    api_git_hmac_secret: {{ salt['sdb.get']('sdb://osvault/homelab/data/salt-api/forgejo?hmac') | yaml_encode }}
+
     # A push to main deploys itself within ~60 s on the minions that may
     # self-repair right now (orch.push, formulas/orch); the rest keep their
     # nightly window or manual apply.
