@@ -26,6 +26,19 @@ No order agreed; pick as needed.
 - **Open**: which channel (self-hosted ntfy needs its own formula + homepage entry); whether
   alerts should still arrive when the monitoring VM itself is down (dead-man's switch).
 
+### Offsite copy of the restic repos
+
+- **Why**: `formulas/backup` writes every minion's repo to `/mnt/backups/<minion>` on the NAS
+  only. The weekly restore test proves the repos are good, but NAS loss (or the house) takes
+  the data and all its backups together; that includes Forgejo, now the master's source of truth.
+- **Sketch**: a timer on one minion (e.g. forgejo or monitoring, both mount the NAS) runs
+  `restic copy` from each NAS repo to an S3/B2/Hetzner-style target, with credentials and the
+  repo password via `sdb.get` from OpenBao. Pillar-driven in `formulas/backup`; weekly, after
+  the restore test.
+- **Open**: which provider; whether copying only forgejo, wazuh keys and the *arr/jellyfin
+  configs (not media) is enough; how the offsite repo password is kept outside OpenBao itself
+  (OpenBao is on a VM whose backup is the thing being copied).
+
 ## Deliberately not
 
 - **Key acceptance via reactor** — keys are currently auto-accepted master-wide
