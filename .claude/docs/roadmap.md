@@ -26,6 +26,17 @@ No order agreed; pick as needed.
 - **Open**: which channel (self-hosted ntfy needs its own formula + homepage entry); whether
   alerts should still arrive when the monitoring VM itself is down (dead-man's switch).
 
+### Render check as PR CI on Forgejo
+
+- **Why**: the render check (`.githooks/pre-push`) only runs on local pushes. A PR merged in the
+  Forgejo UI (Renovate) goes to `main` and deploys via orch.push without it. Image-tag bumps
+  can't break a render, but a hand-made PR could.
+- **Sketch**: a workflow on `pull_request` in IaC-salt, on the forgejo runner, that runs
+  `.githooks/render-check.py` on the master (SSH with a restricted key from an Actions secret,
+  `command=` in authorized_keys), plus branch protection on `main` that requires the check.
+- **Open**: how narrow the master-side key can be; whether `make ci` for IaC-opentofu moves off
+  GitHub Actions in the same go.
+
 ## Deliberately not
 
 - **Key acceptance via reactor** — keys are currently auto-accepted master-wide
