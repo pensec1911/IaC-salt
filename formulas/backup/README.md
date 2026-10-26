@@ -62,11 +62,14 @@ Alerts in `pillar/prometheus.sls`: `BackupFailed` (`backup_success == 0`), `Back
 TrueNAS export `/mnt/pool01/backups` (dataset `pool01/backups`). The run is root on the
 minion, and root is squashed by default — so writes fail with `Permission denied` until:
 
-1. A NAS user/group for the backups (e.g. `restic`, any free uid — clients never see it).
-2. Dataset owner that user/group, mode `0700`.
-3. NFS share: **Maproot User/Group** = that user/group, so root on a client writes as it.
-4. NFS share: restrict **Hosts** to the backup minions (.22 arrstack, .24 jellyfin,
-   .25 monitoring, .27 wazuh) — the export currently allows `*`.
+1. NAS user/group `restic` (3000:3000 — clients never see it by name).
+2. Dataset root owned by it, mode `0700` — set with `chown`/`chmod` in the NAS shell; the
+   Permissions dialog didn't apply it (2026-10-26).
+3. NFS share, Advanced Options: **Maproot User/Group** = `restic` (root on a client writes as
+   it). Mapall stays empty — it would map every client user, not just root.
+4. Hosts: deliberately left open (`*`) so more minions can be added without a NAS change. Any
+   LAN host's root can therefore write (and delete) as `restic` there; the repos are encrypted,
+   but not protected from deletion.
 
 Check from a minion: `sudo touch /mnt/backups/x && sudo rm /mnt/backups/x`.
 

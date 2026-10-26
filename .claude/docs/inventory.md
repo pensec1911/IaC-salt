@@ -27,7 +27,7 @@ arrstack, jellyfin, monitoring and wazuh back up nightly (~02:00 Berlin) to the 
 | Host | IP | Notes |
 |---|---|---|
 | OpenBao | .20 | Secrets backend, KV-v2 mount `homelab`. Not a minion, no SSH from Claude sessions — user runs `bao` there. See [secrets.md](secrets.md). |
-| TrueNAS | .10 | NFS export `/mnt/pool01/media` (single dataset: `movies/`, `series/`, `music/`, `incomplete/`, `torrents/` as plain dirs so hardlinks work). Owner `media` 970:970, mode 775, root squashed. Allowed hosts: .22 (arrstack), .24 (jellyfin). Fast sequentially (~110 MB/s), slow for small random writes (~1.3 MB/s) — why qBittorrent downloads to local disk first. Export `/mnt/pool01/backups`: restic repos `<minion>/` (formulas/backup), mounted at `/mnt/backups` on arrstack, jellyfin, monitoring, wazuh; root squashed unless the share's Maproot is set (formulas/backup README "NAS side"). |
+| TrueNAS | .10 | NFS export `/mnt/pool01/media` (single dataset: `movies/`, `series/`, `music/`, `incomplete/`, `torrents/` as plain dirs so hardlinks work). Owner `media` 970:970, mode 775, root squashed. Allowed hosts: .22 (arrstack), .24 (jellyfin). Fast sequentially (~110 MB/s), slow for small random writes (~1.3 MB/s) — why qBittorrent downloads to local disk first. Export `/mnt/pool01/backups`: restic repos `<minion>/` (formulas/backup), mounted at `/mnt/backups` on arrstack, jellyfin, monitoring, wazuh; owner `restic` 3000:3000, mode 700, Maproot → `restic`, hosts `*` (formulas/backup README "NAS side"). |
 | Proxmox / OPNsense | — | Managed by the sibling `IaC-opentofu` / OPNsense repos. |
 
 ## External services
