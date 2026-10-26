@@ -15,6 +15,10 @@ base:
     - match: list
     - salt-minion-beacons
 
+  'arrstack,jellyfin,monitoring,wazuh':
+    - match: list
+    - backup
+
   'salt-master':
     - salt-master
 

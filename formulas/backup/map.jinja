@@ -1,0 +1,55 @@
+{#- One restic repo per minion at <repo_base>/<minion id>, on the NFS share
+   that formulas/nfs-mount mounts as `mount_name` (pillar nfs_mounts). The
+   run is a systemd oneshot started by a timer, as root — the NAS maps root
+   on that export to its own backup user (README "NAS side").
+
+   password — the restic repo password, required in practice — an sdb reference
+   in pillar. Left blank so a missing override fails the formula instead of
+   creating a repo with a guessable password. Changing it later locks the
+   existing repos out (README "Changing the password").
+
+   paths / excludes: what this minion backs up, restic --exclude patterns.
+   Empty default: the formula installs everything but backs up nothing
+   until pillar says what.
+
+   stop_containers: stopped for the run and started again afterwards (by
+   the unit, ExecStopPost, so also after a failed or timed-out run) — the
+   apps' SQLite databases aren't safe to copy while open.
+
+   on_calendar + randomized_delay + timeout: ends by 02:55 at the latest,
+   before the 03:00–06:00 enforce window of arrstack/jellyfin
+   (pillar/salt-minion-enforce-window.sls), so a repair never recreates a
+   container mid-backup. A run is ~a minute; the timeout only bounds a hung
+   NFS. Persistent: a run missed while the VM was off happens at the next
+   boot.
+
+   keep: restic forget --keep-<unit> <n>, applied per host after each
+   backup, then --prune.
+
+   textfile_dir: node-exporter's textfile collector directory (see
+   formulas/salt-minion map.jinja) — hence the require on node-exporter. #}
+{%- set defaults = {
+    'pkg': 'restic',
+    'restic_bin': '/usr/bin/restic',
+    'docker_bin': '/usr/bin/docker',
+    'python': '/usr/bin/python3',
+    'mount_name': 'backups',
+    'repo_base': '/mnt/backups',
+    'config_dir': '/etc/restic',
+    'cache_dir': '/var/cache/restic',
+    'password': '',
+    'paths': [],
+    'excludes': [],
+    'stop_containers': [],
+    'stop_timeout_seconds': 60,
+    'keep': {'daily': 7, 'weekly': 4, 'monthly': 6},
+    'retry_lock': '10m',
+    'unit': 'restic-backup',
+    'on_calendar': '*-*-* 02:00:00 Europe/Berlin',
+    'randomized_delay': '10min',
+    'timeout': '45min',
+    'script': '/usr/local/sbin/restic-backup',
+    'textfile_dir': '/var/lib/prometheus/node-exporter',
+    'metrics_file': 'backup.prom',
+} %}
+{%- set backup = salt['pillar.get']('backup:lookup', default=defaults, merge=True) %}

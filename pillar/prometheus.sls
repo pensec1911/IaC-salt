@@ -140,3 +140,22 @@ prometheus:
             severity: warning
           annotations:
             summary: {% raw %}"{{ $labels.instance }} exposes no drift-check metrics — is salt-minion in its top.sls?"{% endraw %}
+        {#- backup_* come from formulas/backup (nightly restic run, ~02:00).
+           Both fire until the next successful night; last_success starts
+           at 0, so Stale also catches a host that never succeeded. A host
+           whose timer never ran has no metrics at all — check
+           `systemctl list-timers restic-backup.timer` after adding one. #}
+        - alert: BackupFailed
+          expr: backup_success == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"Backup on {{ $labels.instance }} failed — journalctl -u restic-backup"{% endraw %}
+        - alert: BackupStale
+          expr: time() - backup_last_success_timestamp_seconds > 36 * 3600
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"{{ $labels.instance }} has no successful backup for over 36h"{% endraw %}

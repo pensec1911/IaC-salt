@@ -22,8 +22,14 @@ nfs-mount-{{ mnt.name }}:
    when the NAS is slow at boot. RequiresMountsFor= adds Requires= + After=
    on the mount units: if a mount fails, the unit fails too instead of
    running against the wrong directory. Takes effect on the unit's next
-   start; the running unit isn't restarted. #}
-{%- set mountpoints = salt['pillar.get']('nfs_mounts', []) | map(attribute='mountpoint') | list %}
+   start; the running unit isn't restarted. A mount with
+   `skip_required_by: true` (e.g. the backup share, which no container
+   binds) stays out of it. #}
+{%- set required = [] %}
+{%- for mnt in salt['pillar.get']('nfs_mounts', []) if not mnt.get('skip_required_by', False) %}
+{%- do required.append(mnt) %}
+{%- endfor %}
+{%- set mountpoints = required | map(attribute='mountpoint') | list %}
 {%- for unit in nfs_mount.required_by %}
 
 nfs-mount-required-by-{{ unit }}:
@@ -35,7 +41,7 @@ nfs-mount-required-by-{{ unit }}:
         [Unit]
         RequiresMountsFor={{ mountpoints | join(' ') }}
     - require:
-{%- for mnt in salt['pillar.get']('nfs_mounts', []) %}
+{%- for mnt in required %}
       - mount: nfs-mount-{{ mnt.name }}
 {%- endfor %}
 {%- endfor %}

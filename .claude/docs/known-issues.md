@@ -27,4 +27,5 @@ Remove an entry once fixed (the fix lives in git history).
   back within seconds, so qBittorrent keeps its listen port — noise, not an outage.
 - arrstack is on the latest release *within* each major (2026-10-17). Newer majors exist and
   were deliberately not taken: Radarr 6, Prowlarr 2, qBittorrent 5 — each migrates its config/DB
-  one-way, so back up `/opt/arrstack/<app>` and read the release notes before bumping.
+  one-way, so run a fresh backup first (`systemctl start restic-backup.service`, formulas/backup)
+  and read the release notes before bumping.

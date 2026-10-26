@@ -1,0 +1,12 @@
+{%- from "backup/map.jinja" import backup with context -%}
+# Managed by Salt (formulas/backup) — do not edit.
+[Unit]
+Description=Nightly restic backup to the NAS
+
+[Timer]
+OnCalendar={{ backup.on_calendar }}
+RandomizedDelaySec={{ backup.randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

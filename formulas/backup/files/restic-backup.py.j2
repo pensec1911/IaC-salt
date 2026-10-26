@@ -1,0 +1,146 @@
+{%- from "backup/map.jinja" import backup with context -%}
+#!{{ backup.python }}
+# Managed by Salt (formulas/backup) — do not edit here.
+#
+# One restic run, started by {{ backup.unit }}.service: init the repo on
+# first use, back up, apply the retention policy (forget --prune), check the
+# repo structure, then write the outcome as node-exporter textfile metrics
+# (backup_*). Containers are stopped/started around it by the unit, not
+# here. RESTIC_REPOSITORY / RESTIC_PASSWORD_FILE / RESTIC_CACHE_DIR come
+# from the unit's EnvironmentFile.
+#
+# backup_last_success_timestamp_seconds carries over from the previous file
+# on a failed run, and starts at 0 — so BackupStale also fires for a host
+# that never succeeded.
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import time
+
+RESTIC = "{{ backup.restic_bin }}"
+MOUNT = "{{ backup.repo_base }}"
+HOST = "{{ grains['id'] }}"
+PATHS = {{ backup.paths | json }}
+EXCLUDES = {{ backup.excludes | json }}
+KEEP = {{ backup.keep | json }}
+RETRY_LOCK = "{{ backup.retry_lock }}"
+OUT = "{{ backup.textfile_dir }}/{{ backup.metrics_file }}"
+
+
+def log(msg):
+    print(msg, file=sys.stderr, flush=True)
+
+
+def restic(*args):
+    proc = subprocess.run([RESTIC, *args], capture_output=True, text=True)
+    if proc.stderr:
+        sys.stderr.write(proc.stderr)
+    if proc.returncode != 0:
+        log("restic {} failed (exit {})".format(args[0], proc.returncode))
+    return proc
+
+
+def run():
+    """The backup summary of a fully successful run, else None."""
+    # Never let a missing mount turn into a repo on the local disk.
+    if not os.path.ismount(MOUNT):
+        log("{} is not mounted".format(MOUNT))
+        return None
+    if not PATHS:
+        log("no paths configured (backup:lookup:paths)")
+        return None
+    repo = os.environ["RESTIC_REPOSITORY"]
+    if not os.path.exists(os.path.join(repo, "config")):
+        if restic("init").returncode != 0:
+            return None
+
+    args = ["backup", "--json", "--host", HOST, "--tag", "salt",
+            "--exclude-caches", "--retry-lock", RETRY_LOCK]
+    for pattern in EXCLUDES:
+        args += ["--exclude", pattern]
+    # Exit 3 = snapshot written but some files unreadable — counts as failed.
+    proc = restic(*args, *PATHS)
+    if proc.returncode != 0:
+        return None
+    summary = None
+    for line in proc.stdout.splitlines():
+        try:
+            msg = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(msg, dict) and msg.get("message_type") == "summary":
+            summary = msg
+    if summary is None:
+        log("restic backup printed no summary")
+        return None
+    log("snapshot {}: {} files, {} bytes processed, {} bytes added".format(
+        summary.get("snapshot_id"), summary.get("total_files_processed"),
+        summary.get("total_bytes_processed"), summary.get("data_added")))
+
+    forget = ["forget", "--prune", "--host", HOST, "--retry-lock", RETRY_LOCK]
+    for unit, count in KEEP.items():
+        forget += ["--keep-{}".format(unit), str(count)]
+    if restic(*forget).returncode != 0:
+        return None
+    if restic("check", "--retry-lock", RETRY_LOCK).returncode != 0:
+        return None
+    return summary
+
+
+def previous_success():
+    try:
+        with open(OUT) as f:
+            for line in f:
+                if line.startswith("backup_last_success_timestamp_seconds "):
+                    return int(float(line.split()[1]))
+    except (OSError, ValueError, IndexError):
+        pass
+    return 0
+
+
+def main():
+    started = time.time()
+    try:
+        summary = run()
+    except OSError as e:
+        log("backup failed: {}".format(e))
+        summary = None
+    ok = summary is not None
+
+    lines = []
+
+    def metric(name, help_, value):
+        lines.append("# HELP {} {}".format(name, help_))
+        lines.append("# TYPE {} gauge".format(name))
+        lines.append("{} {}".format(name, value))
+
+    metric("backup_success",
+           "1 if the last run (backup, forget --prune, check) succeeded", int(ok))
+    if ok:
+        metric("backup_snapshot_bytes", "Bytes the last snapshot covers",
+               summary.get("total_bytes_processed", 0))
+        metric("backup_snapshot_files", "Files the last snapshot covers",
+               summary.get("total_files_processed", 0))
+        metric("backup_added_bytes", "New data the last snapshot added to the repo",
+               summary.get("data_added", 0))
+    metric("backup_duration_seconds", "Duration of the last run",
+           round(time.time() - started, 3))
+    metric("backup_last_run_timestamp_seconds", "When the last run finished",
+           int(time.time()))
+    metric("backup_last_success_timestamp_seconds",
+           "When the last successful run finished (0 = never)",
+           int(time.time()) if ok else previous_success())
+
+    # Atomic replace — node-exporter must never read a half-written file.
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix=".backup.")
+    with os.fdopen(fd, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, OUT)
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

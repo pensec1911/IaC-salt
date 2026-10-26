@@ -21,3 +21,4 @@ nfs_mounts:
     mountpoint: /mnt/media
     # fstype: nfs4                    # optional, shown default
     # opts: [_netdev, rw, noatime]    # optional, shown default
+    # skip_required_by: true          # optional: not part of required_by

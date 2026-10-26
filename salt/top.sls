@@ -29,6 +29,8 @@ base:
     - grafana
     - prometheus
     - alertmanager
+    - nfs-mount
+    - backup
 
   'arrstack':
     - users
@@ -41,12 +43,15 @@ base:
     - alloy
     - arrstack
     - seerr
+    - backup
 
   'wazuh':
     - users
     - node-exporter
     - salt-minion
     - wazuh
+    - nfs-mount
+    - backup
 
   'jellyfin':
     - users
@@ -58,6 +63,7 @@ base:
     - cadvisor
     - alloy
     - jellyfin
+    - backup
 
   # Targeting is by minion ID, which matches the Tofu VM `name` in
   # IaC-opentofu/vms/<name>/main.tf (set as hostname via cloud-init).

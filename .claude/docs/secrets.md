@@ -37,6 +37,7 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `wazuh/indexer-admin` | `password` | `pillar/wazuh.sls` — indexer `admin` (Filebeat, manager, dashboard login) |
 | `wazuh/api` | `wui_password` | `pillar/wazuh.sls` — server API user `wazuh-wui` (dashboard → API) |
 | `wazuh/registration` | `password` | `pillar/wazuh.sls` + `pillar/wazuh-agent.sls` — must be the same shared secret |
+| `restic/repo` | `password` | `pillar/backup.sls` — restic repo password, shared by all minion repos. Changing it needs `restic key add` first (formulas/backup README); keep a copy outside the homelab. |
 
 Check `grep -rn "sdb://" pillar/` for the authoritative list.
 

@@ -9,17 +9,7 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 
 ## Next up (agreed order)
 
-### 1. Backup of service data
-
-- **Why**: everything under `/opt/<app>` that Salt doesn't render is only on the VM — arr
-  configs/DBs (~85 MB on arrstack), jellyfin config (66 MB), grafana DB (15 MB). A lost VM means
-  re-doing Sonarr/Radarr/Prowlarr setup by hand; the arr major bumps (known-issues.md) need a
-  backup first anyway. Images and rendered config are reproducible — not in scope.
-- **Sketch**: `backup` formula — restic + systemd timer per minion, repo on a NAS share via
-  `nfs-mount`, repo password from OpenBao (sdb). Paths per minion in pillar. Consistent SQLite:
-  stop the container briefly, or use the arr apps' own scheduled backup zips. Textfile metrics
-  like the drift check → `BackupStale` alert.
-- **Open**: which NAS share, retention, include prometheus data (probably not).
+_Nothing agreed yet — pick from "Later"._
 
 ## Later
 
@@ -31,7 +21,7 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 - **Sketch**: own VM via Tofu, `forgejo` formula; gitfs/git_pillar remote + deploy key switch
   over; GitHub as a mirror. Renovate as a Forgejo Actions job or a container.
 - **Open**: runner for Actions; backup of Forgejo itself becomes critical (it holds the deploy
-  source) — after the backup item.
+  source) — an entry in `pillar/backup.sls`.
 
 ### Orchestrate runs across minions
 

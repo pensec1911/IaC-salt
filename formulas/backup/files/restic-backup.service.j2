@@ -1,0 +1,24 @@
+{%- from "backup/map.jinja" import backup with context -%}
+# Managed by Salt (formulas/backup) — do not edit.
+[Unit]
+Description=restic backup to the NAS
+Wants=network-online.target
+After=network-online.target
+# Fails (no metrics written -> BackupStale) instead of running without the share.
+RequiresMountsFor={{ backup.repo_base }}
+
+[Service]
+Type=oneshot
+EnvironmentFile={{ backup.config_dir }}/env
+{%- if backup.stop_containers %}
+# "-": a missing container doesn't stop the backup; ExecStopPost also runs
+# after a failed or timed-out start.
+ExecStartPre=-{{ backup.docker_bin }} stop --time {{ backup.stop_timeout_seconds }} {{ backup.stop_containers | join(' ') }}
+{%- endif %}
+ExecStart={{ backup.script }}
+{%- if backup.stop_containers %}
+ExecStopPost=-{{ backup.docker_bin }} start {{ backup.stop_containers | join(' ') }}
+{%- endif %}
+TimeoutStartSec={{ backup.timeout }}
+Nice=10
+IOSchedulingClass=idle

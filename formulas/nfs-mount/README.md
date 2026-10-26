@@ -23,6 +23,8 @@ at path Y" as pillar data for that minion, consumed here.
 `docker.service` on any minion whose containers bind a share: Docker then waits for the mounts
 at boot and fails instead of starting containers on the empty local mountpoint when the NAS is
 slow or down. Takes effect on Docker's next start — Salt doesn't restart it.
+A mount entry with `skip_required_by: true` stays out of that drop-in — for shares no container
+binds (the backup share), so they can't keep Docker from starting.
 
 ## Usage
 
