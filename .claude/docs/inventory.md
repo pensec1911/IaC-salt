@@ -6,7 +6,7 @@ Flat network 192.168.178.0/24 (FRITZ!Box range). Minion ID = hostname = Tofu VM 
 
 | Minion | IP | Formulas (`salt/top.sls`) | Services / ports |
 |---|---|---|---|
-| `salt-master` | .28 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, salt-master | salt-master (gitfs + git_pillar) |
+| `salt-master` | .28 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, salt-master, orch | salt-master (gitfs + git_pillar); rolling reboot 03:15 Berlin (timer, no port) |
 | `homepage` | .23 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, docker, cadvisor, alloy, homepage | homepage :3000 |
 | `monitoring` | .25 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, docker, cadvisor, blackbox-exporter, loki, alloy, grafana, prometheus, alertmanager, nfs-mount, backup | Grafana :3000, Prometheus :9090, Alertmanager :9093, blackbox_exporter :9115, Loki :3100 |
 | `arrstack` | .22 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, nfs-mount, docker, cadvisor, alloy, arrstack, seerr, backup | Seerr :5055; via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal); Recyclarr daily (timer, no port) |
@@ -21,8 +21,9 @@ arrstack, jellyfin, monitoring and wazuh back up nightly (~02:00 Berlin) to the 
 (`formulas/backup`, `BackupFailed` / `BackupStale`), with a weekly restore test (Sunday ~04:00,
 `RestoreTestFailed` / `RestoreTestStale`).
 Every minion patches itself daily from Debian main + Debian-Security via unattended-upgrades
-(`formulas/unattended-upgrades`; Docker/Salt/Wazuh repos excluded); reboots are manual
-(`RebootRequired`).
+(`formulas/unattended-upgrades`; Docker/Salt/Wazuh repos excluded). Pending reboots happen
+nightly from 03:15 Berlin, one minion at a time, salt-master last (`formulas/orch`;
+`RebootRequired` if not).
 
 `salt/top.sls` and `pillar/top.sls` are authoritative — update this table when they change.
 

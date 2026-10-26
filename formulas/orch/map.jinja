@@ -1,0 +1,55 @@
+{#- Orchestrate runs, executed on the master (salt-run state.orchestrate),
+   plus the systemd timer that starts them. Rendered in two contexts: the
+   highstate of the master's minion (timer.sls) and the orchestrate run
+   itself, whose pillar is compiled for the master's own id
+   (<host>_master, e.g. salt-master_master) — pillar/top.sls has to target
+   both for pillar overrides to reach the run.
+
+   reboot: rolling reboot of every minion with flag_file present (Debian's
+   /run/reboot-required, written by unattended-upgrades — the same file
+   behind os_reboot_required / RebootRequired). One minion at a time:
+   system.reboot in delay_minutes (so the call returns before the minion
+   goes down), wait up to boot_timeout s for its salt/minion/<id>/start
+   event, then a queued highstate (converge_timeout) — it waits behind the
+   start reactor's own run (formulas/salt-master), so the next minion is
+   only touched once this one has converged. Any failure stops the chain.
+
+   order: minions rebooted first, in this order; other pending minions
+   follow alphabetically. master_id: the minion the salt-master runs on —
+   always last and fire-and-forget, its reboot ends the run itself. Empty
+   = no special case.
+
+   tgt / tgt_type: which minions are asked at all (e.g. compound
+   "* and not jellyfin" to keep one out).
+
+   query_timeout: seconds to wait for the flag_file query; minions that
+   don't answer are skipped (not rebooted) this run.
+
+   timer: starts the run daily at on_calendar. Deliberately not Persistent —
+   a night missed while the master was down must not become a reboot run
+   at boot time, outside the window. timeout bounds a hung run; keep
+   on_calendar + timeout clear of the Sunday 04:00 restore test
+   (formulas/backup) and inside the 03:00–06:00 window arrstack/jellyfin
+   allow disruptive work in (pillar/salt-minion-enforce-window.sls). #}
+{%- set defaults = {
+    'reboot': {
+        'tgt': '*',
+        'tgt_type': 'glob',
+        'flag_file': '/run/reboot-required',
+        'order': [],
+        'master_id': '',
+        'delay_minutes': 1,
+        'query_timeout': 30,
+        'boot_timeout': 600,
+        'converge_timeout': 900,
+        'timer': {
+            'enabled': True,
+            'unit': 'orch-reboot',
+            'sls': 'orch.reboot',
+            'on_calendar': '*-*-* 03:15:00 Europe/Berlin',
+            'timeout': '40min',
+            'salt_run': '/usr/bin/salt-run',
+        },
+    },
+} %}
+{%- set orch = salt['pillar.get']('orch:lookup', default=defaults, merge=True) %}

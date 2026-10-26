@@ -17,11 +17,12 @@ Debian, so `docker-ce`/`containerd.io` (Docker repo), `salt-minion` (Artifactory
 `wazuh-agent`/`wazuh-*` (Wazuh repo) only change when bumped deliberately — the agent has to
 match the manager's version, a containerd upgrade restarts every container.
 
-**Reboots are manual.** A kernel/libc upgrade leaves `/run/reboot-required` (Debian's
+**u-u itself never reboots.** A kernel/libc upgrade leaves `/run/reboot-required` (Debian's
 `/etc/kernel/postinst.d/unattended-upgrades` hook, packages in `/run/reboot-required.pkgs`);
-`RebootRequired` fires after 12 h. Reboot when convenient — arrstack/jellyfin ideally outside
-viewing hours. `automatic_reboot: True` per minion in pillar switches that minion to u-u's own
-reboot at `automatic_reboot_time`.
+the master's nightly rolling reboot (`formulas/orch`, 03:15 Berlin, one minion at a time)
+picks it up. `RebootRequired` fires after 26 h, i.e. only when that run didn't. `automatic_reboot:
+True` per minion in pillar would switch that minion to u-u's own uncoordinated reboot at
+`automatic_reboot_time` — not used.
 
 ## Usage
 
@@ -47,7 +48,7 @@ None needed. Schema: `pillar.example.sls`.
 | `os_apt_lists_updated_timestamp_seconds` | mtime of `/var/lib/apt/periodic/update-stamp` (apt-daily) — the pending counts are only as fresh as the lists |
 | `os_patch_metrics_success`, `os_patch_metrics_last_run_timestamp_seconds` | the script itself |
 
-Alerts in `pillar/prometheus.sls`: `RebootRequired` (12 h), `SecurityUpgradesPending` (> 0
+Alerts in `pillar/prometheus.sls`: `RebootRequired` (26 h), `SecurityUpgradesPending` (> 0
 for 48 h — u-u should have installed them; held/blacklisted package or failing run),
 `UnattendedUpgradeStale` (no run for 3 days), `AptListsStale` (lists not updated for 3 days),
 `PatchMetricsStale`.

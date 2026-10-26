@@ -14,10 +14,12 @@
    wins, list options (package_blacklist) are appended. The shipped files
    stay untouched.
 
-   automatic_reboot: off — reboots are manual (RebootRequired alert in
-   pillar/prometheus.sls). A reboot cuts Jellyfin streams, the arrstack VPN
-   stack, the master and the Wazuh indexer. If turned on per minion,
-   automatic_reboot_time is when u-u reboots after an upgrade that needs it.
+   automatic_reboot: off — formulas/orch reboots pending minions nightly,
+   one at a time inside the 03:00–06:00 window, master last (RebootRequired
+   alert in pillar/prometheus.sls if that doesn't happen). A reboot cuts
+   Jellyfin streams, the arrstack VPN stack, the master and the Wazuh
+   indexer. If turned on per minion, automatic_reboot_time is when u-u
+   reboots after an upgrade that needs it — uncoordinated with the rest.
 
    apt_timers: apt-daily (package lists, twice a day) and apt-daily-upgrade
    (the u-u run, ~06:00 + up to 60 min random delay) — Debian's own timers.

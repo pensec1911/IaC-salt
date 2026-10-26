@@ -222,11 +222,12 @@ prometheus:
           annotations:
             summary: {% raw %}"TLS certificate of {{ $labels.instance }} expires in {{ $value | humanizeDuration }}"{% endraw %}
         {#- os_* from formulas/unattended-upgrades (hourly + after boot).
-           Reboots are manual; 12h lets a morning u-u run (~06:00 UTC) be
-           rebooted the same evening before it alerts. #}
+           formulas/orch reboots pending minions nightly at 03:15 Berlin, ~20h
+           after a morning u-u run (~06:00 UTC); 26h only fires when that
+           night's run didn't do it (failed, minion skipped, timer off). #}
         - alert: RebootRequired
           expr: os_reboot_required == 1
-          for: 12h
+          for: 26h
           labels:
             severity: warning
           annotations:

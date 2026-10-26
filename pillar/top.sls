@@ -23,6 +23,12 @@ base:
   'salt-master':
     - salt-master
 
+  # salt-master_master: the master's own id, which the orchestrate run
+  # (formulas/orch) compiles its pillar for.
+  'salt-master,salt-master_master':
+    - match: list
+    - orch
+
   'homepage':
     - homepage
 

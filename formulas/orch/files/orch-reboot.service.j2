@@ -1,0 +1,12 @@
+{%- from "orch/map.jinja" import orch with context -%}
+{%- set timer = orch.reboot.timer -%}
+# Managed by Salt (formulas/orch) — do not edit.
+[Unit]
+Description=Rolling reboot of minions with a pending reboot (salt orchestrate)
+Wants=salt-master.service
+After=salt-master.service
+
+[Service]
+Type=oneshot
+ExecStart={{ timer.salt_run }} state.orchestrate {{ timer.sls }}
+TimeoutStartSec={{ timer.timeout }}

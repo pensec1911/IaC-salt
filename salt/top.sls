@@ -7,6 +7,7 @@ base:
     - unattended-upgrades
     - salt-minion
     - salt-master
+    - orch
 
   'homepage':
     - users

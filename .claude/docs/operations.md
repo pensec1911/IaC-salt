@@ -48,6 +48,10 @@ A minion starting (Tofu provision, reboot, `salt-minion` restart) triggers a ful
 `state.apply` on it via the master's reactor (`formulas/salt-master`). So a reboot means a
 highstate a few seconds later; check it with `salt-run jobs.list_jobs search_function=state.apply`.
 
+Reboots after updates are automatic: `orch-reboot.timer` on the master (03:15 Berlin) runs
+`salt-run state.orchestrate orch.reboot`, one pending minion at a time, salt-master last
+(`formulas/orch`). Preview with `test=True`; output in `journalctl -u orch-reboot.service`.
+
 A stopped `docker` on a docker host (down > 90 s, i.e. systemd gave up or someone stopped it)
 is started again via the service beacon → reactor (`formulas/salt-minion` "Beacons"). Pausing
 for maintenance: `salt '<minion>' beacons.disable_beacon service`.
