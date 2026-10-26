@@ -73,6 +73,13 @@
   deploys within seconds instead of the next gitfs poll. Empty = no
   mapping. Written into api.conf like the Alertmanager token.
 
+  render_check_ci: install the render check (files/render-check.py, same
+  as .githooks/pre-push uses) plus render_check_wrapper, the forced command
+  of the render_check_user's SSH key (pillar). Forgejo's PR workflow pipes a
+  tar of formulas/ salt/ pillar/ into it. The PR's Jinja runs here as that
+  unprivileged user (salt-call --local, sdb stubbed) — no sudo, no access to
+  the master's keys or vault.conf. The script comes from main, not the PR.
+
   push_deploy: fileserver_events on, and gitfs' update event (fired after
   every gitfs fetch, `changed` true when new commits arrived) starts
   push_orch_sls (formulas/orch) — "push = deploy" within
@@ -121,6 +128,10 @@
     'api_git_hmac_secret': '',
     'git_hook_tag': 'salt/netapi/hook/git',
     'git_reactor_sls': 'salt://salt-master/reactor/git-hook.sls',
+    'render_check_ci': False,
+    'render_check_user': 'render-check',
+    'render_check_script': '/usr/local/lib/render-check/render-check.py',
+    'render_check_wrapper': '/usr/local/sbin/render-check-ci',
     'push_deploy': False,
     'push_event_tag': 'salt/fileserver/gitfs/update',
     'push_reactor_sls': 'salt://salt-master/reactor/gitfs-update.sls',

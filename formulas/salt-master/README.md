@@ -126,6 +126,26 @@ one: issued 2026-10-26, expires 2031-10-25. To re-issue, run the same commands, 
 in pillar (`pillar/alertmanager.sls` and `pillar/forgejo.sls`), and restart salt-api. The master isn't backed up, so a rebuilt master needs this
 step again.
 
+## Render check for PRs
+
+`render-check.sls` (with `render_check_ci`) installs `files/render-check.py` as
+`render_check_script`, the same script `.githooks/pre-push` runs from the pushed tree. It also
+installs `render_check_wrapper`, the forced command of the `render-check` user's only SSH key
+(`pillar/salt-master.sls`, `restrict,command=…`). The IaC-salt workflow
+`.forgejo/workflows/render-check.yml` runs on every PR. It pipes a tar of `formulas/ salt/
+pillar/` over SSH, and the wrapper unpacks it into a temp dir and renders every minion. Branch
+protection on `main` requires the check, so a PR merged in the UI can't skip it.
+
+- The PR's Jinja is rendered here, as that unprivileged user (`salt-call --local`, sdb stubbed).
+  It has no sudo and no read access to the deploy key, `vault.conf` or `api.conf`. Only
+  `homelab` repo writers (you, `renovate-bot`) can open PRs that get the secret.
+- The checker is the copy from `main`, so a PR that edits `render-check.py` is still judged by
+  the current one.
+- The key: the private half is only the IaC-salt Actions secret `RENDER_CHECK_SSH_KEY`, the
+  public half is in pillar. If it's lost, generate a new pair and replace both.
+- First apply: the dry run fails ("User 'render-check' does not exist") until the user exists,
+  so `orch.push` aborts. Apply salt-master once by hand.
+
 ## Bootstrap
 
 See the repo root `README.md` for the one-time manual step required before gitfs can take over

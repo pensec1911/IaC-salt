@@ -27,6 +27,10 @@ salt-master:
     # nightly window or manual apply.
     push_deploy: True
 
+    # Forgejo's PR render check (.forgejo/workflows/render-check.yml) runs
+    # the installed render-check.py via the render-check user below.
+    render_check_ci: True
+
     # The deploy source: Forgejo (homelab/IaC-salt, read-only deploy key
     # "salt-master gitfs"), since 2026-10-26. GitHub is only a push mirror of
     # it. To fall back while Forgejo is down: set the GitHub URL here (same
@@ -93,3 +97,17 @@ salt-master:
       AV/sZj45R9xgnk75DHRRFkqzxtFAG259pQ7cc/eVUOBEuVCvZKsvOHLdnSZYBhZ2
       dspgEA==
       -----END CERTIFICATE-----
+
+# Unprivileged account for the Forgejo PR render check: its only key is
+# forced to the wrapper (formulas/salt-master render-check.sls), with no
+# pty, forwarding or agent (restrict). The private half is the IaC-salt
+# Actions secret RENDER_CHECK_SSH_KEY. Public key only — not secret.
+users:
+  accounts:
+    - name: render-check
+      system: true
+      shell: /bin/sh
+      home: /var/lib/render-check
+      ssh_authorized_keys:
+        - 'restrict,command="/usr/local/sbin/render-check-ci" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOg+SOp3YuQhyAMaDNesqWapZyFMMFsnAlHuHtMSKqyv forgejo-ci-render-check'
+

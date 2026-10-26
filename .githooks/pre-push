@@ -1,6 +1,7 @@
 #!/bin/sh
 # Render check before a push reaches the master ("push = deploy"): every minion's highstate is
-# rendered on salt-master from the commit being pushed (.githooks/render-check.py). Only pushes
+# rendered on salt-master from the commit being pushed (formulas/salt-master/files/render-check.py,
+# the same script Forgejo's PR check runs, .forgejo/workflows/render-check.yml). Only pushes
 # to main that touch formulas/, salt/ or pillar/ are checked.
 #
 # Host: $RENDER_CHECK_HOST (default: the `salt-master` ssh alias).
@@ -21,15 +22,15 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     [ "$local_sha" = "$ZERO" ] && continue   # branch deletion
 
     if [ "$remote_sha" != "$ZERO" ] && git cat-file -e "$remote_sha" 2>/dev/null &&
-        [ -z "$(git diff --name-only "$remote_sha" "$local_sha" -- formulas salt pillar .githooks/render-check.py)" ]; then
+        [ -z "$(git diff --name-only "$remote_sha" "$local_sha" -- formulas salt pillar)" ]; then
         echo "render-check: no changes under formulas/ salt/ pillar/ — skipped" >&2
         continue
     fi
 
     echo "render-check: rendering $(git rev-parse --short "$local_sha") on $HOST …" >&2
-    git archive "$local_sha" formulas salt pillar .githooks/render-check.py |
+    git archive "$local_sha" formulas salt pillar |
         ssh -o BatchMode=yes -o ConnectTimeout=10 "$HOST" \
-            'd=$(mktemp -d) && tar -x -m -C "$d" && python3 "$d/.githooks/render-check.py" "$d"; rc=$?; rm -rf "$d"; exit $rc' >&2
+            'd=$(mktemp -d) && tar -x -m -C "$d" && python3 "$d/formulas/salt-master/files/render-check.py" "$d"; rc=$?; rm -rf "$d"; exit $rc' >&2
     status=$?
     if [ $status -eq 255 ]; then
         echo "render-check: cannot reach $HOST — push blocked. SKIP_RENDER_CHECK=1 git push to override." >&2

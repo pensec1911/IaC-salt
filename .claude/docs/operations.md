@@ -40,7 +40,7 @@ salt '<minion>' state.apply
 
 `.githooks/pre-push` runs on every push to `main` that touches `formulas/`, `salt/` or
 `pillar/`: it `git archive`s the pushed commit to salt-master and runs
-`.githooks/render-check.py` there — `salt-call --local --id=<minion> state.show_highstate` per
+`formulas/salt-master/files/render-check.py` there — `salt-call --local --id=<minion> state.show_highstate` per
 minion in `salt/top.sls`, in a throwaway config dir (doesn't touch the running master or its
 gitfs cache), ~5 s. sdb is stubbed, so OpenBao isn't involved. Blocks the push on:
 
@@ -50,7 +50,7 @@ gitfs cache), ~5 s. sdb is stubbed, so OpenBao isn't involved. Blocks the push o
 
 Not covered: `file.managed` templates (rendered only at apply time) and grain-dependent logic
 (the master's grains stand in — all VMs are Debian 13, so that's close). Run it by hand:
-`git archive HEAD formulas salt pillar .githooks/render-check.py | ssh salt-master 'd=$(mktemp -d); tar -x -m -C $d; python3 $d/.githooks/render-check.py $d; rm -rf $d'`.
+`git archive HEAD formulas salt pillar | ssh salt-master 'd=$(mktemp -d); tar -x -m -C $d; python3 $d/formulas/salt-master/files/render-check.py $d; rm -rf $d'`.
 Master unreachable: `SKIP_RENDER_CHECK=1 git push` (the secret scan is pre-commit, unaffected).
 
 ## Reactor

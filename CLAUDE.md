@@ -62,7 +62,7 @@ pillar/     per-minion data (git_pillar)
    release-notes review.
 2. After editing `.sls`/`map.jinja`/pillar: the `salt-reviewer` agent can check conventions.
 3. Commit + push (the pre-push hook renders every minion on the master first and blocks on
-   errors — never bypass it to push a render error), then `/deploy <minion>|all` — it runs
+   errors — never bypass it to push a render error; PRs in Forgejo get the same check as CI), then `/deploy <minion>|all` — it runs
    this sequence and stops for OK before the real apply. Manually, on the master (`ssh salt-master`): `salt-run fileserver.update`,
    `salt-run git_pillar.update`, `salt '<minion>' saltutil.refresh_pillar`,
    `salt '<minion>' state.apply test=True`, then without `test=True`. Full `state.apply`, not

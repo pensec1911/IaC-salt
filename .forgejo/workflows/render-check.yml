@@ -1,0 +1,31 @@
+# Renders every minion's highstate on salt-master for a PR — the same check
+# .githooks/pre-push runs on local pushes, so a PR merged in the UI
+# (Renovate) can't skip it. Branch protection on main requires it.
+#
+# The master side is a forced command (formulas/salt-master render-check.sls):
+# this job can only hand it a tar of formulas/ salt/ pillar/. The checker
+# script itself is the one installed from main, not the PR's copy.
+name: render-check
+
+on:
+  pull_request:
+
+jobs:
+  render-check:
+    runs-on: docker
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: render on salt-master
+        env:
+          # Private key of the master's render-check user (repo secret).
+          SSH_KEY: ${{ secrets.RENDER_CHECK_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # salt-master's host key (public), pinned.
+          echo '192.168.178.28 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEAc3ofR4GItjEDwDF52KOy7teGy1WB83CbpuVRl2W0D' > ~/.ssh/known_hosts
+          tar -c formulas salt pillar |
+            ssh -o BatchMode=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 render-check@192.168.178.28

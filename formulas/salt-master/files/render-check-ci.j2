@@ -1,0 +1,12 @@
+{%- from "salt-master/map.jinja" import salt_master with context -%}
+#!/bin/sh
+# Managed by formulas/salt-master — forced command of the render-check SSH
+# key (Forgejo PR workflow, .forgejo/workflows/render-check.yml). Reads a tar
+# of formulas/ salt/ pillar/ on stdin, renders every minion with the
+# installed render-check.py (from main, not from the PR), exits with its
+# status. Runs as the unprivileged {{ salt_master.render_check_user }} user.
+set -eu
+d=$(mktemp -d)
+trap 'rm -rf "$d"' EXIT
+tar -x -m --no-same-owner --no-same-permissions -C "$d" formulas salt pillar
+timeout 600 python3 {{ salt_master.render_check_script }} "$d"
