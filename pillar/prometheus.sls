@@ -177,6 +177,23 @@ prometheus:
             severity: warning
           annotations:
             summary: {% raw %}"{{ $labels.instance }} has no successful restore test for over 8 days"{% endraw %}
+        {#- recyclarr_* from formulas/arrstack (daily TRaSH sync, ~07:00).
+           A failed sync changes nothing in Sonarr/Radarr — the last synced
+           profiles stay — so warning, and Stale only after 3 missed days. #}
+        - alert: RecyclarrSyncFailed
+          expr: recyclarr_sync_success == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"recyclarr sync on {{ $labels.instance }} failed — journalctl -u recyclarr-sync"{% endraw %}
+        - alert: RecyclarrSyncStale
+          expr: time() - recyclarr_last_success_timestamp_seconds > 3 * 86400
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"{{ $labels.instance }} has no successful recyclarr sync for over 3 days"{% endraw %}
         {#- node_timex_* from node-exporter's timex collector; every minion
            syncs from the FRITZ!Box via formulas/ntp. #}
         - alert: ClockNotSynced

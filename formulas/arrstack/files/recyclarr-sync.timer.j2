@@ -1,0 +1,12 @@
+{%- from "arrstack/map.jinja" import arrstack with context -%}
+# Managed by Salt (formulas/arrstack) — do not edit.
+[Unit]
+Description=Daily recyclarr sync
+
+[Timer]
+OnCalendar={{ arrstack.recyclarr.on_calendar }}
+RandomizedDelaySec={{ arrstack.recyclarr.randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

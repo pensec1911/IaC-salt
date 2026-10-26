@@ -1,0 +1,12 @@
+{%- from "arrstack/map.jinja" import arrstack with context -%}
+# Managed by Salt (formulas/arrstack, recyclarr:instances) — do not edit.
+# API keys come from the env (recyclarr-sync reads them from config.xml).
+{%- for app, instances in arrstack.recyclarr.instances.items() %}
+{{ app }}:
+{%- for name, cfg in instances.items() %}
+  {{ name }}:
+    base_url: http://localhost:{{ arrstack[app].port }}
+    api_key: !env_var {{ app | upper }}_API_KEY  # secret-scan: allow (env var name only)
+    {{ cfg | yaml(False) | indent(4) }}
+{%- endfor %}
+{%- endfor %}

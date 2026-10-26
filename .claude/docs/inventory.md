@@ -9,7 +9,7 @@ Flat network 192.168.178.0/24 (FRITZ!Box range). Minion ID = hostname = Tofu VM 
 | `salt-master` | .28 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, salt-master | salt-master (gitfs + git_pillar) |
 | `homepage` | .23 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, docker, cadvisor, alloy, homepage | homepage :3000 |
 | `monitoring` | .25 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, docker, cadvisor, blackbox-exporter, loki, alloy, grafana, prometheus, alertmanager, nfs-mount, backup | Grafana :3000, Prometheus :9090, Alertmanager :9093, blackbox_exporter :9115, Loki :3100 |
-| `arrstack` | .22 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, nfs-mount, docker, cadvisor, alloy, arrstack, seerr, backup | Seerr :5055; via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal) |
+| `arrstack` | .22 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, nfs-mount, docker, cadvisor, alloy, arrstack, seerr, backup | Seerr :5055; via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal); Recyclarr daily (timer, no port) |
 | `jellyfin` | .24 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, salt-minion, nfs-mount, docker, cadvisor, alloy, jellyfin, backup | Jellyfin :8096 |
 | `wazuh` | .27 | users, ntp, node-exporter, unattended-upgrades, salt-minion, wazuh, nfs-mount, backup | dashboard :443, indexer :9200, API :55000, agents :1514 / enrollment :1515 |
 

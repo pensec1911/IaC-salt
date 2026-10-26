@@ -19,7 +19,21 @@
    traffic on any interface, so when tun0 drops, packets of connections
    that were open (FINs, retransmits to peers/trackers, DNS-over-TLS) fell
    back to the default route via eth0 and left the VM unmasqueraded —
-   observed 2026-10-18 by taking tun0 down. Added as gluetun post-rules. #}
+   observed 2026-10-18 by taking tun0 down. Added as gluetun post-rules.
+
+   recyclarr: syncs TRaSH Guides quality profiles, custom formats and
+   quality definitions into Sonarr/Radarr. Not a long-running container: a
+   systemd timer runs `docker run --rm … sync` in gluetun's namespace (so
+   the apps are on localhost, like for each other). API keys are read from
+   each app's own config.xml at run time and passed as env vars — the apps
+   generate them, so there is no second copy (no OpenBao entry) to drift.
+   instances: <app>: <instance name>: recyclarr settings minus
+   base_url/api_key (added per app). Defaults = TRaSH WEB-1080p (Sonarr)
+   and HD Bluray + WEB (Radarr), original language, with the CF groups the
+   config-templates enable (Golden Rule HD blocks x265 for HD — also the
+   costlier codec to transcode without a GPU, see jellyfin). on_calendar:
+   after the 03:00–06:00 enforce window and the 02:00 backup, which stops
+   sonarr/radarr. #}
 {%- set defaults = {
     'puid': 970,
     'pgid': 970,
@@ -78,6 +92,49 @@
         'container_name': 'flaresolverr',
         'port': 8191,
         'log_level': 'info',
+    },
+    'recyclarr': {
+        'image': 'ghcr.io/recyclarr/recyclarr',
+        'tag': '8.7.3',
+        'container_name': 'recyclarr',
+        'unit': 'recyclarr-sync',
+        'script': '/usr/local/sbin/recyclarr-sync',
+        'docker_bin': '/usr/bin/docker',
+        'on_calendar': '*-*-* 07:00:00 Europe/Berlin',
+        'randomized_delay': '30min',
+        'timeout': '15min',
+        'textfile_dir': '/var/lib/prometheus/node-exporter',
+        'metrics_file': 'recyclarr.prom',
+        'instances': {
+            'sonarr': {
+                'web-1080p': {
+                    'quality_definition': {'type': 'series'},
+                    'quality_profiles': [
+                        {'trash_id': '72dae194fc92bf828f32cde7744e51a1',
+                         'reset_unmatched_scores': {'enabled': True}},
+                    ],
+                    'custom_format_groups': {'add': [
+                        {'trash_id': '158188097a58d7687dee647e04af0da3'},
+                        {'trash_id': '74aff4168620ed49dcc67e92b2c2a5b4'},
+                        {'trash_id': '85fae4a2294965b75710ef2989c850eb'},
+                        {'trash_id': '59c3af66780d08332fdc64e68297098f'},
+                    ]},
+                },
+            },
+            'radarr': {
+                'hd-bluray-web': {
+                    'quality_definition': {'type': 'movie'},
+                    'quality_profiles': [
+                        {'trash_id': 'd1d67249d3890e49bc12e275d989a7e9',
+                         'reset_unmatched_scores': {'enabled': True}},
+                    ],
+                    'custom_format_groups': {'add': [
+                        {'trash_id': 'f8bf8eab4617f12dfdbd16303d8da245'},
+                        {'trash_id': 'a3ac6af01d78e4f21fcb75f601ac96df'},
+                    ]},
+                },
+            },
+        },
     },
     'slskd': {
         'image': 'ghcr.io/slskd/slskd',

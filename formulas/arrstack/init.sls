@@ -7,3 +7,4 @@ include:
   - arrstack.bazarr
   - arrstack.flaresolverr
   - arrstack.slskd
+  - arrstack.recyclarr

@@ -85,6 +85,29 @@ deliberately *not* published — only Prowlarr uses it. In Prowlarr: Settings �
 FlareSolverr, host `http://localhost:8191`, give it a tag, and put that tag on the indexers that
 need it.
 
+## Recyclarr (TRaSH profiles)
+
+[Recyclarr](https://recyclarr.dev/) syncs the [TRaSH Guides](https://trash-guides.info/)
+quality profiles, custom formats (release-group tiers, unwanted formats like BR-DISK/LQ/upscaled,
+streaming-service boosts) and quality definitions (file-size limits) into Sonarr and Radarr.
+Sonarr/Radarr still pick the releases — Recyclarr only maintains their settings.
+
+- Profiles: Sonarr **WEB-1080p**, Radarr **HD Bluray + WEB**; original language; Golden Rule HD
+  (no x265 for HD). Config: `recyclarr:instances` (map.jinja defaults, `pillar.example.sls`),
+  rendered to `/opt/arrstack/recyclarr/recyclarr.yml`.
+- Run: `recyclarr-sync.timer` daily ~07:00 Berlin (after the 02:00 backup and the 03:00–06:00
+  enforce window) → `/usr/local/sbin/recyclarr-sync` → `docker run --rm … sync` in gluetun's
+  namespace. No permanent container. By hand: `sudo systemctl start recyclarr-sync`.
+- **API keys**: read from each app's `config.xml` at run time, passed as env vars
+  (`!env_var` in recyclarr.yml). Not in OpenBao: the apps generate them, a copy would only drift.
+- Metrics `recyclarr_*` (textfile) → `RecyclarrSyncFailed` / `RecyclarrSyncStale`.
+- **Don't edit synced profiles/custom formats in the UI** — the next sync overwrites them
+  (`reset_unmatched_scores`). Change `recyclarr:instances` instead. Profiles Recyclarr doesn't
+  manage (Sonarr's/Radarr's defaults like "Any") are left alone.
+- One-time switch after the first sync (2026-10-26, done via API): every series/movie moved to
+  the new profile (Sonarr/Radarr mass editor), and Seerr's default profile for Sonarr/Radarr
+  (Settings → Services) set to it — Seerr requests otherwise keep using "Any".
+
 ## Dedicated user
 
 Unlike grafana/prometheus (which skip a host account because their images bake in a fixed uid),

@@ -1,0 +1,11 @@
+{%- from "arrstack/map.jinja" import arrstack with context -%}
+# Managed by Salt (formulas/arrstack) — do not edit.
+[Unit]
+Description=recyclarr sync (TRaSH profiles into Sonarr/Radarr)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart={{ arrstack.recyclarr.script }}
+TimeoutStartSec={{ arrstack.recyclarr.timeout }}

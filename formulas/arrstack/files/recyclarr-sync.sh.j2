@@ -1,0 +1,52 @@
+{%- from "arrstack/map.jinja" import arrstack with context -%}
+{%- set rc = arrstack.recyclarr -%}
+#!/bin/sh
+# Managed by Salt (formulas/arrstack) — do not edit here.
+#
+# One recyclarr sync, started by {{ rc.unit }}.service. The API keys are read
+# from each app's own config.xml and handed to the container as env vars
+# (-e NAME without a value: not visible in the process list). The outcome
+# goes out as node-exporter textfile metrics (recyclarr_*).
+set -u
+OUT="{{ rc.textfile_dir }}/{{ rc.metrics_file }}"
+
+key() {
+    sed -n 's:.*<ApiKey>\(.*\)</ApiKey>.*:\1:p' "{{ arrstack.config_base }}/$1/config.xml"
+}
+{%- for app in rc.instances %}
+{{ app | upper }}_API_KEY=$(key {{ app }}); export {{ app | upper }}_API_KEY  # secret-scan: allow (read at run time, no value here)
+{%- endfor %}
+
+rc=0
+{{ rc.docker_bin }} run --rm --name {{ rc.container_name }} \
+    --network container:{{ arrstack.gluetun.container_name }} \
+    --user {{ arrstack.puid }}:{{ arrstack.pgid }} \
+    -e TZ={{ arrstack.timezone }} \
+{%- for app in rc.instances %}
+    -e {{ app | upper }}_API_KEY \
+{%- endfor %}
+    -v {{ arrstack.config_base }}/recyclarr:/config \
+    {{ rc.image }}:{{ rc.tag }} sync || rc=$?
+
+last_success=0
+if [ "$rc" -eq 0 ]; then
+    last_success=$(date +%s)
+elif [ -f "$OUT" ]; then
+    last_success=$(sed -n 's/^recyclarr_last_success_timestamp_seconds //p' "$OUT")
+fi
+# Atomic replace — node-exporter must never read a half-written file.
+tmp=$(mktemp "{{ rc.textfile_dir }}/.recyclarr.XXXXXX")
+cat > "$tmp" <<METRICS
+# HELP recyclarr_sync_success 1 if the last recyclarr sync succeeded
+# TYPE recyclarr_sync_success gauge
+recyclarr_sync_success $([ "$rc" -eq 0 ] && echo 1 || echo 0)
+# HELP recyclarr_last_run_timestamp_seconds When the last sync finished
+# TYPE recyclarr_last_run_timestamp_seconds gauge
+recyclarr_last_run_timestamp_seconds $(date +%s)
+# HELP recyclarr_last_success_timestamp_seconds When the last successful sync finished (0 = never)
+# TYPE recyclarr_last_success_timestamp_seconds gauge
+recyclarr_last_success_timestamp_seconds ${last_success:-0}
+METRICS
+chmod 0644 "$tmp"
+mv "$tmp" "$OUT"
+exit "$rc"

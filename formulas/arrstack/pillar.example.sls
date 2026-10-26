@@ -71,3 +71,25 @@ arrstack:
       soulseek_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/slskd/credentials?soulseek_password') | yaml_encode }}
       web_username: {{ salt['sdb.get']('sdb://osvault/homelab/data/slskd/credentials?web_username') | yaml_encode }}
       web_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/slskd/credentials?web_password') | yaml_encode }}
+
+    # TRaSH sync into Sonarr/Radarr (recyclarr.sls). Defaults: WEB-1080p /
+    # HD Bluray + WEB, original language. instances merges into the default:
+    # same instance name overrides it (lists inside are replaced whole), a
+    # new name adds a second instance.
+    # Settings per recyclarr v8 docs, minus base_url/api_key.
+    recyclarr:
+      tag: "8.7.3"
+      on_calendar: "*-*-* 07:00:00 Europe/Berlin"
+      instances:
+        radarr:
+          hd-bluray-web:
+            quality_definition:
+              type: movie
+            quality_profiles:
+              - trash_id: d1d67249d3890e49bc12e275d989a7e9   # HD Bluray + WEB
+                reset_unmatched_scores:
+                  enabled: true
+            custom_format_groups:
+              add:
+                - trash_id: f8bf8eab4617f12dfdbd16303d8da245   # [Optional] Golden Rule HD
+                - trash_id: a3ac6af01d78e4f21fcb75f601ac96df   # [Unwanted] Unwanted Formats
