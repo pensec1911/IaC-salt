@@ -15,22 +15,6 @@ _Nothing agreed yet — pick from "Later"._
 
 No order agreed; pick as needed.
 
-### Wazuh alerts into Alertmanager
-
-- **Why**: Wazuh findings only show in its dashboard; everything else pages through
-  `alertmanager`.
-- **Sketch**: Wazuh integration (custom `integratord` webhook in the `formulas/wazuh` manager
-  config, via blockreplace) posting level >= N alerts to Alertmanager's API.
-- **Open**: severity threshold to avoid noise; webhook secret handling via OpenBao.
-
-### Certificate expiry alert for HTTPS targets
-
-- **Why**: `blackbox-exporter` already probes targets, but `ProbeFailed` only fires once a cert
-  has expired.
-- **Sketch**: alert on `probe_ssl_earliest_cert_expiry - time() < 14*86400` in
-  `pillar/prometheus.sls`, for the HTTPS probe jobs.
-- **Open**: whether the self-signed ones (e.g. wazuh) need excluding or a longer threshold.
-
 ### Recyclarr for Sonarr/Radarr profiles
 
 - **Why**: quality profiles and custom formats live only in the arrstack web UIs (and the

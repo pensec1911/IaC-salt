@@ -18,6 +18,11 @@ wazuh:
       # be the identical secret.
       registration_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/wazuh/registration?password') | yaml_encode }}
 
+    # Manager alerts (level >= 10, CVEs only Critical) to Alertmanager on
+    # monitoring — formulas/wazuh integration.sls. No auth on :9093.
+    alertmanager:
+      url: "http://192.168.178.25:9093"
+
     dashboard:
       # Server API user the dashboard connects as.
       api_wui_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/wazuh/api?wui_password') | yaml_encode }}

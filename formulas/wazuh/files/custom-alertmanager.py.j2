@@ -1,0 +1,72 @@
+{%- from "wazuh/map.jinja" import wazuh with context -%}
+{%- set am = wazuh.alertmanager -%}
+# Managed by Salt (formulas/wazuh) — do not edit here.
+#
+# Wazuh integratord integration: posts one manager alert (level >= {{ am.level }},
+# filtered by integratord) to Alertmanager's v2 API. Called once per alert
+# with argv = (alert file, api_key, hook_url). Vulnerability-detector alerts
+# below level {{ am.vulnerability_min_level }} are dropped here. Each alert resolves after
+# {{ am.resolve_after_hours }}h unless it fires again with the same labels.
+import datetime
+import json
+import sys
+import urllib.request
+
+VULN_MIN_LEVEL = {{ am.vulnerability_min_level }}
+RESOLVE_AFTER = datetime.timedelta(hours={{ am.resolve_after_hours }})
+TIMEOUT = {{ am.timeout_seconds }}
+MAX_TEXT = 500
+
+
+def to_alertmanager(alert):
+    """The Alertmanager alert for a Wazuh alert, or None to drop it."""
+    rule = alert.get("rule", {})
+    level = int(rule.get("level", 0))
+    labels = {
+        "instance": alert.get("agent", {}).get("name", "wazuh"),
+        "severity": "warning",
+        "source": "wazuh",
+        "wazuh_level": str(level),
+    }
+    if "vulnerability-detector" in rule.get("groups", []):
+        if level < VULN_MIN_LEVEL:
+            return None
+        vuln = alert.get("data", {}).get("vulnerability", {})
+        pkg = vuln.get("package", {})
+        score = vuln.get("cvss", {}).get("cvss3", {}).get("base_score", "?")
+        labels.update(alertname="WazuhVulnerability", cve=vuln.get("cve", "?"),
+                      package=pkg.get("name", "?"))
+        summary = "{} affects {} {} (CVSS {})".format(
+            labels["cve"], labels["package"], pkg.get("version", ""), score)
+        description = vuln.get("rationale", "")
+    else:
+        labels.update(alertname="WazuhAlert", rule_id=str(rule.get("id", "?")))
+        summary = "Wazuh rule {} (level {}): {}".format(
+            labels["rule_id"], level, rule.get("description", ""))
+        description = alert.get("full_log", "")
+    now = datetime.datetime.now(datetime.timezone.utc)
+    return {
+        "labels": labels,
+        "annotations": {"summary": summary, "description": description[:MAX_TEXT]},
+        "startsAt": now.isoformat(),
+        "endsAt": (now + RESOLVE_AFTER).isoformat(),
+    }
+
+
+def main():
+    with open(sys.argv[1]) as f:
+        alert = json.load(f)
+    payload = to_alertmanager(alert)
+    if payload is None:
+        return 0
+    req = urllib.request.Request(
+        sys.argv[3].rstrip("/") + "/api/v2/alerts",
+        data=json.dumps([payload]).encode(),
+        headers={"Content-Type": "application/json"}, method="POST")
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+        resp.read()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

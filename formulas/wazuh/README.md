@@ -139,6 +139,26 @@ systemctl is-active wazuh-indexer wazuh-manager filebeat wazuh-dashboard
 Dashboard: `https://192.168.178.27` (self-signed), login `admin` / the indexer-admin password.
 Agents (`formulas/wazuh-agent`) enroll on their own once port 1515 answers.
 
+## Alerts to Alertmanager
+
+`integration.sls` (only when `wazuh:lookup:alertmanager:url` is set): a custom integratord
+integration `custom-alertmanager` (`/var/ossec/integrations/`, wrapper + `.py` run with Wazuh's
+bundled Python) posts every manager alert with rule level >= 10 to Alertmanager's
+`/api/v2/alerts`. The `<integration>` sits in its own `<ossec_config>` section appended to
+`ossec.conf` between `SALT-MANAGED` comment markers (the shipped file has no such block to patch).
+
+- `WazuhAlert` — labels `instance` (agent name, = minion ID; `wazuh` for the manager itself),
+  `rule_id`, `wazuh_level`, `source=wazuh`; summary = rule description, description = log line.
+- `WazuhVulnerability` — vulnerability-detector alerts, **Critical (level 13) only**: a full
+  rescan emits one alert per CVE and agent (2026-10-18: 296 High + 51 Critical per agent, almost
+  all `linux-image-amd64`, many "Package default status" guesses). Labels `cve`, `package`. The
+  full CVE list stays in the dashboard (Vulnerability Detection).
+- Events, not states: an alert resolves after 24 h (`resolve_after_hours`) unless it fires again
+  with the same labels. Alertmanager has no receiver yet, so they show in its UI/Grafana only.
+- Test without waiting for a real alert: `sudo /var/ossec/integrations/custom-alertmanager
+  <alert.json> '' http://192.168.178.25:9093` with one line of `alerts.json` (level >= 10).
+  Failures: `grep integratord /var/ossec/logs/ossec.log`.
+
 ## Usage
 
 ```yaml

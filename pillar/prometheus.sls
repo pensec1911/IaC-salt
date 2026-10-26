@@ -193,6 +193,17 @@ prometheus:
             severity: warning
           annotations:
             summary: {% raw %}"{{ $labels.instance }} clock is {{ $value | humanizeDuration }} off its NTP source"{% endraw %}
+        {#- Only HTTPS probe targets have the metric. The self-signed ones
+           (Proxmox, TrueNAS, OpenBao, Wazuh) are checked too — TLS isn't
+           verified (blackbox http_up), but expiry still is; all run for
+           ~1–10 years (2026-10-26), so no exclusions. #}
+        - alert: CertificateExpiringSoon
+          expr: probe_ssl_earliest_cert_expiry - time() < 14 * 86400
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"TLS certificate of {{ $labels.instance }} expires in {{ $value | humanizeDuration }}"{% endraw %}
         {#- os_* from formulas/unattended-upgrades (hourly + after boot).
            Reboots are manual; 12h lets a morning u-u run (~06:00 UTC) be
            rebooted the same evening before it alerts. #}

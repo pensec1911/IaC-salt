@@ -12,6 +12,16 @@
    are also what the package-shipped opensearch.yml already expects — keep
    them unless you change config.yml accordingly before generating certs.
 
+   alertmanager: forwards manager alerts to Alertmanager's API via a custom
+   integratord integration (integration.sls). Off while url is empty.
+   level: Wazuh's own filter (rule level >= N; 10 = brute force, multiple
+   auth failures, high-CVSS CVEs). vulnerability_min_level: stricter cut
+   for vulnerability-detector alerts — a full rescan emits one alert per
+   CVE and agent (296 High + 51 Critical kernel CVEs per agent on
+   2026-10-18), so only Critical (13) go through. Wazuh alerts are events,
+   not states: each one resolves after resolve_after_hours unless the same
+   alert (same labels) fires again.
+
    bootstrapped gates everything that needs the indexer security plugin
    initialized and the passwords set (see README "Bootstrap"). #}
 {%- set defaults = {
@@ -40,6 +50,16 @@
         'module_url': 'https://packages.wazuh.com/4.x/filebeat/wazuh-filebeat-0.5.tar.gz',
         'config_url': 'https://packages.wazuh.com/4.14/tpl/wazuh/filebeat/filebeat.yml',
         'template_url': 'https://raw.githubusercontent.com/wazuh/wazuh/v{version}/extensions/elasticsearch/7.x/wazuh-template.json',
+    },
+    'alertmanager': {
+        'url': '',
+        'level': 10,
+        'vulnerability_min_level': 13,
+        'resolve_after_hours': 24,
+        'timeout_seconds': 10,
+        'name': 'custom-alertmanager',
+        'integrations_dir': '/var/ossec/integrations',
+        'python': '/var/ossec/framework/python/bin/python3',
     },
     'dashboard': {
         'node_name': 'dashboard',

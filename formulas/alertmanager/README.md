@@ -12,6 +12,9 @@ pointed here via `prometheus:alerting`.
   `alertmanager:config` pillar dict (mode `0640`, diff hidden: receivers may hold secrets).
 - `alertmanager.container` — the container, restarted when the config changes.
 
+Besides Prometheus, Wazuh posts its manager alerts here directly (`WazuhAlert`,
+`WazuhVulnerability`, label `source=wazuh` — formulas/wazuh README "Alerts to Alertmanager").
+
 Default config (no pillar) has only a `null` receiver: alerts are visible in the UI
 (`:9093`) and in Grafana, but nothing is sent anywhere.
 

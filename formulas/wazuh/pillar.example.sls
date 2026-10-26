@@ -30,6 +30,13 @@ wazuh:
       # Shared with formulas/wazuh-agent — the same sdb secret.
       registration_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/wazuh/registration?password') | yaml_encode }}
 
+    # Optional — empty url = no integration. Alertmanager base URL.
+    alertmanager:
+      url: "http://192.168.178.25:9093"
+      level: 10                     # integratord: rule level >= this
+      vulnerability_min_level: 13   # CVE alerts: Critical only
+      resolve_after_hours: 24
+
     dashboard:
       node_name: dashboard      # dashboard node name in config.yml
       server_port: 443
