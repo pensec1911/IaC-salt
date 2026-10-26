@@ -156,8 +156,10 @@ bundled Python) posts every manager alert with rule level >= 10 to Alertmanager'
 - Events, not states: an alert resolves after 24 h (`resolve_after_hours`) unless it fires again
   with the same labels. Alertmanager has no receiver yet, so they show in its UI/Grafana only.
 - Test without waiting for a real alert: `sudo /var/ossec/integrations/custom-alertmanager
-  <alert.json> '' http://192.168.178.25:9093` with one line of `alerts.json` (level >= 10).
-  Failures: `grep integratord /var/ossec/logs/ossec.log`.
+  <alert.json> '' http://192.168.178.25:9093` (as user `wazuh`) with one line of `alerts.json`
+  (level >= 10). To clear a test alert early, POST the same labels with `startsAt`/`endsAt`
+  *in the past* — an `endsAt` still in the future is merged into the later one and changes
+  nothing. Failures: `grep integratord /var/ossec/logs/ossec.log`.
 
 ## Usage
 
