@@ -74,8 +74,14 @@ measured 2026-10-18; sequential writes like the final move are fast on NFS (~110
 In qBittorrent: temp path `/downloads/incomplete`, "Keep incomplete torrents in" **on**
 (`temp_path_enabled`), plus OS cache on for disk reads/writes (`disk_io_read_mode` /
 `disk_io_write_mode` = 0). Set 2026-10-18 via the WebUI API. The local disk must hold all
-active downloads at once (`max_active_downloads` 3) — size it in IaC-opentofu
-(`vms/arrstack`, `disk_size`).
+active downloads at once (`max_active_downloads`, see below) — size it in IaC-opentofu
+(`vms/arrstack`, `disk_size`; 99 GB = 8 × 1080p with room, not 8 Remuxes).
+
+**One-time manual step — queue limits.** qBittorrent's default 3 active downloads let
+dead torrents (0 seeds, common for older movies) hold every slot while well-seeded ones sat in
+`queuedDL`. Now `max_active_downloads` 8, `max_active_torrents` 15, `max_active_uploads` 8,
+`dont_count_slow_torrents` **on** (stalled ones stop counting against the limit). Set
+2026-11-01 via the WebUI API.
 
 `prowlarr-container` doesn't get a `media_mount` bind — it only manages indexers and talks to
 Sonarr/Radarr over their APIs, it doesn't touch files.
