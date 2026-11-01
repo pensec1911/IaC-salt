@@ -71,6 +71,59 @@ No order agreed; pick as needed.
 - **Open**: noise filtering (`--ignore-unfixed`, severity floor); where the vuln DB cache lives
   on the runner; whether host-package CVEs are worth it given daily unattended-upgrades.
 
+### NetBox as source of truth (IPAM/DCIM)
+
+- **Why**: `inventory.md`, `pillar/*` and the Tofu `vms/*/main.tf` each hold IPs, ports and
+  sizing by hand and drift apart. NetBox is a queryable inventory both IaC repos can read.
+- **Sketch**: `formulas/netbox` (netbox + postgres + redis containers, ~2 GB) on a Docker host.
+  Seed it with VMs, IPs and services from inventory.md. Later: Salt's built-in `netbox`
+  ext_pillar for per-minion data, the Tofu `netbox` provider to register/look up VMs.
+  Homepage tile + backup entry (postgres dump, not the live data dir).
+- **Open**: which direction is authoritative (NetBox → Tofu/Salt, or Tofu writes, NetBox
+  reads); whether inventory.md is then generated or dropped; API token in OpenBao; postgres
+  backup = pre-backup `pg_dump` hook in `formulas/backup`.
+
+### Zero-trust remote access (Headscale + Headplane, or alternative)
+
+- **Why**: remote access currently goes through `tailscale-router` (Tofu VM) on Tailscale's
+  cloud control plane. A self-hosted coordinator keeps keys, device list and ACLs at home
+  and lets access be per-device/per-service instead of "on the LAN = trusted".
+- **Sketch**: `formulas/headscale` with Headplane as web UI; ACL policy file from pillar;
+  OIDC login via the SSO item; existing tailscale clients re-pointed with `--login-server`.
+  Subnet router stays the `tailscale-router` VM. Homepage tile + backup (SQLite → `stop_containers`).
+- **Open**: Headscale vs. NetBird (own control plane + relay, SSO-native) vs. Teleport
+  (identity-aware SSH/web proxy with session recording); control server must be reachable
+  from outside (FRITZ!Box port forward vs. small VPS) — network exposure is decided in the
+  Tofu/OPNsense repos, not here; ACLs are firewall-like policy → keep them out of formulas, only
+  as pillar data; DERP: own relay or Tailscale's public ones.
+
+### Zot registry (pull-through cache for pinned images)
+
+- **Why**: every image in `formulas/*/map.jinja` is pulled from Docker Hub/ghcr/lscr at
+  apply time. Zot caches them on-demand, so applies and rebuilds survive upstream outages,
+  rate limits and deleted tags, and gives Trivy one local place to scan.
+- **Sketch**: `formulas/zot` with `sync` extension in on-demand mode per upstream registry;
+  storage on local disk (cache, rebuildable → no backup). Docker daemon `registry-mirrors`
+  (formulas/docker pillar) covers Docker Hub; other registries need the image prefix rewritten
+  via a `registry` lookup key in the formulas.
+- **Open**: rewriting image refs breaks Renovate's upstream lookup unless the original name
+  stays in pillar and the prefix is added at render time; TLS for the registry (reverse proxy
+  item or Zot's own cert); host choice (forgejo already has a container registry, but no
+  pull-through).
+
+### PatchMon (patch visibility per host)
+
+- **Why**: unattended-upgrades patches Debian main/security daily, but the excluded repos
+  (Docker, Salt, Wazuh — on purpose, `formulas/unattended-upgrades`) and non-minions (OpenBao,
+  omada-controller, tailscale-router, Proxmox nodes) are invisible today. PatchMon shows
+  pending updates per host in one place.
+- **Sketch**: `formulas/patchmon` (server container + DB) on a Docker host; `formulas/
+  patchmon-agent` on every minion, enrollment key via `sdb.get`. Non-minions enrolled by hand
+  (documented in the README). Homepage tile + backup entry.
+- **Open**: overlap with `RebootRequired` / a node_exporter textfile for pending updates
+  (cheaper alternative: `apt-get -s upgrade` count → Prometheus alert); agent update path;
+  whether it complements the Salt version-pin item (shows Salt drift across minions).
+
 ### Offsite copy of the restic repos
 
 - **Why**: `formulas/backup` writes every minion's repo to `/mnt/backups/<minion>` on the NAS
