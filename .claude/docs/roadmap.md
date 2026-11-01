@@ -45,9 +45,14 @@ No order agreed; pick as needed.
   installed on every client — manual, documented); AdGuard as single point of failure for DNS
   (second instance or FRITZ!Box fallback); which services keep direct ports (Jellyfin TV apps,
   salt-api, Wazuh agents). Root CA key is security-critical bootstrap → stays manual.
-- **Decided (2026-11-01)**: proxy and CA in one — Caddy with its built-in CA (`tls internal`,
-  also an ACME server for other hosts) rather than nginx (no CA, certs must come from
-  elsewhere) + a separate step-ca. step-ca only later if SSH certificates are wanted.
+- **To decide when it's built** — proxy and CA:
+  - *Caddy*: proxy + built-in CA in one (`tls internal`, can also serve ACME to other hosts);
+    simplest, config is one Caddyfile from pillar. Leaning this way.
+  - *Traefik*: Docker-label routing, built-in forward-auth middleware; needs a CA/ACME source.
+  - *nginx*: proxy only, no CA and no automatic certs — would need step-ca or OpenBao PKI.
+  - CA: Caddy's internal CA / *step-ca* (separate ACME CA, also SSH certificates) /
+    *OpenBao PKI* (already running, but makes OpenBao a dependency of every TLS renewal) /
+    real domain + Let's Encrypt DNS-01 (no root to distribute, needs a public domain + DNS API).
 
 ### Single sign-on (OIDC, passkeys)
 
@@ -180,6 +185,44 @@ No order agreed; pick as needed.
   pressure (relevant for the RAM rebalancing). Grafana dashboards from the community.
 - **Open**: TrueNAS SCALE version decides the export path; Scrutiny as the dedicated SMART UI
   vs. alerts only.
+
+### gitleaks in Forgejo Actions (server-side secret scanning)
+
+- **Why**: the pre-commit hook (`.githooks/`) only runs where `core.hooksPath` is set — not on
+  commits from the Forgejo web editor, Renovate, or another clone. A CI check on every push/PR
+  is the backstop, and it covers `IaC-opentofu` too.
+- **Sketch**: workflow next to `.forgejo/workflows/render-check.yml`: `gitleaks git` on the
+  pushed range (full history once), shared `.gitleaks.toml` with the repo's allowlist
+  (`sdb.get` references, `pillar.example.sls` placeholders); failing check blocks PR merge.
+- **Open**: reuse the patterns from the existing secret scanner or replace it with gitleaks
+  locally too (one ruleset); what to do with a hit in history (rotate in OpenBao, no rewrite).
+
+### OpenTofu plan in PRs + nightly drift check (IaC-opentofu)
+
+- **Why**: Salt changes get a render check before merge; Tofu changes get nothing — `tofu plan`
+  only runs on the user's machine. A plan as PR comment shows what a merge will create/destroy,
+  and a nightly plan catches drift (VMs changed by hand in Proxmox).
+- **Sketch**: Forgejo Actions workflow in `IaC-opentofu` on the existing runner: `tofu init`
+  + `tofu plan -lock-timeout`, plan summary posted as PR comment; scheduled run → ntfy /
+  Forgejo issue on non-empty plan. Proxmox API token (plan-only role where possible) and
+  OpenBao access via Actions secrets. `apply` stays manual.
+- **Open**: state is a local `terraform.tfstate` today → needs a remote backend first
+  (Forgejo has no state backend; options: S3 on TrueNAS/Garage/MinIO, `pg` backend, or HTTP
+  backend) plus state encryption (OpenTofu native); whether the runner may reach the Proxmox
+  API; plan output may contain secrets → redact before posting.
+
+### Velociraptor (on-demand endpoint forensics)
+
+- **Why**: Wazuh-style visibility (processes, persistence, logins, file hashes across all
+  hosts) without an always-on 8 GB SIEM — query fleet-wide when something looks off (e.g. an
+  OpenCanary/Greenbone/Nuclei finding), otherwise idle.
+- **Sketch**: `formulas/velociraptor` (server, single binary, own datastore) on a Docker host or
+  its own small VM; `formulas/velociraptor-client` on every minion with the client config
+  rendered from pillar, deployment certs via `sdb.get`. Scheduled hunts for basics (new SUID
+  files, new systemd units, new `authorized_keys`) → ntfy. Homepage tile + backup (datastore,
+  server config — the CA key in it is security-critical).
+- **Open**: server cert/CA generation is security-critical bootstrap → manual, documented;
+  replaces or complements wazuh-agent (both is pointless once Wazuh goes); datastore growth.
 
 ### Offsite copy of the restic repos
 
