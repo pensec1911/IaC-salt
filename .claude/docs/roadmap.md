@@ -15,16 +15,61 @@ _Nothing agreed yet — pick from "Later"._
 
 No order agreed; pick as needed.
 
-### Alertmanager receiver (notification channel)
+### Alertmanager receiver via self-hosted ntfy
 
 - **Why**: `pillar/alertmanager.sls` is empty, so the "null" receiver applies. Alerts from
-  `pillar/prometheus.sls` (DiskAlmostFull, RebootRequired, CertificateExpiringSoon) and
-  Wazuh (level >= 10, critical CVEs) are only visible if someone opens the UI or Grafana.
-- **Sketch**: pick one channel (ntfy, Telegram or mail), set `alertmanager:config` in
-  `pillar/alertmanager.sls` with the URL/token via `sdb.get` from OpenBao; route by severity,
-  group Wazuh alerts so a CVE burst is one message.
-- **Open**: which channel (self-hosted ntfy needs its own formula + homepage entry); whether
-  alerts should still arrive when the monitoring VM itself is down (dead-man's switch).
+  `pillar/prometheus.sls` (BackupFailed, RestoreTestFailed, ProbeFailed, DiskAlmostFull,
+  RebootRequired, …) and Wazuh are only visible if someone opens the UI or Grafana. ntfy is
+  tiny (~50 MB) and gives phone push without a third-party account.
+- **Sketch**: new `formulas/ntfy` (container, auth on, deny-all default, one topic per
+  severity) on an existing Docker host; a user + access token in OpenBao. Set
+  `alertmanager:config` in `pillar/alertmanager.sls` with a webhook receiver (ntfy speaks the
+  Alertmanager format via `?template=alertmanager` or a small bridge), token via `sdb.get`;
+  route by severity, group so a burst is one message. Homepage tile + backup entry (user DB).
+- **Open**: which host (not monitoring itself — alerts must still arrive when it's down);
+  dead-man's switch (Watchdog alert → external heartbeat, e.g. healthchecks.io) so a dead
+  monitoring VM is noticed; phone access from outside (ntfy.sh upstream relay vs. the
+  tailscale-router VM).
+
+### Reverse proxy + local DNS (names and TLS instead of IP:port)
+
+- **Why**: every UI is `http://192.168.178.x:port` — plain HTTP, credentials in clear text on
+  the LAN, browser password managers confused by shared IPs. Names also make later moves
+  (service to another VM) invisible to users and homepage.
+- **Sketch**: `formulas/caddy` (or Traefik) on one host, routes from pillar
+  (`name → upstream`), TLS from an internal CA (Caddy's `tls internal`, or a step-ca/OpenBao
+  PKI intermediate). Local DNS via AdGuard Home (bonus: network-wide ad/tracker blocking) with
+  a wildcard `*.home.<domain>` → proxy; FRITZ!Box hands it out as DNS server. Homepage
+  `href`s and blackbox probes switch to the names; `CertificateExpiringSoon` covers the certs.
+- **Open**: real domain + DNS-01 (Let's Encrypt, no CA to trust) vs. internal CA (root must be
+  installed on every client — manual, documented); AdGuard as single point of failure for DNS
+  (second instance or FRITZ!Box fallback); which services keep direct ports (Jellyfin TV apps,
+  salt-api, Wazuh agents). Root CA key is security-critical bootstrap → stays manual.
+
+### Single sign-on (OIDC, passkeys)
+
+- **Why**: every UI has its own local login and password. One IdP with passkeys/2FA is the
+  biggest security gain per GB of RAM: Grafana, Forgejo, Proxmox, OpenBao, Seerr and Jellyfin
+  (SSO plugin) all speak OIDC; the rest (*arr, qBittorrent, Prometheus) can sit behind
+  forward-auth on the reverse proxy.
+- **Sketch**: Pocket ID (passkey-only, tiny) or Authelia (forward-auth + OIDC, config-as-code
+  friendly) in its own formula; OIDC clients declared in pillar, client secrets in OpenBao
+  via `sdb.get`. Needs the reverse proxy item first (OIDC wants stable HTTPS URLs).
+- **Open**: Pocket ID vs. Authelia vs. Authentik (heaviest, most features); break-glass local
+  admin per service stays; IdP down = locked out → backup + its own probe; OpenBao/Proxmox
+  OIDC setup is security-critical → manual, documented.
+
+### CVE scanning with Trivy in Forgejo Actions
+
+- **Why**: Wazuh's vulnerability detector is the part of it that actually finds things, but
+  it costs an 8 GB VM plus an agent everywhere. Trivy scans the pinned images
+  (`formulas/*/map.jinja`) and the VMs' package lists for almost nothing, and fits the existing
+  Forgejo runner + Renovate flow. Prerequisite for retiring the wazuh VM, if that happens.
+- **Sketch**: scheduled Forgejo Actions workflow: extract image tags from `map.jinja`, `trivy
+  image` each, report HIGH/CRITICAL with a fix available; optionally `trivy rootfs`/SBOM per
+  minion via Salt. Results as a Forgejo issue (updated, not duplicated) or straight to ntfy.
+- **Open**: noise filtering (`--ignore-unfixed`, severity floor); where the vuln DB cache lives
+  on the runner; whether host-package CVEs are worth it given daily unattended-upgrades.
 
 ### Offsite copy of the restic repos
 
