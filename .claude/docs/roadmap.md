@@ -45,6 +45,9 @@ No order agreed; pick as needed.
   installed on every client — manual, documented); AdGuard as single point of failure for DNS
   (second instance or FRITZ!Box fallback); which services keep direct ports (Jellyfin TV apps,
   salt-api, Wazuh agents). Root CA key is security-critical bootstrap → stays manual.
+- **Decided (2026-11-01)**: proxy and CA in one — Caddy with its built-in CA (`tls internal`,
+  also an ACME server for other hosts) rather than nginx (no CA, certs must come from
+  elsewhere) + a separate step-ca. step-ca only later if SSH certificates are wanted.
 
 ### Single sign-on (OIDC, passkeys)
 
@@ -123,6 +126,60 @@ No order agreed; pick as needed.
 - **Open**: overlap with `RebootRequired` / a node_exporter textfile for pending updates
   (cheaper alternative: `apt-get -s upgrade` count → Prometheus alert); agent update path;
   whether it complements the Salt version-pin item (shows Salt drift across minions).
+
+### OWASP Dependency-Track (SBOM + vulnerability history)
+
+- **Why**: the Trivy item gives a point-in-time scan. Dependency-Track keeps an SBOM per image
+  and re-evaluates it as new CVEs appear, so "which running image is affected by CVE-X" is a
+  query, not a re-scan. Builds on the Trivy item.
+- **Sketch**: `formulas/dependency-track` (API server + frontend + postgres, ~4 GB) on a Docker
+  host; the Trivy workflow additionally emits CycloneDX SBOMs and uploads them per image
+  (project = image, version = pinned tag). Notifications via webhook → ntfy. API key in
+  OpenBao. Homepage tile + backup (postgres dump).
+- **Open**: RAM — realistic only after the wazuh VM is gone; whether old versions are
+  deleted on a Renovate bump (keep only the deployed tag); does it make the Trivy issue
+  report redundant.
+
+### Greenbone / OpenVAS (network vulnerability scanning)
+
+- **Why**: Trivy/Dependency-Track see image contents; nothing looks at the hosts from the
+  network side (open ports, weak TLS, default creds, outdated services on non-minions like
+  Proxmox, TrueNAS, FRITZ!Box, omada-controller).
+- **Sketch**: Greenbone Community containers on a Docker host, scheduled weekly scan of the
+  LAN range; scan target list from pillar (or later NetBox). Not always-on heavy if feeds +
+  scanner are stopped between runs. Homepage tile + backup (gvmd postgres: targets, results).
+- **Open**: RAM/CPU during scans (~4–8 GB); feed sync size; authenticated scans (SSH creds in
+  OpenBao) or unauthenticated only; how results reach ntfy (GMP API script vs. mail).
+
+### Nuclei (scheduled web-UI scanning)
+
+- **Why**: cheap complement to Greenbone for the web UIs on homepage — misconfigurations,
+  exposed admin panels, known CVEs in web apps — without a running service.
+- **Sketch**: Forgejo Actions scheduled job: target list rendered from `pillar/homepage.sls`
+  hrefs, `nuclei -severity medium,high,critical`, new findings → ntfy / Forgejo issue.
+- **Open**: runner must reach the LAN (it does, it runs on forgejo); template pinning so
+  results are reproducible; excluding intrusive templates (`-etags dos,fuzz`).
+
+### CyberChef + IT-Tools (browser toolboxes)
+
+- **Why**: decode/encode, hashes, JWT/cert inspection, regex, cron, subnet calc — locally
+  instead of pasting secrets into random websites.
+- **Sketch**: one `formulas/toolbox` with both static containers (stateless → no backup) on
+  homepage or another light Docker host; two homepage tiles in a "Tools" group; behind SSO
+  once that exists.
+- **Open**: none worth noting — pick host and ports.
+
+### Metrics for the non-minion infrastructure
+
+- **Why**: Proxmox nodes, TrueNAS and the FRITZ!Box are only TLS/HTTP-probed
+  (`pillar/prometheus.sls`) — no metrics for host RAM/CPU, ZFS pool health, disk SMART, WAN
+  bandwidth or DSL sync. Exactly the hosts everything else depends on.
+- **Sketch**: on monitoring: `prometheus-pve-exporter` (read-only PVE API token in OpenBao),
+  a FRITZ!Box exporter (TR-064, read-only user), TrueNAS via its built-in Graphite/Netdata
+  export or node_exporter-style app; alert rules for pool degraded, SMART failing, node RAM
+  pressure (relevant for the RAM rebalancing). Grafana dashboards from the community.
+- **Open**: TrueNAS SCALE version decides the export path; Scrutiny as the dedicated SMART UI
+  vs. alerts only.
 
 ### Offsite copy of the restic repos
 
