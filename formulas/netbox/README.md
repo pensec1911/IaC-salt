@@ -22,7 +22,8 @@ truth".
     instance instead of upstream's two, and without a password: no published port, nothing
     else on the network),
   - `netbox` — web UI/API on `http_port` (8000 → Granian 8080). Its entrypoint runs the DB
-    migrations on every start (first start: a minute or two before the UI answers),
+    migrations on every start (first start on forgejo: ~6 min before the UI answers; the worker
+    crash-loops until they are done),
   - `netbox-worker` — `rqworker` for background jobs, webhooks and NetBox's housekeeping
     system job (no separate housekeeping container/cron any more).
 - All NetBox settings come from env: the defaults in `map.jinja` `config` plus pillar
