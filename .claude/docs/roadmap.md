@@ -67,19 +67,6 @@ No order agreed; pick as needed.
   admin per service stays; IdP down = locked out → backup + its own probe; OpenBao/Proxmox
   OIDC setup is security-critical → manual, documented.
 
-### CVE scanning with Trivy in Forgejo Actions
-
-- **Why**: Wazuh's vulnerability detector is the part of it that actually finds things, but
-  it costs an 8 GB VM plus an agent everywhere. Trivy scans the pinned images
-  (`formulas/*/map.jinja`) and the VMs' package lists for almost nothing, and fits the existing
-  Forgejo runner + Renovate flow. Wazuh is switched off since 2026-11-11
-  (`pillar/features.jinja`), so right now nothing looks for CVEs at all.
-- **Sketch**: scheduled Forgejo Actions workflow: extract image tags from `map.jinja`, `trivy
-  image` each, report HIGH/CRITICAL with a fix available; optionally `trivy rootfs`/SBOM per
-  minion via Salt. Results as a Forgejo issue (updated, not duplicated) or straight to ntfy.
-- **Open**: noise filtering (`--ignore-unfixed`, severity floor); where the vuln DB cache lives
-  on the runner; whether host-package CVEs are worth it given daily unattended-upgrades.
-
 ### NetBox as source of truth (IPAM/DCIM)
 
 - **Why**: `inventory.md`, `pillar/*` and the Tofu `vms/*/main.tf` each hold IPs, ports and
@@ -110,7 +97,7 @@ No order agreed; pick as needed.
 
 - **Why**: every image in `formulas/*/map.jinja` is pulled from Docker Hub/ghcr/lscr at
   apply time. Zot caches them on-demand, so applies and rebuilds survive upstream outages,
-  rate limits and deleted tags, and gives Trivy one local place to scan.
+  rate limits and deleted tags, and gives the Trivy workflow one local place to scan.
 - **Sketch**: `formulas/zot` with `sync` extension in on-demand mode per upstream registry;
   storage on local disk (cache, rebuildable → no backup). Docker daemon `registry-mirrors`
   (formulas/docker pillar) covers Docker Hub; other registries need the image prefix rewritten
@@ -135,9 +122,9 @@ No order agreed; pick as needed.
 
 ### OWASP Dependency-Track (SBOM + vulnerability history)
 
-- **Why**: the Trivy item gives a point-in-time scan. Dependency-Track keeps an SBOM per image
-  and re-evaluates it as new CVEs appear, so "which running image is affected by CVE-X" is a
-  query, not a re-scan. Builds on the Trivy item.
+- **Why**: the Trivy workflow (`.forgejo/workflows/trivy.yml`) gives a weekly point-in-time
+  scan. Dependency-Track keeps an SBOM per image and re-evaluates it as new CVEs appear, so
+  "which running image is affected by CVE-X" is a query, not a re-scan.
 - **Sketch**: `formulas/dependency-track` (API server + frontend + postgres, ~4 GB) on a Docker
   host; the Trivy workflow additionally emits CycloneDX SBOMs and uploads them per image
   (project = image, version = pinned tag). Notifications via webhook → ntfy. API key in

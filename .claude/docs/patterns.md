@@ -94,6 +94,13 @@ above the `'tag'` line (also `'dind_image'`/`'dind_tag'`). Keep that shape in ne
 Renovate won't see them. Odd tag schemes get a `versioning` rule there (LSIO Jellyfin), and
 Forgejo is held on its LTS line. Merging is a deploy, so read the PR's release notes first.
 
+CVE scan: `.forgejo/workflows/trivy.yml` (Mondays 04:00 UTC, after every `map.jinja` change on
+main, or by hand via workflow_dispatch) runs Trivy over the same image/tag pairs and keeps one
+issue "Trivy: HIGH/CRITICAL CVEs in pinned images" in this repo current — only fixable
+findings (`--ignore-unfixed`); reopened on findings, closed when clean. The fix is a newer tag
+(Renovate PR). Trivy is a sha256-pinned release binary, bumped by hand in the workflow `env`.
+Host packages aren't scanned (unattended-upgrades).
+
 ## Homepage entries
 
 Every web UI in the homelab is an item in `pillar/homepage.sls` — added in the same change that

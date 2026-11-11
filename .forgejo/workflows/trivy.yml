@@ -1,0 +1,42 @@
+# CVE scan of every pinned container image (formulas/*/map.jinja, the same
+# 'image'/'tag' pairs Renovate tracks) with Trivy. Reports HIGH/CRITICAL
+# vulnerabilities that have a fixed package version upstream, as one Forgejo
+# issue that is updated in place, reopened when findings come back and closed
+# when the scan is clean. Host packages are not scanned: unattended-upgrades
+# patches Debian daily (formulas/unattended-upgrades).
+#
+# Trivy comes as a pinned release binary checked against its sha256 — not
+# aquasecurity/trivy-action, whose tags were hijacked in March 2026.
+name: trivy
+
+on:
+  schedule:
+    - cron: '0 4 * * 1' # Mondays 04:00 UTC
+  push:
+    branches: [main]
+    paths: ['formulas/*/map.jinja'] # an image bump re-scans right away
+  workflow_dispatch:
+
+jobs:
+  images:
+    runs-on: docker
+    timeout-minutes: 90
+    env:
+      TRIVY_VERSION: 0.76.1
+      TRIVY_SHA256: c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install trivy
+        run: |
+          f="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          curl -fsSL -o "/tmp/$f" "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/$f"
+          echo "${TRIVY_SHA256}  /tmp/$f" | sha256sum -c -
+          tar -xzf "/tmp/$f" -C /usr/local/bin trivy
+          trivy --version
+
+      - name: scan images and update the issue
+        env:
+          # Automatic per-job credential, may edit this repo's issues.
+          FORGEJO_TOKEN: ${{ secrets.GITHUB_TOKEN }} # secret-scan: allow
+        run: node .forgejo/scripts/trivy-images.mjs
