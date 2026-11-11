@@ -1,6 +1,7 @@
 base:
   '*':
     - GLOBAL
+    - wazuh-agent
     - ntp
 
   'homepage,monitoring,salt-master,forgejo':
@@ -15,7 +16,7 @@ base:
     - match: list
     - salt-minion-beacons
 
-  'arrstack,jellyfin,monitoring,forgejo':
+  'arrstack,jellyfin,monitoring,wazuh,forgejo':
     - match: list
     - backup
 
@@ -42,6 +43,9 @@ base:
     - nfs-mount
     - arrstack
     - seerr
+
+  'wazuh':
+    - wazuh
 
   'jellyfin':
     - jellyfin

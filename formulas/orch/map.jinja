@@ -38,7 +38,8 @@
    push: overrides on top of rollout for orch.push, the run
    formulas/salt-master's reactor starts on a push. enforce_check keeps it
    to minions whose drift check may repair right now (formulas/salt-minion
-   --enforce-allowed) — by day that leaves out arrstack/jellyfin. The path is salt-minion's drift_check:script; if
+   --enforce-allowed) — by day that leaves out arrstack/jellyfin, and wazuh
+   (no enforce) always. The path is salt-minion's drift_check:script; if
    that moves, this must follow, or push selects no minion at all.
 
    timer: starts the run daily at on_calendar. Deliberately not Persistent —

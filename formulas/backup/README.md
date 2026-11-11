@@ -1,7 +1,7 @@
 # backup formula
 
 Nightly [restic](https://restic.net/) backup of the data Salt can't rebuild (app config and
-databases under `/opt`) into one repo per minion on the NAS. Images and
+databases under `/opt`, wazuh's keys and certs) into one repo per minion on the NAS. Images and
 Salt-rendered config are reproducible and not backed up.
 
 ## What it manages
@@ -106,7 +106,7 @@ Keep a copy of that password **outside** the homelab (password manager): the bac
 for the case where VMs — and maybe OpenBao — are gone. Without it the repos can't be read.
 
 All four repos share this one password and all minions write to the same dataset as the same
-NAS user, so root on any backup minion can read (and delete) every repo.
+NAS user, so root on any backup minion can read (and delete) every repo — incl. wazuh's CA key.
 Per-minion passwords: change the sdb path in `pillar/backup.sls` to
 `restic/{{ grains['id'] }}` — but see the next section for the existing repos.
 

@@ -47,7 +47,7 @@ see [secrets.md](secrets.md#bootstrap-the-approle).
 
 - `salt/top.sls` matches **minion ID**, not grains. Every VM is exactly one role. Don't add grain
   indirection until a role really spans more than one minion.
-- `pillar/top.sls` mirrors it: `'*': [GLOBAL, ntp]` plus one entry per minion that needs
+- `pillar/top.sls` mirrors it: `'*': [GLOBAL, wazuh-agent]` plus one entry per minion that needs
   data, using the same minion ID.
 - Runtime data (dashboard entries, mounts, VPN settings…) lives in `pillar/<name>.sls` — edit
   that, not anything under `formulas/` or `salt/`.

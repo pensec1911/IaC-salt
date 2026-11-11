@@ -7,7 +7,7 @@
    dict, so pillar can add or tweak modules via merge=True.
    http_up: "the UI answers" — 401/403 count as up (Sonarr/Radarr/Prowlarr/
    Bazarr ask for a login, 2026-10-20), redirects are followed, and TLS
-   isn't verified (Proxmox, TrueNAS, OpenBao use self-signed certs —
+   isn't verified (Proxmox, TrueNAS, OpenBao, Wazuh use self-signed certs —
    the probe is about reachability, not trust). #}
 {%- set defaults = {
     'image': 'prom/blackbox-exporter',

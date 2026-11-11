@@ -2,6 +2,7 @@ base:
   'salt-master':
     - users
     - ntp
+    - wazuh-agent
     - node-exporter
     - unattended-upgrades
     - salt-minion
@@ -11,6 +12,7 @@ base:
   'homepage':
     - users
     - ntp
+    - wazuh-agent
     - node-exporter
     - unattended-upgrades
     - salt-minion
@@ -22,6 +24,7 @@ base:
   'monitoring':
     - users
     - ntp
+    - wazuh-agent
     - node-exporter
     - unattended-upgrades
     - salt-minion
@@ -39,6 +42,7 @@ base:
   'arrstack':
     - users
     - ntp
+    - wazuh-agent
     - node-exporter
     - unattended-upgrades
     - salt-minion
@@ -50,9 +54,20 @@ base:
     - seerr
     - backup
 
+  'wazuh':
+    - users
+    - ntp
+    - node-exporter
+    - unattended-upgrades
+    - salt-minion
+    - wazuh
+    - nfs-mount
+    - backup
+
   'jellyfin':
     - users
     - ntp
+    - wazuh-agent
     - node-exporter
     - unattended-upgrades
     - salt-minion
@@ -66,6 +81,7 @@ base:
   'forgejo':
     - users
     - ntp
+    - wazuh-agent
     - node-exporter
     - unattended-upgrades
     - salt-minion
@@ -84,5 +100,6 @@ base:
   # Add one entry per VM as its formula is built out, e.g.:
   # '<minion-id>':
   #   - users
+  #   - wazuh-agent
   #   - node-exporter
   #   - <formula>

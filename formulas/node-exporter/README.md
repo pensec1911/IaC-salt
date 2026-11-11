@@ -4,8 +4,8 @@ Installs Prometheus' [node_exporter](https://github.com/prometheus/node_exporter
 own `prometheus-node-exporter` package and keeps the service running. Host metrics (CPU, RAM,
 disk, network, filesystems incl. NFS mounts) on `:9100/metrics`.
 
-A package rather than a container because it goes on **every** minion — `salt-master` has
-no Docker. The package creates its own `prometheus` system user, so nothing comes
+A package rather than a container because it goes on **every** minion — `salt-master` and
+`wazuh` have no Docker. The package creates its own `prometheus` system user, so nothing comes
 from the `users` formula.
 
 ## What it manages
@@ -23,13 +23,13 @@ the file.
 
 ## Usage
 
-Every minion, right after `ntp`:
+Every minion, right after `wazuh-agent`:
 
 ```yaml
 # salt/top.sls
 'some-minion':
   - users
-  - ntp
+  - wazuh-agent
   - node-exporter
 ```
 

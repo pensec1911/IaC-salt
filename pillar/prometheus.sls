@@ -211,7 +211,7 @@ prometheus:
           annotations:
             summary: {% raw %}"{{ $labels.instance }} clock is {{ $value | humanizeDuration }} off its NTP source"{% endraw %}
         {#- Only HTTPS probe targets have the metric. The self-signed ones
-           (Proxmox, TrueNAS, OpenBao) are checked too — TLS isn't
+           (Proxmox, TrueNAS, OpenBao, Wazuh) are checked too — TLS isn't
            verified (blackbox http_up), but expiry still is; all run for
            ~1–10 years (2026-10-26), so no exclusions. #}
         - alert: CertificateExpiringSoon

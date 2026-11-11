@@ -19,7 +19,7 @@ No order agreed; pick as needed.
 
 - **Why**: `pillar/alertmanager.sls` is empty, so the "null" receiver applies. Alerts from
   `pillar/prometheus.sls` (BackupFailed, RestoreTestFailed, ProbeFailed, DiskAlmostFull,
-  RebootRequired, …) are only visible if someone opens the UI or Grafana. ntfy is
+  RebootRequired, …) and Wazuh are only visible if someone opens the UI or Grafana. ntfy is
   tiny (~50 MB) and gives phone push without a third-party account.
 - **Sketch**: new `formulas/ntfy` (container, auth on, deny-all default, one topic per
   severity) on an existing Docker host; a user + access token in OpenBao. Set
@@ -44,7 +44,7 @@ No order agreed; pick as needed.
 - **Open**: real domain + DNS-01 (Let's Encrypt, no CA to trust) vs. internal CA (root must be
   installed on every client — manual, documented); AdGuard as single point of failure for DNS
   (second instance or FRITZ!Box fallback); which services keep direct ports (Jellyfin TV apps,
-  salt-api). Root CA key is security-critical bootstrap → stays manual.
+  salt-api, Wazuh agents). Root CA key is security-critical bootstrap → stays manual.
 - **To decide when it's built** — proxy and CA:
   - *Caddy*: proxy + built-in CA in one (`tls internal`, can also serve ACME to other hosts);
     simplest, config is one Caddyfile from pillar. Leaning this way.
@@ -69,10 +69,10 @@ No order agreed; pick as needed.
 
 ### CVE scanning with Trivy in Forgejo Actions
 
-- **Why**: with Wazuh gone (2026-11-11) nothing looks for CVEs. Its vulnerability detector was
-  the part that actually found things, at the cost of an 8 GB VM plus an agent everywhere. Trivy
-  scans the pinned images (`formulas/*/map.jinja`) and the VMs' package lists for almost
-  nothing, and fits the existing Forgejo runner + Renovate flow.
+- **Why**: Wazuh's vulnerability detector is the part of it that actually finds things, but
+  it costs an 8 GB VM plus an agent everywhere. Trivy scans the pinned images
+  (`formulas/*/map.jinja`) and the VMs' package lists for almost nothing, and fits the existing
+  Forgejo runner + Renovate flow. Prerequisite for retiring the wazuh VM, if that happens.
 - **Sketch**: scheduled Forgejo Actions workflow: extract image tags from `map.jinja`, `trivy
   image` each, report HIGH/CRITICAL with a fix available; optionally `trivy rootfs`/SBOM per
   minion via Salt. Results as a Forgejo issue (updated, not duplicated) or straight to ntfy.
@@ -122,7 +122,7 @@ No order agreed; pick as needed.
 ### PatchMon (patch visibility per host)
 
 - **Why**: unattended-upgrades patches Debian main/security daily, but the excluded repos
-  (Docker, Salt — on purpose, `formulas/unattended-upgrades`) and non-minions (OpenBao,
+  (Docker, Salt, Wazuh — on purpose, `formulas/unattended-upgrades`) and non-minions (OpenBao,
   omada-controller, tailscale-router, Proxmox nodes) are invisible today. PatchMon shows
   pending updates per host in one place.
 - **Sketch**: `formulas/patchmon` (server container + DB) on a Docker host; `formulas/
@@ -141,7 +141,7 @@ No order agreed; pick as needed.
   host; the Trivy workflow additionally emits CycloneDX SBOMs and uploads them per image
   (project = image, version = pinned tag). Notifications via webhook → ntfy. API key in
   OpenBao. Homepage tile + backup (postgres dump).
-- **Open**: RAM (~4 GB, freed by retiring the wazuh VM, but other VMs come first); whether old versions are
+- **Open**: RAM — realistic only after the wazuh VM is gone; whether old versions are
   deleted on a Renovate bump (keep only the deployed tag); does it make the Trivy issue
   report redundant.
 
@@ -222,21 +222,7 @@ No order agreed; pick as needed.
   files, new systemd units, new `authorized_keys`) → ntfy. Homepage tile + backup (datastore,
   server config — the CA key in it is security-critical).
 - **Open**: server cert/CA generation is security-critical bootstrap → manual, documented;
-  an alternative to bringing Wazuh back (see below), not both; datastore growth.
-
-### Security monitoring again (Wazuh or a lighter stack)
-
-- **Why**: Wazuh (manager + indexer + dashboard on its own 8 GB VM .27, agent on every minion)
-  was retired on 2026-11-11 to free RAM for more essential VMs/services first. Since then
-  there is no SIEM, no FIM and no vulnerability detection on the hosts.
-- **Sketch**: either restore it as it was — `formulas/wazuh`, `formulas/wazuh-agent`, their
-  pillars, homepage/backup/orch entries and the `renamed_logins` entry in `pillar/GLOBAL.sls`
-  are all in commit `173b6e6` (`git show 173b6e6:formulas/wazuh/README.md` has the manual
-  bootstrap; OpenBao `wazuh/*` secrets) — or replace it with the lighter pieces in this file:
-  Trivy/Dependency-Track (CVEs), Velociraptor (forensics), Loki alert rules on the journal
-  (logins, sudo).
-- **Open**: RAM after the essential services are in; whether full Wazuh is worth 8 GB vs. the
-  lighter combination; a VM named `wazuh` needs its login renamed again (patterns.md "users").
+  replaces or complements wazuh-agent (both is pointless once Wazuh goes); datastore growth.
 
 ### Offsite copy of the restic repos
 
@@ -247,7 +233,7 @@ No order agreed; pick as needed.
   `restic copy` from each NAS repo to an S3/B2/Hetzner-style target, with credentials and the
   repo password via `sdb.get` from OpenBao. Pillar-driven in `formulas/backup`; weekly, after
   the restore test.
-- **Open**: which provider; whether copying only forgejo and the *arr/jellyfin
+- **Open**: which provider; whether copying only forgejo, wazuh keys and the *arr/jellyfin
   configs (not media) is enough; how the offsite repo password is kept outside OpenBao itself
   (losing OpenBao loses the key to the copy). OpenBao isn't backed up at all yet
   (known-issues.md "Backup gaps") — fix that first, then its snapshot goes offsite too.

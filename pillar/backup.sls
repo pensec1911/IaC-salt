@@ -1,6 +1,6 @@
 {#- formulas/backup — nightly restic run per minion into its own repo
    /mnt/backups/<minion> on the NAS (export /mnt/pool01/backups). Only data
-   Salt can't rebuild: app config/DBs under /opt.
+   Salt can't rebuild: app config/DBs under /opt, wazuh's keys and certs.
    Images and Salt-rendered config are reproducible and stay out; so do
    logs, caches and Prometheus/Loki data (rebuilt from scratch is fine) —
    e.g. recyclarr/resources, the TRaSH Guides clones (~75 MB) recyclarr
@@ -36,6 +36,19 @@
         'paths': ['/opt/grafana/data', '/opt/alertmanager/data'],
         'excludes': [],
         'stop_containers': ['grafana'],
+    },
+    'wazuh': {
+        'paths': [
+            '/var/ossec/etc',
+            '/var/ossec/api/configuration',
+            '/etc/wazuh-indexer/certs',
+            '/etc/wazuh-indexer/opensearch-security',
+            '/etc/wazuh-dashboard/certs',
+            '/etc/filebeat/certs',
+            '/root/wazuh-certificates.tar',
+        ],
+        'excludes': [],
+        'stop_containers': [],
     },
 } %}
 {%- set this = per_minion.get(grains['id'], {'paths': [], 'excludes': [], 'stop_containers': []}) %}

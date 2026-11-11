@@ -9,6 +9,7 @@ orch:
       order:
         - monitoring
         - homepage
+        - wazuh
         - arrstack
         - jellyfin
       master_id: salt-master
@@ -19,6 +20,7 @@ orch:
       order:
         - monitoring
         - homepage
+        - wazuh
         - arrstack
         - jellyfin
       master_id: salt-master

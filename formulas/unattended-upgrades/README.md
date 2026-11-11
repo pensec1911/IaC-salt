@@ -13,8 +13,9 @@ enabled; this formula pins that state down and adds metrics + alerts.
   writes `/var/lib/prometheus/node-exporter/os_patch.prom`.
 
 **Third-party repos are not patched unattended.** The shipped `Origins-Pattern` only matches
-Debian, so `docker-ce`/`containerd.io` (Docker repo) and `salt-minion` (Artifactory) only change when
-bumped deliberately — a containerd upgrade restarts every container.
+Debian, so `docker-ce`/`containerd.io` (Docker repo), `salt-minion` (Artifactory) and
+`wazuh-agent`/`wazuh-*` (Wazuh repo) only change when bumped deliberately — the agent has to
+match the manager's version, a containerd upgrade restarts every container.
 
 **u-u itself never reboots.** A kernel/libc upgrade leaves `/run/reboot-required` (Debian's
 `/etc/kernel/postinst.d/unattended-upgrades` hook, packages in `/run/reboot-required.pkgs`);

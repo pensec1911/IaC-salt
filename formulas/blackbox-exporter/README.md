@@ -14,7 +14,7 @@ cAdvisor only shows that a container runs; this shows that the app behind it ans
   65534:65534 (the image would run as root). Restarts when `config.yml` changes.
 
 Default module `http_up`: follows redirects, accepts 200/204/**401/403** (login-protected UIs are
-up), skips TLS verification (self-signed certs on Proxmox, TrueNAS, OpenBao), IPv4 only.
+up), skips TLS verification (self-signed certs on Proxmox, TrueNAS, OpenBao, Wazuh), IPv4 only.
 
 ## Targets: the homepage list
 
