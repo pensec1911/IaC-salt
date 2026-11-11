@@ -1,0 +1,64 @@
+{#- Four containers on a private docker network (`network`): netbox (web,
+   Granian on 8080 inside, published on http_port), netbox-worker (rqworker:
+   background jobs, webhooks and NetBox's own housekeeping system job),
+   postgres and valkey. Only netbox publishes a port; postgres/valkey are
+   reachable from that network only. Layout follows upstream
+   netbox-community/netbox-docker, except: one valkey for both the task
+   queue (DB 0) and the cache (DB 1) instead of two, and no password on it
+   (no published port, nothing else on the network).
+
+   tag = <NetBox version>-<netbox-docker version> (Renovate: versioning rule
+   in renovate.json). The image's own configuration.py is used as-is; all
+   settings come from env (`config`, merged over the defaults below) and
+   secret files.
+
+   Secrets (OpenBao via pillar) are written as files to secrets_dir and
+   bound to /run/secrets, where the image's configuration.py and
+   POSTGRES_PASSWORD_FILE read them — never in env, so not in `docker
+   inspect`. secret_key (>= 50 chars), db_password, api_token_pepper (>= 50
+   chars, needed for v2 API tokens). All three required: the formula fails
+   on a blank or unresolved one.
+
+   media_uid: the image's `netbox` user (uid 999, gid 0, upstream
+   Dockerfile) — owns media_dir. No host account: nothing on the host acts
+   as it. postgres/valkey chown their own data dirs on start.
+
+   dump_dir: where formulas/backup's pre-run pg_dump goes. pillar/backup.sls
+   `dumps` repeats this path and postgres_container_name — change both
+   together. Listed here only so the dir exists with the right mode. #}
+{%- set defaults = {
+    'image': 'docker.io/netboxcommunity/netbox',
+    'tag': 'v4.7.5-5.1.1',
+    'postgres_image': 'docker.io/library/postgres',
+    'postgres_tag': '18.6-alpine',
+    'valkey_image': 'docker.io/valkey/valkey',
+    'valkey_tag': '9.1.3-alpine',
+    'container_name': 'netbox',
+    'worker_container_name': 'netbox-worker',
+    'postgres_container_name': 'netbox-postgres',
+    'valkey_container_name': 'netbox-valkey',
+    'network': 'netbox',
+    'http_port': 8000,
+    'base_dir': '/opt/netbox',
+    'media_dir': '/opt/netbox/media',
+    'postgres_dir': '/opt/netbox/postgres',
+    'valkey_dir': '/opt/netbox/valkey',
+    'secrets_dir': '/opt/netbox/secrets',
+    'dump_dir': '/opt/netbox/dump',
+    'media_uid': 999,
+    'media_gid': 0,
+    'db_name': 'netbox',
+    'db_user': 'netbox',
+    'timezone': 'Etc/UTC',
+    'secret_key': '',
+    'db_password': '',
+    'api_token_pepper': '',
+    'config': {
+        'ALLOWED_HOSTS': '*',
+        'SKIP_SUPERUSER': 'true',
+        'METRICS_ENABLED': 'false',
+        'GRAPHQL_ENABLED': 'true',
+        'WEBHOOKS_ENABLED': 'true',
+    },
+} %}
+{%- set netbox = salt['pillar.get']('netbox:lookup', default=defaults, merge=True) %}

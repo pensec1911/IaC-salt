@@ -105,6 +105,7 @@ base:
     - alloy
     - forgejo
     - forgejo-runner
+    - netbox
     - backup
 
   # Targeting is by minion ID, which matches the Tofu VM `name` in

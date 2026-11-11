@@ -14,6 +14,15 @@ backup:
     stop_containers:
       - someapp
     stop_timeout_seconds: 60
+    # Server DBs, dumped via `docker exec <container> <command>` (stdout ->
+    # file) before restic runs. file must be inside paths; exclude the live
+    # data dir. The container keeps running. format pg_custom = pg_dump -Fc,
+    # header-checked by the restore test.
+    dumps:
+      - container: someapp-postgres
+        command: [pg_dump, -U, someapp, -Fc, someapp]
+        file: /opt/someapp/dump/someapp.pgdump
+        format: pg_custom
     # restic forget --keep-<unit> <n> after each backup, then --prune.
     keep:
       daily: 7

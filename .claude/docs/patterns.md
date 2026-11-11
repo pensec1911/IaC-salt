@@ -17,6 +17,8 @@ formula declares `require: - user: user-<name>`.
   `PUID`/`PGID`, a container `user:` override). Then pin it in pillar **and** in the formula's
   `map.jinja`, avoiding 65534/`nobody` and the 1000+ range (the per-minion login account from
   `GLOBAL` lands there).
+- Not every container needs a host account: if nothing on the host acts as the image's own
+  user, own its dir by the image uid from map.jinja (netbox: 999:0).
 - Pinned today: `media` = 970:970 (arrstack + jellyfin, owns the NAS media share), `seerr` =
   971:971 (container `user:` override, image default is uid 1000).
 - `GLOBAL` creates a sudo login account named after the minion — **unless that name is a
@@ -90,7 +92,8 @@ deliberately.
 
 Renovate (repo `homelab/renovate`, hourly on the forgejo runner) opens a PR per bump. It finds
 the pins with a regex manager in `renovate.json`, which expects the `'image'` line directly
-above the `'tag'` line (also `'dind_image'`/`'dind_tag'`). Keep that shape in new formulas, or
+above the `'tag'` line (also prefixed pairs: `'dind_image'`/`'dind_tag'`,
+`'postgres_image'`/`'postgres_tag'`, …). Keep that shape in new formulas, or
 Renovate won't see them. Odd tag schemes get a `versioning` rule there (LSIO Jellyfin), and
 Forgejo is held on its LTS line. Merging is a deploy, so read the PR's release notes first.
 
@@ -138,9 +141,9 @@ Every service with state Salt can't rebuild (app config, databases, keys/certs) 
   restores the latest snapshot and runs `PRAGMA integrity_check` on every SQLite file;
   `RestoreTestFailed`/`RestoreTestStale` alert. After adding paths, run
   `systemctl start restic-backup.service` then `restic-restore-test.service` once.
-- **Postgres/MySQL/other server DBs**: a file copy of a running server isn't consistent and the
-  restore test only checks SQLite. Needs a dump step before the run (not built yet) — add it to
-  formulas/backup, don't just list the data dir.
+- **Postgres/MySQL/other server DBs**: a file copy of a running server isn't consistent. Add a
+  `dumps` entry (`docker exec` dump into a file under `paths`, pre-run) and exclude the live
+  data dir; the restore test checks the dump's header. Example: netbox on forgejo.
 - **No entry** for stateless services (exporters, FlareSolverr) or data that's fine to lose
   (Prometheus/Loki TSDB).
 

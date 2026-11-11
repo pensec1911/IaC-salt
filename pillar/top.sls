@@ -55,3 +55,4 @@ base:
 
   'forgejo':
     - forgejo
+    - netbox

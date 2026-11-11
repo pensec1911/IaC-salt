@@ -7,7 +7,8 @@
 # readable and the data usable, which the nightly run's structure-only
 # `restic check` doesn't. Steps: `restic check --read-data-subset` (random
 # pack sample), restore this host's latest snapshot into a temp dir with
-# --verify, then `PRAGMA integrity_check` on every SQLite file in it. The
+# --verify, then `PRAGMA integrity_check` on every SQLite file in it and a
+# header check of every DB dump (backup:lookup:dumps). The
 # outcome goes out as node-exporter textfile metrics (restore_test_*).
 # RESTIC_REPOSITORY / RESTIC_PASSWORD_FILE / RESTIC_CACHE_DIR come from the
 # unit's EnvironmentFile. Containers keep running — it only reads the repo.
@@ -29,7 +30,11 @@ TMP_DIR = "{{ rt.tmp_dir }}"
 MIN_FREE_BYTES = {{ rt.min_free_bytes | int }}
 OUT = "{{ backup.textfile_dir }}/{{ rt.metrics_file }}"
 
+DUMPS = {{ backup.dumps | json }}
+
 SQLITE_MAGIC = b"SQLite format 3\x00"
+# pg_dump -Fc archives start with this.
+DUMP_MAGIC = {"pg_custom": b"PGDMP"}
 
 
 def log(msg):
@@ -91,6 +96,26 @@ def check_sqlite(root):
     return checked, bad
 
 
+def check_dumps(root):
+    """(dumps checked, dumps missing/empty/with a wrong header)."""
+    checked, bad = 0, 0
+    for d in DUMPS:
+        checked += 1
+        path = os.path.join(root, d["file"].lstrip("/"))
+        magic = DUMP_MAGIC.get(d.get("format", ""), b"")
+        try:
+            with open(path, "rb") as f:
+                head = f.read(max(len(magic), 1))
+        except OSError as e:
+            bad += 1
+            log("{}: {}".format(d["file"], e))
+            continue
+        if not head or not head.startswith(magic):
+            bad += 1
+            log("{}: empty or not a {} dump".format(d["file"], d.get("format") or "?"))
+    return checked, bad
+
+
 def run():
     """Restore stats of a fully successful test, else None."""
     if not os.path.ismount(MOUNT):
@@ -129,14 +154,16 @@ def run():
                   "--retry-lock", RETRY_LOCK).returncode != 0:
             return None
         checked, bad = check_sqlite(target)
+        dumps, bad_dumps = check_dumps(target)
     finally:
         shutil.rmtree(target, ignore_errors=True)
     log("snapshot {}: {} bytes restored and verified, {} SQLite files checked, "
-        "{} failed".format(snap[:8], size, checked, bad))
-    if bad:
+        "{} failed; {} DB dumps checked, {} failed".format(
+            snap[:8], size, checked, bad, dumps, bad_dumps))
+    if bad or bad_dumps:
         return None
     return {"bytes": size, "files": stats.get("total_file_count", 0),
-            "sqlite": checked}
+            "sqlite": checked, "dumps": dumps}
 
 
 def previous_success():
@@ -176,6 +203,8 @@ def main():
                result["files"])
         metric("restore_test_sqlite_files", "SQLite files the last restore test checked",
                result["sqlite"])
+        metric("restore_test_dump_files", "DB dumps the last restore test checked",
+               result["dumps"])
     metric("restore_test_duration_seconds", "Duration of the last restore test",
            round(time.time() - started, 3))
     metric("restore_test_last_run_timestamp_seconds",

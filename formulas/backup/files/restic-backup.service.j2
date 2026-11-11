@@ -4,6 +4,11 @@
 Description=restic backup to the NAS
 Wants=network-online.target
 After=network-online.target
+{%- if backup.dumps %}
+# dumps run via docker exec.
+Wants=docker.service
+After=docker.service
+{%- endif %}
 # Fails (no metrics written -> BackupStale) instead of running without the share.
 RequiresMountsFor={{ backup.repo_base }}
 

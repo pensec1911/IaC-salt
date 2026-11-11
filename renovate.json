@@ -5,11 +5,10 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Pinned container images in formulas/*/map.jinja ('image' line, then 'tag' line; also the dind_ pair of forgejo-runner)",
+      "description": "Pinned container images in formulas/*/map.jinja ('image' line, then 'tag' line; also prefixed pairs like dind_image/dind_tag)",
       "managerFilePatterns": ["/^formulas/[^/]+/map\\.jinja$/"],
       "matchStrings": [
-        "'image':\\s*'(?<depName>[^']+)',\\s*\\n\\s*'tag':\\s*'(?<currentValue>[^']+)'",
-        "'dind_image':\\s*'(?<depName>[^']+)',\\s*\\n\\s*'dind_tag':\\s*'(?<currentValue>[^']+)'"
+        "'(?:[a-z]+_)?image':\\s*'(?<depName>[^']+)',\\s*\\n\\s*'(?:[a-z]+_)?tag':\\s*'(?<currentValue>[^']+)'"
       ],
       "datasourceTemplate": "docker"
     }
@@ -24,6 +23,11 @@
       "description": "LSIO Jellyfin tags: <major>.<minor>[.<patch>]ubu<ubuntu>-ls<build>",
       "matchDepNames": ["lscr.io/linuxserver/jellyfin"],
       "versioning": "regex:^(?<major>\\d+)\\.(?<minor>\\d+)(?:\\.(?<patch>\\d+))?ubu(?<compatibility>\\d+)-ls(?<build>\\d+)$"
+    },
+    {
+      "description": "netbox-docker tags: v<NetBox version>-<netbox-docker version>; ordered by NetBox, then the image's major.minor",
+      "matchDepNames": ["docker.io/netboxcommunity/netbox"],
+      "versioning": "regex:^v(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)-(?<build>\\d+)\\.(?<revision>\\d+)\\.\\d+$"
     }
   ]
 }

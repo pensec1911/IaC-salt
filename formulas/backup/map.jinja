@@ -12,6 +12,14 @@
    Empty default: the formula installs everything but backs up nothing
    until pillar says what.
 
+   dumps: database dumps taken before restic runs, for server DBs whose
+   live data dir isn't safe to copy (Postgres). Each: container, command
+   (argv run via `docker exec`, writes the dump to stdout), file (host path,
+   inside `paths`), format ('pg_custom' = pg_dump -Fc; the restore test
+   checks its header). Written to <file>.tmp and renamed, so a failed dump
+   never replaces the last good one — and fails the run. The container must
+   keep running, so it can't be in stop_containers (those stop first).
+
    stop_containers: stopped for the run and started again afterwards (by
    the unit, ExecStopPost, so also after a failed or timed-out run) — the
    apps' SQLite databases aren't safe to copy while open.
@@ -49,6 +57,7 @@
     'paths': [],
     'excludes': [],
     'stop_containers': [],
+    'dumps': [],
     'stop_timeout_seconds': 60,
     'keep': {'daily': 7, 'weekly': 4, 'monthly': 6},
     'retry_lock': '10m',

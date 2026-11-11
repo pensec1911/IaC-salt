@@ -9,7 +9,7 @@ Salt-rendered config are reproducible and not backed up.
 - `restic` package (Debian).
 - `/etc/restic/password` (0600, from pillar, i.e. OpenBao `restic/repo`) and `/etc/restic/env`
   (`RESTIC_REPOSITORY=/mnt/backups/<minion>`, password file, cache dir).
-- `/usr/local/sbin/restic-backup`: init the repo on first use → `restic backup` →
+- `/usr/local/sbin/restic-backup`: DB dumps (`dumps`, see below) → init the repo on first use → `restic backup` →
   `forget --prune` (default keep 7 daily / 4 weekly / 6 monthly) → `restic check` (structure,
   no data read) → node-exporter textfile metrics.
 - `restic-backup.service` (oneshot, root, `RequiresMountsFor=/mnt/backups`) and
@@ -20,6 +20,12 @@ Salt-rendered config are reproducible and not backed up.
 - `stop_containers` are stopped before the run and started again afterwards (`ExecStopPost`,
   so also after a failure or timeout): the apps' SQLite databases aren't safe to copy while
   open. arrstack: ~1 min without Sonarr/Radarr/qBittorrent/…; gluetun stays up.
+
+- `dumps` — server databases (Postgres) whose live data dir isn't safe to copy: before restic
+  runs, each is dumped via `docker exec <container> <command>` into `file` (inside `paths`;
+  written to `.tmp` and renamed, so a failed dump fails the run and leaves the last good one).
+  Exclude the live data dir. The container must keep running (not in `stop_containers`).
+  Today: netbox's Postgres on forgejo (`pillar/backup.sls`).
 
 The share comes from `nfs-mount` (`nfs_mounts` entry `backups`, `nofail` +
 `skip_required_by`: a refused export never keeps the VM or Docker from starting), so `nfs-mount` and
@@ -69,12 +75,15 @@ nightly structure-only `check`:
 2. The minion's latest snapshot is restored with `--verify` into a temp dir under `/var/tmp`
    (deleted afterwards). Fails up front if less than 2 GiB would stay free.
 3. `PRAGMA integrity_check` on every SQLite file in it (detected by header, `-wal` applied).
+4. Every `dumps` file exists in the restore, is non-empty and has the right header
+   (`pg_custom`: `PGDMP`). That proves a dump was taken, not that it restores cleanly — a
+   real `pg_restore` test would need a scratch Postgres.
 
 It only reads the repo — no containers are stopped, so overlapping the arrstack/jellyfin
 enforce window is fine. Metrics in `restore-test.prom`: `restore_test_success`,
 `restore_test_last_success_timestamp_seconds`, `restore_test_last_run_timestamp_seconds`,
 `restore_test_duration_seconds`, and after a success `restore_test_restored_bytes` /
-`_files` / `restore_test_sqlite_files`. Alerts: `RestoreTestFailed`, `RestoreTestStale`
+`_files` / `restore_test_sqlite_files` / `restore_test_dump_files`. Alerts: `RestoreTestFailed`, `RestoreTestStale`
 (no success for 8 days). Schedule, sample size, temp dir: `restore_test` in `map.jinja`.
 
 Run it now: `systemctl start restic-restore-test.service`, then

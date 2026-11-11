@@ -8,7 +8,12 @@
 
    stop_containers: every container with a SQLite DB in the backed-up
    paths. arrstack: gluetun and flaresolverr keep running — the attached
-   apps stop and start inside gluetun's network namespace, which stays. #}
+   apps stop and start inside gluetun's network namespace, which stays.
+
+   dumps: server DBs (Postgres) are dumped before the run instead of
+   copying their live data dir, which is excluded (netbox: the dump lands
+   in /opt/netbox/dump; secrets come from OpenBao, valkey is only a queue/
+   cache). The dumped container keeps running. #}
 {%- set per_minion = {
     'arrstack': {
         'paths': ['/opt/arrstack', '/opt/seerr'],
@@ -23,9 +28,21 @@
         'stop_containers': ['sonarr', 'radarr', 'prowlarr', 'bazarr', 'qbittorrent', 'slskd', 'seerr'],
     },
     'forgejo': {
-        'paths': ['/opt/forgejo'],
-        'excludes': ['/opt/forgejo/data/tmp', '/opt/forgejo/data/repo-archive'],
+        'paths': ['/opt/forgejo', '/opt/netbox'],
+        'excludes': [
+            '/opt/forgejo/data/tmp',
+            '/opt/forgejo/data/repo-archive',
+            '/opt/netbox/postgres',
+            '/opt/netbox/valkey',
+            '/opt/netbox/secrets',
+        ],
         'stop_containers': ['forgejo'],
+        'dumps': [
+            {'container': 'netbox-postgres',
+             'command': ['pg_dump', '-U', 'netbox', '-Fc', 'netbox'],
+             'file': '/opt/netbox/dump/netbox.pgdump',
+             'format': 'pg_custom'},
+        ],
     },
     'jellyfin': {
         'paths': ['/opt/jellyfin'],
@@ -51,7 +68,7 @@
         'stop_containers': [],
     },
 } %}
-{%- set this = per_minion.get(grains['id'], {'paths': [], 'excludes': [], 'stop_containers': []}) %}
+{%- set this = per_minion.get(grains['id'], {'paths': [], 'excludes': [], 'stop_containers': [], 'dumps': []}) %}
 
 backup:
   lookup:
@@ -59,6 +76,7 @@ backup:
     paths: {{ this.paths | json }}
     excludes: {{ this.excludes | json }}
     stop_containers: {{ this.stop_containers | json }}
+    dumps: {{ this.get('dumps', []) | json }}
 
 # Appended to the minion's other mounts (pillar_merge_lists). No container
 # binds it: skip_required_by keeps it out of docker's RequiresMountsFor= on

@@ -2,8 +2,8 @@
 #!{{ backup.python }}
 # Managed by Salt (formulas/backup) — do not edit here.
 #
-# One restic run, started by {{ backup.unit }}.service: init the repo on
-# first use, back up, apply the retention policy (forget --prune), check the
+# One restic run, started by {{ backup.unit }}.service: dump the server
+# DBs listed in backup:lookup:dumps, init the repo on first use, back up, apply the retention policy (forget --prune), check the
 # repo structure, then write the outcome as node-exporter textfile metrics
 # (backup_*). Containers are stopped/started around it by the unit, not
 # here. RESTIC_REPOSITORY / RESTIC_PASSWORD_FILE / RESTIC_CACHE_DIR come
@@ -25,6 +25,8 @@ HOST = "{{ grains['id'] }}"
 PATHS = {{ backup.paths | json }}
 EXCLUDES = {{ backup.excludes | json }}
 KEEP = {{ backup.keep | json }}
+DUMPS = {{ backup.dumps | json }}
+DOCKER = "{{ backup.docker_bin }}"
 RETRY_LOCK = "{{ backup.retry_lock }}"
 OUT = "{{ backup.textfile_dir }}/{{ backup.metrics_file }}"
 
@@ -42,6 +44,30 @@ def restic(*args):
     return proc
 
 
+def dump(d):
+    """docker exec <container> <command> > <file>, atomically. True on success."""
+    tmp = d["file"] + ".tmp"
+    os.makedirs(os.path.dirname(d["file"]), mode=0o700, exist_ok=True)
+    try:
+        with open(tmp, "wb") as out:
+            os.fchmod(out.fileno(), 0o600)
+            proc = subprocess.run([DOCKER, "exec", d["container"], *d["command"]],
+                                  stdout=out, stderr=subprocess.PIPE)
+        if proc.stderr:
+            sys.stderr.write(proc.stderr.decode(errors="replace"))
+        if proc.returncode != 0 or os.path.getsize(tmp) == 0:
+            log("dump {} from {} failed (exit {})".format(
+                d["file"], d["container"], proc.returncode))
+            return False
+        os.replace(tmp, d["file"])
+    finally:
+        # Never leave a partial dump in the backed-up paths.
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+    log("dump {}: {} bytes".format(d["file"], os.path.getsize(d["file"])))
+    return True
+
+
 def run():
     """The backup summary of a fully successful run, else None."""
     # Never let a missing mount turn into a repo on the local disk.
@@ -51,6 +77,10 @@ def run():
     if not PATHS:
         log("no paths configured (backup:lookup:paths)")
         return None
+    # A failed dump fails the run — never back up a stale dump as "success".
+    for d in DUMPS:
+        if not dump(d):
+            return None
     repo = os.environ["RESTIC_REPOSITORY"]
     if not os.path.exists(os.path.join(repo, "config")):
         if restic("init").returncode != 0:

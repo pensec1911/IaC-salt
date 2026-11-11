@@ -9,8 +9,9 @@ const SEVERITY = 'HIGH,CRITICAL';
 const MAX_ROWS = 25; // per image, keeps the issue readable
 
 // Same shape Renovate's regex manager expects (renovate.json): an 'image'
-// line directly followed by its 'tag' line, plus forgejo-runner's dind_ pair.
-const PAIR = /'(dind_)?image':\s*'([^']+)',\s*\n\s*'\1tag':\s*'([^']+)'/g;
+// line directly followed by its 'tag' line, plus prefixed pairs
+// (dind_image/dind_tag, postgres_image/postgres_tag, …).
+const PAIR = /'([a-z]+_)?image':\s*'([^']+)',\s*\n\s*'\1tag':\s*'([^']+)'/g;
 
 function pinnedImages() {
   const refs = new Map(); // ref -> [formula, ...]

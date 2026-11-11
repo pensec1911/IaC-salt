@@ -104,6 +104,10 @@ homepage:
           href: http://192.168.178.29:3000
           icon: forgejo.png
           description: Git — deploy source
+        - name: NetBox
+          href: http://192.168.178.29:8000
+          icon: netbox.png
+          description: IPAM / inventory
         - name: OpenBao
           href: https://192.168.178.20:8200/ui/
           icon: openbao.png
