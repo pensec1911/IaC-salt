@@ -71,6 +71,10 @@ homepage:
           href: http://192.168.178.25:9093
           icon: alertmanager.png
           description: Alerts
+        - name: PatchMon
+          href: http://192.168.178.29:3001
+          icon: patchmon.png
+          description: Patches per host
 {%- if features.wazuh %}
         - name: Wazuh
           href: https://192.168.178.27

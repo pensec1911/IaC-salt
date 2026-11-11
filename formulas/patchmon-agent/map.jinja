@@ -1,0 +1,33 @@
+{#- PatchMon agent (formulas/patchmon is the server). A static Go binary
+   from the GitHub release, pinned by version + sha256 — no container, so
+   it also runs on salt-master/wazuh without Docker. Bump together with the
+   server tag (README "Upgrades"); Renovate doesn't see this pin.
+
+   server_url: where the agent connects (http + WebSocket).
+   api_id and api_key are this minion's credentials, created per host in the
+   PatchMon UI (README "Enrol a minion"), from OpenBao via pillar. Empty or
+   unresolved = not enrolled yet: the binary is installed, the service
+   isn't set up — no failure, so un-enrolled minions keep a clean highstate.
+
+   config.yml belongs to the agent after the first write: it rewrites
+   update_interval, integrations, host_id itself. Salt creates it once and
+   afterwards only enforces patchmon_server and ssh/rdp proxy = false
+   (`enforce`). #}
+{%- set defaults = {
+    'version': '2.1.8',
+    'sha256': '6c143ec193153513f677b0b114f52aa0b6bf2554c95f407a016e3d20d9ad680c',
+    'url': 'https://github.com/PatchMon/PatchMon/releases/download/v{version}/patchmon-agent-linux-amd64',
+    'bin': '/usr/local/bin/patchmon-agent',
+    'config_dir': '/etc/patchmon',
+    'unit': 'patchmon-agent',
+    'server_url': '',
+    'api_id': '',
+    'api_key': '',
+    'log_level': 'info',
+} %}
+{%- set agent = salt['pillar.get']('patchmon-agent:lookup', default=defaults, merge=True) %}
+{%- set _id = agent.api_id or '' %}
+{%- set _key = agent.api_key or '' %}
+{%- set _ok = _id and _key and agent.server_url
+              and not _id.startswith('sdb://') and not _key.startswith('sdb://') %}
+{%- do agent.update({'enrolled': true if _ok else false}) %}

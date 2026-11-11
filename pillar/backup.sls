@@ -11,8 +11,8 @@
    apps stop and start inside gluetun's network namespace, which stays.
 
    dumps: server DBs (Postgres) are dumped before the run instead of
-   copying their live data dir, which is excluded (netbox: the dump lands
-   in /opt/netbox/dump; secrets come from OpenBao, valkey is only a queue/
+   copying their live data dir, which is excluded (netbox/patchmon: the
+   dump lands in /opt/<service>/dump; secrets come from OpenBao, valkey is only a queue/
    cache). The dumped container keeps running. #}
 {%- set per_minion = {
     'arrstack': {
@@ -28,19 +28,26 @@
         'stop_containers': ['sonarr', 'radarr', 'prowlarr', 'bazarr', 'qbittorrent', 'slskd', 'seerr'],
     },
     'forgejo': {
-        'paths': ['/opt/forgejo', '/opt/netbox'],
+        'paths': ['/opt/forgejo', '/opt/netbox', '/opt/patchmon'],
         'excludes': [
             '/opt/forgejo/data/tmp',
             '/opt/forgejo/data/repo-archive',
             '/opt/netbox/postgres',
             '/opt/netbox/valkey',
             '/opt/netbox/secrets',
+            '/opt/patchmon/postgres',
+            '/opt/patchmon/valkey',
+            '/opt/patchmon/secrets',
         ],
         'stop_containers': ['forgejo'],
         'dumps': [
             {'container': 'netbox-postgres',
              'command': ['pg_dump', '-U', 'netbox', '-Fc', 'netbox'],
              'file': '/opt/netbox/dump/netbox.pgdump',
+             'format': 'pg_custom'},
+            {'container': 'patchmon-postgres',
+             'command': ['pg_dump', '-U', 'patchmon_user', '-Fc', 'patchmon_db'],
+             'file': '/opt/patchmon/dump/patchmon.pgdump',
              'format': 'pg_custom'},
         ],
     },

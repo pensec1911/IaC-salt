@@ -9,6 +9,7 @@ base:
 {%- endif %}
     - node-exporter
     - unattended-upgrades
+    - patchmon-agent
     - salt-minion
     - salt-master
     - orch
@@ -21,6 +22,7 @@ base:
 {%- endif %}
     - node-exporter
     - unattended-upgrades
+    - patchmon-agent
     - salt-minion
     - docker
     - cadvisor
@@ -35,6 +37,7 @@ base:
 {%- endif %}
     - node-exporter
     - unattended-upgrades
+    - patchmon-agent
     - salt-minion
     - docker
     - cadvisor
@@ -55,6 +58,7 @@ base:
 {%- endif %}
     - node-exporter
     - unattended-upgrades
+    - patchmon-agent
     - salt-minion
     - nfs-mount
     - docker
@@ -69,6 +73,7 @@ base:
     - ntp
     - node-exporter
     - unattended-upgrades
+    - patchmon-agent
     - salt-minion
     - wazuh
     - nfs-mount
@@ -82,6 +87,7 @@ base:
 {%- endif %}
     - node-exporter
     - unattended-upgrades
+    - patchmon-agent
     - salt-minion
     - nfs-mount
     - docker
@@ -98,6 +104,7 @@ base:
 {%- endif %}
     - node-exporter
     - unattended-upgrades
+    - patchmon-agent
     - salt-minion
     - nfs-mount
     - docker
@@ -106,6 +113,7 @@ base:
     - forgejo
     - forgejo-runner
     - netbox
+    - patchmon
     - backup
 
   # Targeting is by minion ID, which matches the Tofu VM `name` in

@@ -1,0 +1,52 @@
+{#- PatchMon server: one Go binary (API + embedded UI, runs its own DB
+   migrations on start) plus postgres and valkey, on a private docker
+   network (`network`). Only the server publishes a port. Upstream
+   docker/docker-compose.yml, except: valkey instead of redis (drop-in, the
+   same image netbox uses) without a password (no published port, nothing
+   else on the network), and no guacd sidecar (in-browser RDP — not used,
+   and the agents' ssh/rdp proxies stay off anyway).
+
+   All server state lives in postgres; the server container has no volume.
+
+   http_port: host port (container listens on 3000 — forgejo has 3000
+   itself). cors_origin must be the URL the browser uses.
+
+   Secrets (OpenBao via pillar): jwt_secret, session_secret,
+   ai_encryption_key (`openssl rand -hex 64` each), db_password. Written to
+   files in secrets_dir (0700 root) — the server's env file (it loads
+   ENV_FILE itself, incl. DATABASE_URL) and postgres' POSTGRES_PASSWORD_FILE
+   — each bound read-only into its container. So never in the container
+   env, state diffs or `docker inspect`. The files are 0444 because the
+   images' users are unknown/vary; the 0700 dir keeps host users out. All
+   four required: the formula fails on a blank or unresolved one.
+
+   dump_dir: target of formulas/backup's pre-run pg_dump (pillar/backup.sls
+   `dumps` repeats the path and postgres_container_name — change both). #}
+{%- set defaults = {
+    'image': 'ghcr.io/patchmon/patchmon-server',
+    'tag': '2.1.8',
+    'postgres_image': 'docker.io/library/postgres',
+    'postgres_tag': '17.11-alpine',
+    'valkey_image': 'docker.io/valkey/valkey',
+    'valkey_tag': '9.1.3-alpine',
+    'container_name': 'patchmon',
+    'postgres_container_name': 'patchmon-postgres',
+    'valkey_container_name': 'patchmon-valkey',
+    'network': 'patchmon',
+    'http_port': 3001,
+    'cors_origin': '',
+    'base_dir': '/opt/patchmon',
+    'postgres_dir': '/opt/patchmon/postgres',
+    'valkey_dir': '/opt/patchmon/valkey',
+    'dump_dir': '/opt/patchmon/dump',
+    'secrets_dir': '/opt/patchmon/secrets',
+    'db_name': 'patchmon_db',
+    'db_user': 'patchmon_user',
+    'timezone': 'Etc/UTC',
+    'jwt_secret': '',
+    'session_secret': '',
+    'ai_encryption_key': '',
+    'db_password': '',
+    'env': {},
+} %}
+{%- set patchmon = salt['pillar.get']('patchmon:lookup', default=defaults, merge=True) %}

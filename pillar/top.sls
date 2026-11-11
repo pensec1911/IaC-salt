@@ -6,6 +6,7 @@ base:
     - wazuh-agent
 {%- endif %}
     - ntp
+    - patchmon-agent
 
   'homepage,monitoring,salt-master,forgejo':
     - match: list
@@ -56,3 +57,4 @@ base:
   'forgejo':
     - forgejo
     - netbox
+    - patchmon
