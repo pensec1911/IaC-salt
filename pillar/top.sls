@@ -1,7 +1,10 @@
+{%- from 'features.jinja' import features %}
 base:
   '*':
     - GLOBAL
+{%- if features.wazuh %}
     - wazuh-agent
+{%- endif %}
     - ntp
 
   'homepage,monitoring,salt-master,forgejo':

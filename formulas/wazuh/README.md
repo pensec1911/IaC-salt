@@ -9,6 +9,10 @@ has 8 GB / 4 cores.
 
 Pairs with `formulas/wazuh-agent` on every other minion.
 
+> **Disabled since 2026-11-11** (RAM on pve01). The formula is kept as is; `features.wazuh` in
+> `pillar/features.jinja` switches it, the agents and the homepage tile back on, and the VM is
+> commented out in IaC-opentofu `vms.tf`.
+
 ## What Salt manages vs. what stays manual
 
 | Salt (`state.apply`) | Manual, one-time (below) |

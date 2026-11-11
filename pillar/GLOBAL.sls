@@ -1,4 +1,8 @@
 # Applies to every minion (pillar/top.sls: '*': - GLOBAL).
+{%- from 'features.jinja' import features %}
+# Feature switches (pillar/features.jinja), read by salt/top.sls.
+features: {{ features | json }}
+
 users:
   # One self-named login account per minion — see formulas/users. Password
   # is a single OpenBao secret shared by every account for now (not

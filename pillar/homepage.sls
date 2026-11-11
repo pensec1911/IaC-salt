@@ -1,3 +1,4 @@
+{%- from 'features.jinja' import features %}
 homepage:
   lookup:
     allowed_hosts: "192.168.178.23:3000,homepage:3000,localhost:3000,127.0.0.1:3000"
@@ -70,10 +71,12 @@ homepage:
           href: http://192.168.178.25:9093
           icon: alertmanager.png
           description: Alerts
+{%- if features.wazuh %}
         - name: Wazuh
           href: https://192.168.178.27
           icon: wazuh.png
           description: SIEM / XDR
+{%- endif %}
 
     # Proxmox cluster nodes (managed by IaC-opentofu, not Salt).
     - name: Proxmox

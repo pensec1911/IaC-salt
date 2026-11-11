@@ -26,6 +26,9 @@ Every minion patches itself daily from Debian main + Debian-Security via unatten
 nightly from 03:15 Berlin, one minion at a time, salt-master last (`formulas/orch`;
 `RebootRequired` if not).
 
+**Wazuh is disabled** (2026-11-11, `pillar/features.jinja`): the `wazuh` VM (.27) doesn't exist and
+wazuh-agent isn't applied — the rows above still list it as it was configured.
+
 `salt/top.sls` and `pillar/top.sls` are authoritative — update this table when they change.
 
 ## Not managed by Salt

@@ -72,7 +72,8 @@ No order agreed; pick as needed.
 - **Why**: Wazuh's vulnerability detector is the part of it that actually finds things, but
   it costs an 8 GB VM plus an agent everywhere. Trivy scans the pinned images
   (`formulas/*/map.jinja`) and the VMs' package lists for almost nothing, and fits the existing
-  Forgejo runner + Renovate flow. Prerequisite for retiring the wazuh VM, if that happens.
+  Forgejo runner + Renovate flow. Wazuh is switched off since 2026-11-11
+  (`pillar/features.jinja`), so right now nothing looks for CVEs at all.
 - **Sketch**: scheduled Forgejo Actions workflow: extract image tags from `map.jinja`, `trivy
   image` each, report HIGH/CRITICAL with a fix available; optionally `trivy rootfs`/SBOM per
   minion via Salt. Results as a Forgejo issue (updated, not duplicated) or straight to ntfy.
@@ -141,7 +142,7 @@ No order agreed; pick as needed.
   host; the Trivy workflow additionally emits CycloneDX SBOMs and uploads them per image
   (project = image, version = pinned tag). Notifications via webhook → ntfy. API key in
   OpenBao. Homepage tile + backup (postgres dump).
-- **Open**: RAM — realistic only after the wazuh VM is gone; whether old versions are
+- **Open**: RAM (~4 GB; the wazuh VM is off, but essential services come first); whether old versions are
   deleted on a Renovate bump (keep only the deployed tag); does it make the Trivy issue
   report redundant.
 

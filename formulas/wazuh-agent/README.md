@@ -57,3 +57,11 @@ secret applies to every monitored minion, this is the one formula meant to be re
 Both `manager_address` and `registration_password` are required in practice (no sane default —
 see `map.jinja`). `registration_password` must be an `sdb://` reference (.claude/docs/secrets.md) and must be the exact same secret as `formulas/wazuh`'s `manager:registration_password`
 — it's a shared secret between the two formulas, not per-formula data.
+
+## Disabled
+
+Off since 2026-11-11 together with the manager (`features.wazuh: False`, `pillar/features.jinja`):
+`salt/top.sls` no longer includes this formula and `pillar/top.sls` no longer serves its pillar.
+That does not remove anything from the minions — `wazuh-agent` stays installed until purged by
+hand (`salt '*' pkg.purge wazuh-agent`, then `file.remove /etc/apt/sources.list.d/wazuh.list`
+and the keyring). Switching the feature back on reinstalls and re-enrolls it on the next apply.

@@ -49,6 +49,9 @@ see [secrets.md](secrets.md#bootstrap-the-approle).
   indirection until a role really spans more than one minion.
 - `pillar/top.sls` mirrors it: `'*': [GLOBAL, wazuh-agent]` plus one entry per minion that needs
   data, using the same minion ID.
+- Whole services can be switched off without deleting anything via `pillar/features.jinja`
+  (imported by `pillar/top.sls` and other pillar files, exported as pillar `features:` by
+  `GLOBAL`, read by `salt/top.sls`). Currently: `wazuh` (off).
 - Runtime data (dashboard entries, mounts, VPN settings…) lives in `pillar/<name>.sls` — edit
   that, not anything under `formulas/` or `salt/`.
 

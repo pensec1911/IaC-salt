@@ -1,8 +1,12 @@
+{#- pillar/features.jinja switches, exported by pillar/GLOBAL.sls. #}
+{%- set wazuh = salt['pillar.get']('features:wazuh', False) %}
 base:
   'salt-master':
     - users
     - ntp
+{%- if wazuh %}
     - wazuh-agent
+{%- endif %}
     - node-exporter
     - unattended-upgrades
     - salt-minion
@@ -12,7 +16,9 @@ base:
   'homepage':
     - users
     - ntp
+{%- if wazuh %}
     - wazuh-agent
+{%- endif %}
     - node-exporter
     - unattended-upgrades
     - salt-minion
@@ -24,7 +30,9 @@ base:
   'monitoring':
     - users
     - ntp
+{%- if wazuh %}
     - wazuh-agent
+{%- endif %}
     - node-exporter
     - unattended-upgrades
     - salt-minion
@@ -42,7 +50,9 @@ base:
   'arrstack':
     - users
     - ntp
+{%- if wazuh %}
     - wazuh-agent
+{%- endif %}
     - node-exporter
     - unattended-upgrades
     - salt-minion
@@ -67,7 +77,9 @@ base:
   'jellyfin':
     - users
     - ntp
+{%- if wazuh %}
     - wazuh-agent
+{%- endif %}
     - node-exporter
     - unattended-upgrades
     - salt-minion
@@ -81,7 +93,9 @@ base:
   'forgejo':
     - users
     - ntp
+{%- if wazuh %}
     - wazuh-agent
+{%- endif %}
     - node-exporter
     - unattended-upgrades
     - salt-minion
