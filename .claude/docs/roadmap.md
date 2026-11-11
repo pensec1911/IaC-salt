@@ -70,14 +70,15 @@ No order agreed; pick as needed.
 ### NetBox as source of truth (IPAM/DCIM)
 
 - **Why**: `inventory.md`, `pillar/*` and the Tofu `vms/*/main.tf` each hold IPs, ports and
-  sizing by hand and drift apart. NetBox is a queryable inventory both IaC repos can read.
-- **Sketch**: `formulas/netbox` (netbox + postgres + redis containers, ~2 GB) on a Docker host.
-  Seed it with VMs, IPs and services from inventory.md. Later: Salt's built-in `netbox`
-  ext_pillar for per-minion data, the Tofu `netbox` provider to register/look up VMs.
-  Homepage tile + backup entry (postgres dump, not the live data dir).
-- **Open**: which direction is authoritative (NetBox → Tofu/Salt, or Tofu writes, NetBox
-  reads); whether inventory.md is then generated or dropped; API token in OpenBao; postgres
-  backup = pre-backup `pg_dump` hook in `formulas/backup`.
+  sizing by hand and drift apart. `formulas/netbox` now runs NetBox on forgejo (:8000, backed
+  up via `dumps`), but it's empty — nothing reads from or writes to it yet.
+- **Sketch**: seed it with VMs, IPs and services from inventory.md (script or `netbox`
+  Tofu provider resources). Then Salt's built-in `netbox` ext_pillar for per-minion data and
+  the Tofu `netbox` provider to register/look up VMs.
+- **Open**: which direction is authoritative (NetBox -> Tofu/Salt, or Tofu writes, NetBox
+  reads); whether inventory.md is then generated or dropped; API token for Salt/Tofu in OpenBao
+  (read-only for ext_pillar); how a NetBox outage affects pillar rendering (ext_pillar failing
+  must not break every minion's render or the pre-push check).
 
 ### Zero-trust remote access (Headscale + Headplane, or alternative)
 
@@ -128,7 +129,7 @@ No order agreed; pick as needed.
 - **Sketch**: `formulas/dependency-track` (API server + frontend + postgres, ~4 GB) on a Docker
   host; the Trivy workflow additionally emits CycloneDX SBOMs and uploads them per image
   (project = image, version = pinned tag). Notifications via webhook → ntfy. API key in
-  OpenBao. Homepage tile + backup (postgres dump).
+  OpenBao. Homepage tile + backup (postgres via the `dumps` feature of `formulas/backup`).
 - **Open**: RAM (~4 GB; the wazuh VM is off, but essential services come first); whether old versions are
   deleted on a Renovate bump (keep only the deployed tag); does it make the Trivy issue
   report redundant.
