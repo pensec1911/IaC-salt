@@ -25,8 +25,14 @@ function pinnedImages() {
   return refs;
 }
 
+// The runner exports the Forgejo job token as GITHUB_TOKEN; Trivy would send
+// it to ghcr.io as credentials and get DENIED. Anonymous pulls work.
+const { GITHUB_TOKEN, ...trivyEnv } = process.env;
+
 function trivy(args) {
-  return execFileSync('trivy', args, { encoding: 'utf8', maxBuffer: 256 << 20, stdio: ['ignore', 'pipe', 'pipe'] });
+  return execFileSync('trivy', args, {
+    encoding: 'utf8', maxBuffer: 256 << 20, stdio: ['ignore', 'pipe', 'pipe'], env: trivyEnv,
+  });
 }
 
 function scan(ref) {
