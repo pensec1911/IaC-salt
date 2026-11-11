@@ -60,8 +60,8 @@ With `push_deploy`, `gitfs.conf` sets `fileserver_events: True`. The master then
 `reactor/gitfs-update.sls` acts only on `changed: true`, i.e. new commits on `main`, and starts
 `salt-run state.orchestrate orch.push` (`formulas/orch`). That is `orch.rollout` restricted to
 the minions whose drift check may repair right now: homepage, monitoring, forgejo and salt-master at any
-hour; arrstack and jellyfin only 03:00–06:00 (otherwise the nightly enforce picks the push up);
-wazuh never (manual apply). Dry run on all first, then one at a time, stops at the first failure.
+hour; arrstack and jellyfin only 03:00–06:00 (otherwise the nightly enforce picks the push up).
+Dry run on all first, then one at a time, stops at the first failure.
 
 So a push reaches the enforce minions about a minute later, not up to an hour later. Any push
 to `main` counts, docs-only too (it ends in a 0-change highstate). The event comes from the

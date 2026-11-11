@@ -70,10 +70,6 @@ homepage:
           href: http://192.168.178.25:9093
           icon: alertmanager.png
           description: Alerts
-        - name: Wazuh
-          href: https://192.168.178.27
-          icon: wazuh.png
-          description: SIEM / XDR
 
     # Proxmox cluster nodes (managed by IaC-opentofu, not Salt).
     - name: Proxmox
@@ -81,7 +77,7 @@ homepage:
         - name: pve01
           href: https://192.168.178.11:8006
           icon: proxmox.png
-          description: homepage, wazuh
+          description: homepage
         - name: pve02
           href: https://192.168.178.12:8006
           icon: proxmox.png

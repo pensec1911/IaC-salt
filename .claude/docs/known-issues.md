@@ -6,8 +6,7 @@ Remove an entry once fixed (the fix lives in git history).
 
 - **`auto_accept: true` on the master** (`formulas/salt-master/files/auto_accept.conf`, "closed
   homelab LAN"). Any LAN host running salt-minion gets its key accepted and is served the `'*'`
-  pillar — that includes the shared login password hash from `pillar/GLOBAL.sls` and the
-  wazuh-agent pillar. Options: turn it off and accept keys by hand (`salt-key -a`) after each
+  pillar — that includes the shared login password hash from `pillar/GLOBAL.sls`. Options: turn it off and accept keys by hand (`salt-key -a`) after each
   Tofu provision, or `autosign_grains` / pre-seeded keys from Tofu. The start reactor
   (formulas/salt-master) does not widen this — an accepted minion can already pull its own
   highstate/pillar.
@@ -15,7 +14,7 @@ Remove an entry once fixed (the fix lives in git history).
 ## Backup gaps
 
 - **salt-master and OpenBao are not backed up** (`pillar/backup.sls` covers arrstack, forgejo,
-  jellyfin, monitoring, wazuh only). salt-master holds state Salt can't rebuild:
+  jellyfin, monitoring only). salt-master holds state Salt can't rebuild:
   `/etc/salt/pki/master` (a new master key makes every minion refuse the master — they cache
   its pubkey — so each needs `minion_master.pub` removed by hand) and the salt-api cert under
   `/etc/salt/pki/api`. OpenBao (.20, not a minion) holds every secret the pillar resolves, and
@@ -42,7 +41,7 @@ Remove an entry once fixed (the fix lives in git history).
   minions that already have one.
 
 - **apt-daily rarely refreshes the package lists** (seen 2026-10-26): `update-stamp` / lists on
-  salt-master and homepage from 2026-10-18, wazuh and monitoring 2026-10-20; the journal shows
+  salt-master and homepage from 2026-10-18, monitoring 2026-10-20; the journal shows
   `apt-daily.service` only right after boots, not the twice-daily runs (`OnCalendar=6,18:00`,
   `RandomizedDelaySec=12h`, `Persistent=true`). So u-u ran today against week-old lists.
   Cause not investigated (frequent reboots resetting the random delay? clock jumps?).

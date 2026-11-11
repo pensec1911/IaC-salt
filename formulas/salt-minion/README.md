@@ -116,7 +116,7 @@ requires `sls: node-exporter`):
 # salt/top.sls
 'some-minion':
   - users
-  - wazuh-agent
+  - ntp
   - node-exporter
   - salt-minion
 ```

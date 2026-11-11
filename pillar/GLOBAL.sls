@@ -8,10 +8,11 @@ users:
   # plaintext.
   #
   # Where the minion ID is also the name of a service's own system user, the
-  # login account gets a different name — otherwise the service user becomes
-  # a sudo-capable login account (the wazuh package adopted the existing
-  # "wazuh" login user for its daemons, 2026-10-17).
-  {%- set login_name = {'wazuh': 'wazuh-admin'}.get(grains['id'], grains['id']) %}
+  # login account gets a different name here — otherwise the service user
+  # becomes a sudo-capable login account (packages adopt an existing user of
+  # their name; seen with wazuh, 2026-10-17). None at the moment.
+  {%- set renamed_logins = {} %}
+  {%- set login_name = renamed_logins.get(grains['id'], grains['id']) %}
   accounts:
     - name: {{ login_name }}
       password: {{ salt['sdb.get']('sdb://osvault/homelab/data/users/shared?password') | yaml_encode }}

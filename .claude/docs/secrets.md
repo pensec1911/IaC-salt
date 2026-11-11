@@ -34,9 +34,6 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `gluetun/mullvad` | `private_key` | unused, kept as fallback |
 | `slskd/credentials` | `soulseek_username`, `soulseek_password`, `web_username`, `web_password` | `pillar/arrstack.sls` |
 | `grafana/admin` | `password` | `pillar/grafana.sls` |
-| `wazuh/indexer-admin` | `password` | `pillar/wazuh.sls` — indexer `admin` (Filebeat, manager, dashboard login) |
-| `wazuh/api` | `wui_password` | `pillar/wazuh.sls` — server API user `wazuh-wui` (dashboard → API) |
-| `wazuh/registration` | `password` | `pillar/wazuh.sls` + `pillar/wazuh-agent.sls` — must be the same shared secret |
 | `salt-api/alertmanager` | `token` | `pillar/salt-master.sls` + `pillar/alertmanager.sls` — bearer token for salt-api's `/hook/alertmanager`; must be the same on both sides |
 | `forgejo/admin` | `username`, `password`, `token` | Not read by pillar — Forgejo's admin login (install wizard, formulas/forgejo README "First run") and a standing API token (scope `repository` RW only) for Claude sessions: PRs, branches, statuses via the API. Read it through the master (`salt-run salt.cmd sdb.get …`) straight into the request, never print it. |
 | `forgejo/runner` | `secret` | `pillar/forgejo.sls` — 40-hex offline registration secret of the Actions runner, used on both sides (forgejo `runners`, forgejo-runner). Rotate: change the last 24 chars. |

@@ -8,7 +8,7 @@
    Per firing alert, the minion it names gets its drift check now
    (schedule.run_job drift-check, formulas/salt-minion) — not a highstate:
    the check repairs only where enforce is on and its window open, so
-   arrstack/jellyfin by day and wazuh stay report-only, as without this.
+   arrstack/jellyfin by day stay report-only, as without this.
    Which minion: the IP in the `url` label (ProbeFailed, blackbox) as an
    ipcidr match — a non-minion host (NAS, router) matches nothing — else
    the `instance` label (TargetDown etc., = minion id). Both are matched

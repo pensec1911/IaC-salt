@@ -7,7 +7,7 @@ All `salt` commands run on the master (`ssh salt-master`, then `sudo salt …`).
 
 A push to `main` deploys itself about a minute later on homepage, monitoring, forgejo and salt-master
 (and on arrstack/jellyfin between 03:00 and 06:00) via `orch.push`: gitfs event → reactor, dry
-run first, `formulas/orch` README. Everything else (wazuh, arrstack/jellyfin by day, or
+run first, `formulas/orch` README. Everything else (arrstack/jellyfin by day, or
 checking first) goes through `/deploy`.
 
 **New minion**: Tofu creates the VM and the start reactor applies the highstate on its first

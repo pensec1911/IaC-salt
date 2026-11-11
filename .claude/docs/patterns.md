@@ -21,8 +21,8 @@ formula declares `require: - user: user-<name>`.
   971:971 (container `user:` override, image default is uid 1000).
 - `GLOBAL` creates a sudo login account named after the minion — **unless that name is a
   service's own system user** (packages silently adopt an existing user of their name, turning
-  their daemons into a sudo-capable login). Such minions get a renamed login via the map in
-  `pillar/GLOBAL.sls` (`wazuh` → `wazuh-admin`). Check this before naming a new VM after its
+  their daemons into a sudo-capable login). Such minions get a renamed login via the
+  `renamed_logins` map in `pillar/GLOBAL.sls` (e.g. the former `wazuh` VM → `wazuh-admin`). Check this before naming a new VM after its
   service package.
 - `users` goes first in the minion's `salt/top.sls` entry.
 
@@ -71,16 +71,14 @@ See `formulas/arrstack/README.md` ("Networking model", "Port forwarding").
 Where getting something silently wrong is worse than not automating it (TLS cert generation,
 an auth-plugin init, credentials Salt can't generate), scope it out of the formula and document
 it as a one-time manual step instead of guessing tool invocations. Examples: gitfs deploy key
-registration, OpenBao AppRole `secret_id`, Wazuh TLS + indexer security init
-(`formulas/wazuh/README.md` "What this formula deliberately does NOT do" is the fullest example),
-qBittorrent's localhost-auth toggle.
+registration, OpenBao AppRole `secret_id`, qBittorrent's localhost-auth toggle.
 
 ## Patch, don't replace, a package's shipped config
 
-Native packages ship substantial default config (e.g. Wazuh's `ossec.conf` rules/decoders). When
+Native packages ship substantial default config (e.g. unattended-upgrades' `50unattended-upgrades`). When
 only some values are pillar-driven, patch them in with `file.blockreplace` (marker-delimited)
 instead of a full `file.managed` template that silently drops the rest. Small self-contained
-files (`opensearch.yml`) can be fully templated. See `formulas/wazuh`, `formulas/wazuh-agent`.
+files can be fully templated. See `formulas/unattended-upgrades`.
 
 ## Docker images
 
@@ -102,7 +100,7 @@ Removed when the UI goes away.
 
 - **Group**: the existing one that fits — `Media` (Jellyfin, Seerr), `Arr` (Sonarr, Radarr,
   Prowlarr, Bazarr), `Downloads` (qBittorrent, slskd), `Monitoring` (Grafana, Prometheus,
-  Alertmanager, Wazuh), `Proxmox` (nodes), `Infrastructure` (NAS, OpenBao, router, other
+  Alertmanager), `Proxmox` (nodes), `Infrastructure` (NAS, OpenBao, router, other
   appliances). A new group only if none fits.
 - **href**: `http(s)://<IP>:<port>` from `inventory.md` / the formula's `map.jinja` — the URL a
   browser on the LAN uses (arrstack apps: the port gluetun publishes on the host).

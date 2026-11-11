@@ -1,2 +1,0 @@
-include:
-  - wazuh-agent.service
