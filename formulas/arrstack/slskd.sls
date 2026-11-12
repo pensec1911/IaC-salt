@@ -10,7 +10,10 @@ include:
    formulas/prometheus. Names as slskd itself lists them (`slskd --envars`).
    Unknown SLSKD_* vars are ignored silently, so a typo here falls back to
    the default web login slskd/slskd and leaves Soulseek disconnected.
-   Credentials go through the 0600 secret env file. #}
+   Credentials go through the 0600 secret env file.
+   DOTNET_BUNDLE_EXTRACT_BASE_DIR: slskd is a .NET single-file bundle that
+   unpacks itself on start — default $HOME/.net, which the read-only root
+   refuses (EROFS); /tmp is a tmpfs. #}
 {%- set spec = {
     'name': arrstack.slskd.container_name,
     'image': arrstack.slskd.image,
@@ -22,6 +25,7 @@ include:
         'SLSKD_SLSK_LISTEN_PORT': arrstack.slskd.soulseek_port,
         'SLSKD_DOWNLOADS_DIR': '/media/incomplete',
         'SLSKD_INCOMPLETE_DIR': '/media/incomplete',
+        'DOTNET_BUNDLE_EXTRACT_BASE_DIR': '/tmp',
     },
     'secret_env': {},
     'volumes': [
