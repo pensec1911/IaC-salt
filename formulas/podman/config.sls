@@ -36,3 +36,29 @@ podman-quadlet-dir:
     - group: root
     - mode: '0755'
     - makedirs: True
+
+{#- See map.jinja apparmor_disable. disable/ keeps it out at boot; the
+   parser call takes it out of the running kernel. podman-apparmor-unload
+   reports a change only when it actually unloaded something — the
+   container macro watches it. #}
+{%- for profile in podman.apparmor_disable %}
+
+podman-apparmor-disable-{{ profile }}:
+  file.symlink:
+    - name: /etc/apparmor.d/disable/{{ profile }}
+    - target: /etc/apparmor.d/{{ profile }}
+    - makedirs: True
+    - onlyif: test -f /etc/apparmor.d/{{ profile }}
+{%- endfor %}
+
+podman-apparmor-unload:
+  cmd.run:
+    - name: |
+{%- for profile in podman.apparmor_disable %}
+        if grep -q '^{{ profile }} ' /sys/kernel/security/apparmor/profiles; then {{ podman.apparmor_parser }} -R /etc/apparmor.d/{{ profile }}; fi
+{%- endfor %}
+    - onlyif: grep -qE '^({{ podman.apparmor_disable | join('|') }}) ' /sys/kernel/security/apparmor/profiles
+    - require:
+{%- for profile in podman.apparmor_disable %}
+      - file: podman-apparmor-disable-{{ profile }}
+{%- endfor %}

@@ -24,6 +24,8 @@
      <id>                service.running <name>; restarts on any change
                          above or in `watch`. No `enable`: generated units
                          can't be enabled — [Install] WantedBy does that.
+                         Also restarted when podman.config unloads an
+                         AppArmor profile (map.jinja apparmor_disable).
 
    A formula refers to its container as `service: <id>`. -#}
 {%- from "podman/map.jinja" import podman with context %}
@@ -113,6 +115,7 @@
       - {{ r | json }}
 {%- endfor %}
     - watch:
+      - cmd: podman-apparmor-unload
       - cmd: {{ id }}-image
       - file: {{ id }}-env
 {%- if c.secret_env %}

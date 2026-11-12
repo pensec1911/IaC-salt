@@ -13,6 +13,20 @@
    (inet netavark). Pinned so podman.migrate's cleanup of Docker's
    leftover iptables tables can never hit netavark's rules.
 
+   apparmor_disable: AppArmor profiles taken out of the kernel and
+   disabled. Debian's apparmor 4.1 ships /etc/apparmor.d/crun, an
+   unconfined profile that "only exists to give the application a name".
+   With it loaded, every container process carries the stacked label
+   containers-default-0.62.2//&crun, and Podman's containers-default
+   profile only allows signals to peer containers-default-0.62.2 — so all
+   signals between a container's own processes are denied: Postgres (latch
+   wake-ups via SIGURG) hung in recovery, Go runtimes lost preemption
+   signals (seen on all five hosts, 2026-11-12). The profile has no job here:
+   the Debian kernel doesn't restrict unprivileged user namespaces. Running
+   containers keep the label until recreated — the container macro restarts
+   them when this changes.
+   apparmor_parser: path of the parser that unloads them.
+
    docker_units: stopped and disabled by podman.migrate on a host that
    still has Docker (one runtime per VM). formulas/docker stays in the
    repo, unused; the packages and /var/lib/docker stay on the VM until
@@ -42,6 +56,8 @@
         'files': ['/etc/subuid', '/etc/subgid'],
     },
     'docker_units': ['docker.socket', 'docker.service', 'containerd.service'],
+    'apparmor_disable': ['crun'],
+    'apparmor_parser': '/usr/sbin/apparmor_parser',
     'container': {
         'image': '',
         'tag': '',
