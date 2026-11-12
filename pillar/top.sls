@@ -8,13 +8,12 @@ base:
     - ntp
     - patchmon-agent
 
-  'homepage,monitoring,salt-master,forgejo':
-    - match: list
+  # Docker -> Podman migration (2026-11): the container hosts are out of
+  # self-repair until each one is migrated by hand (/deploy), so a push
+  # doesn't roll the migration out on its own. Back to
+  # 'homepage,monitoring,salt-master,forgejo' / 'arrstack,jellyfin' after.
+  'salt-master':
     - salt-minion-enforce
-
-  'arrstack,jellyfin':
-    - match: list
-    - salt-minion-enforce-window
 
   'homepage,monitoring,arrstack,jellyfin,forgejo':
     - match: list
