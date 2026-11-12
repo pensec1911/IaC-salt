@@ -9,9 +9,10 @@ nfs-mount:
       - rw
       - noatime
     # systemd units that must wait for (and fail without) every mount below.
-    # Set this for docker on any minion whose containers bind a share.
+    # Units that use a share without declaring it. Not needed for
+    # containers: Quadlet adds RequiresMountsFor= for their binds.
     required_by:
-      - docker.service
+      - some-service.service
 
 # One entry per share this minion needs mounted.
 nfs_mounts:

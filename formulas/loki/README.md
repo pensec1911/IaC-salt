@@ -1,8 +1,8 @@
 # loki formula
 
-Runs [Grafana Loki](https://github.com/grafana/loki) (`grafana/loki`) as a Docker container:
+Runs [Grafana Loki](https://github.com/grafana/loki) (`grafana/loki`) as a Podman container (Quadlet unit via `formulas/podman`):
 single binary, filesystem storage, the log store behind Grafana's Explore. Logs are shipped by
-`formulas/alloy` on the docker hosts. Depends on the `docker` formula.
+`formulas/alloy` on the container hosts. Depends on the `podman` formula.
 
 ## What it manages
 
@@ -19,14 +19,14 @@ single binary, filesystem storage, the log store behind Grafana's Explore. Logs 
   `formulas/alloy` builds its push URL from it.
 
 No web UI — logs are read in Grafana (datasource `Loki` in `pillar/grafana.sls`), Explore →
-`{host="arrstack", container="sonarr"}` or `{host="jellyfin", job="journal", unit="docker.service"}`.
+`{host="arrstack", container="sonarr"}` or `{host="jellyfin", job="journal", unit="nfs-client.target"}`; container logs are `job="container"``.
 
 ## Usage
 
 ```yaml
 # salt/top.sls
 'monitoring':
-  - docker
+  - podman
   - loki
   - alloy
 ```

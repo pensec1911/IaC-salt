@@ -17,8 +17,8 @@ pillar/     per-minion data, served via git_pillar (root "pillar")
 ```
 
 `formulas/` and `salt/` are two roots of the **same** git remote, merged by gitfs into one flat
-fileserver namespace. `salt://docker/...` and `include: - docker` resolve regardless of which
-directory `docker` physically lives in. This keeps reusable formula code apart from "which
+fileserver namespace. `salt://podman/...` and `include: - podman` resolve regardless of which
+directory `podman` physically lives in. This keeps reusable formula code apart from "which
 minion runs what" without a repo per formula.
 
 ## How the master gets the state tree
@@ -57,7 +57,7 @@ see [secrets.md](secrets.md#bootstrap-the-approle).
 
 ## Formula anatomy
 
-Reference: `formulas/docker`, `formulas/homepage`.
+Reference: `formulas/homepage` (container via `formulas/podman`'s macro), `formulas/podman`.
 
 | File | Role |
 |---|---|

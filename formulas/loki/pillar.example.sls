@@ -5,7 +5,7 @@ loki:
     host_port: 3100
     config_dir: /opt/loki/config
     data_dir: /opt/loki/data
-    # nobody via docker `user:` — the image's own user would be 10001.
+    # nobody via the container `user` — the image's own user would be 10001.
     uid: 65534
     gid: 65534
     # Compactor deletes older chunks. 720h = 30 days.

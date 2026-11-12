@@ -2,7 +2,7 @@
 
 Runs [NetBox](https://netbox.dev) (IPAM/DCIM) from the upstream
 [netbox-docker](https://github.com/netbox-community/netbox-docker) image as four Docker
-containers. Depends on the `docker` formula; nothing on the host besides the dirs under
+containers. Depends on the `podman` formula; nothing on the host besides the dirs under
 `/opt/netbox`. It's the inventory database for the homelab — this formula only runs it;
 what goes in, and whether Salt/Tofu read from it, is the roadmap item "NetBox as source of
 truth".
@@ -13,10 +13,10 @@ truth".
   - a check that the three secrets are set (fails on blank or unresolved `sdb://`),
   - `secrets_dir` (`/opt/netbox/secrets`, 0750 root:root) with one 0440 file per secret —
     bound to `/run/secrets`, where the image's `configuration.py` and
-    `POSTGRES_PASSWORD_FILE` read them. Not in the containers' env, so not in `docker inspect`,
+    `POSTGRES_PASSWORD_FILE` read them. Not in the containers' env, so not in `podman inspect`,
   - `media_dir` (uploads/images, owned by the image's `netbox` user 999:0), `postgres_dir`,
     `valkey_dir` (owned by the containers' entrypoints), `dump_dir` (root, 0700).
-- `netbox.container` — the private docker network `netbox` and on it:
+- `netbox.container` — the private Podman network (`network` macro, DNS by container name) `netbox` and on it:
   - `netbox-postgres` (`postgres:18.x-alpine`, data in `postgres_dir`),
   - `netbox-valkey` (`valkey:9.x-alpine`, AOF on; task queue in DB 0, cache in DB 1 — one
     instance instead of upstream's two, and without a password: no published port, nothing
@@ -37,7 +37,7 @@ truth".
 # salt/top.sls
 'forgejo':
   - users
-  - docker
+  - podman
   - netbox
   - backup
 ```
@@ -70,7 +70,7 @@ apply, once `http://192.168.178.29:8000` shows the login page:
 
 ```sh
 ssh -i ~/.ssh/homelab debian@192.168.178.29 \
-  sudo docker exec -it netbox /opt/netbox/netbox/manage.py createsuperuser
+  sudo podman exec -it netbox /opt/netbox/netbox/manage.py createsuperuser
 ```
 
 Store the account in OpenBao (`homelab/netbox/admin`, keys `username`/`password`). API tokens
@@ -88,10 +88,10 @@ header. Restore on a fresh/emptied `postgres_dir`:
 sudo -i
 set -a; . /etc/restic/env; set +a
 restic restore latest --target / --include /opt/netbox/media --include /opt/netbox/dump
-docker stop netbox netbox-worker
-docker exec -i netbox-postgres pg_restore -U netbox -d netbox --clean --if-exists --no-owner \
+systemctl stop netbox netbox-worker
+podman exec -i netbox-postgres pg_restore -U netbox -d netbox --clean --if-exists --no-owner \
   < /opt/netbox/dump/netbox.pgdump
-docker start netbox netbox-worker
+systemctl start netbox netbox-worker
 ```
 
 (On a brand-new VM: apply the highstate first so postgres creates the empty DB, then the

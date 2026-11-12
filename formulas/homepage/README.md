@@ -1,16 +1,19 @@
 # homepage formula
 
-Runs [gethomepage/homepage](https://github.com/gethomepage/homepage) as a Docker container.
-Depends on the `docker` formula (installs the engine) — this formula only handles the
+Runs [gethomepage/homepage](https://github.com/gethomepage/homepage) as a Podman container (Quadlet unit via `formulas/podman`).
+Depends on the `podman` formula (runtime and container macro) — this formula only handles the
 container and its config.
 
 ## What it manages
 
 - `homepage.config` — renders `settings.yaml` and `services.yaml` into
   `homepage:lookup:config_dir` (default `/opt/homepage/config`) from pillar data via
-  `files/*.yaml.j2`.
-- `homepage.container` — runs the container via `docker_container.running`, bind-mounting the
-  config dir. Restarts automatically when the rendered config changes (`watch`).
+  `files/*.yaml.j2`, root-owned.
+- `homepage.container` — the container via the `formulas/podman` macro (Quadlet unit
+  `homepage`): runs as `puid:pgid` directly (no `PUID` env, so the image's entrypoint needs no
+  capabilities), read-only root. `/app/config` is a tmpfs; the two rendered files are bound
+  read-only into it and the image copies its other skeleton files in on start, so nothing on
+  the host is written. Logs to stdout (journal). Restarts when the rendered config changes.
 
 Per service item, `services.yaml.j2` passes through `href`, `description`, `icon`, `ping` and
 `widget` (any nesting, rendered as JSON). `siteMonitor` (the status dot) defaults to the item's
@@ -26,7 +29,7 @@ aren't wired up since nothing needs them yet; add a template + pillar key the sa
 ```yaml
 # salt/top.sls
 'homepage':
-  - docker
+  - podman
   - homepage
 ```
 

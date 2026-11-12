@@ -2,7 +2,7 @@
 
 Runs a [Forgejo Runner](https://forgejo.org/docs/latest/admin/actions/)
 (`data.forgejo.org/forgejo/runner`) for Forgejo Actions, with its own Docker-in-Docker sidecar
-for the job containers. Depends on the `docker` and `users` formulas. The Forgejo side of the
+for the job containers. Depends on the `podman` and `users` formulas. The Forgejo side of the
 registration is `forgejo:lookup:runners` (formulas/forgejo).
 
 ## What it manages
@@ -10,16 +10,17 @@ registration is `forgejo:lookup:runners` (formulas/forgejo).
 - `forgejo-runner.config` — `data_dir` (0700, pinned `forgejo-runner` account 973:973) with
   `config.yml` (from `files/config.yml.j2`) and `token` (the registration secret, 0600, read via
   `token_url`), and `dind_dir` for dind's `/var/lib/docker`.
-- `forgejo-runner.container` — a private docker network, the dind container (privileged,
+- `forgejo-runner.container` — a private Podman network (`network` macro, DNS by container name), the dind container (privileged,
   `dockerd` on plain TCP `dind_port`, reachable only on that network) and the runner container
   (`DOCKER_HOST` = dind), restarted when config or token change.
 
 ## Isolation
 
-Jobs run inside dind, not on the VM's Docker daemon, so a workflow can't reach the host socket
+Jobs run inside dind, not on the VM's container runtime, so a workflow can't reach the host socket
 and can't stop or alter the Forgejo container — the deploy source of the whole homelab. Job
 containers aren't privileged, get no docker socket (`docker_host: "-"`), no volumes, and a fresh
-network per job. dind itself has to be privileged. The runner is registered for the `homelab`
+network per job. dind itself has to be privileged — the one container exempt from
+`formulas/podman`'s hardening (`privileged`, host user namespace, root on the host). The runner is registered for the `homelab`
 org only, so it never picks up jobs from other owners. Jobs can still reach the LAN like any
 host on it.
 

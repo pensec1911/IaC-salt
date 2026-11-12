@@ -8,7 +8,7 @@ configured on each box.
 ## Layout
 
 ```
-formulas/   # the actual state logic — one directory per formula (docker, homepage, ...),
+formulas/   # the actual state logic — one directory per formula (podman, homepage, ...),
             # each self-contained and pillar-driven: map.jinja, install/config/service.sls,
             # pillar.example.sls, README.md. Nothing in here is environment-specific.
 salt/       # environment glue — just top.sls, mapping minion IDs to formulas
@@ -17,8 +17,8 @@ pillar/     # pillar tree — the actual per-minion data (e.g. what shows on the
 ```
 
 `formulas/` and `salt/` are two different roots of the *same* git remote, merged by gitfs into
-one flat fileserver namespace — so `salt://docker/...` and `include: - docker` both resolve
-regardless of which directory `docker` physically lives in. This keeps reusable formula code
+one flat fileserver namespace — so `salt://podman/...` and `include: - podman` both resolve
+regardless of which directory `podman` physically lives in. This keeps reusable formula code
 separate from "which minion runs what," without needing a separate repo per formula. See
 `formulas/<name>/README.md` for each formula's own docs.
 
@@ -70,7 +70,7 @@ something this repo can generate, so it stays a manual step.
 2. Add matching pillar under `pillar/<name>.sls` if it needs config/secret data, and reference
    it from `pillar/top.sls`.
 3. Add the minion ID to `salt/top.sls`, listing its formula (and any formulas it depends on,
-   e.g. `docker`, in order).
+   e.g. `podman`, in order).
 4. Push. Either wait for the next gitfs poll or run `salt-run fileserver.update` /
    `salt '<minion>' saltutil.refresh_pillar` to pick it up immediately, then
    `salt '<minion>' state.apply`.

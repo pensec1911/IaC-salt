@@ -30,7 +30,7 @@ creates:
 ```yaml
 'some-minion':
   - users
-  - docker
+  - podman
   - some-service
 ```
 

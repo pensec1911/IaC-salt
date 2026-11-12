@@ -1,7 +1,7 @@
 # grafana formula
 
-Runs [grafana/grafana-oss](https://hub.docker.com/r/grafana/grafana-oss) as a Docker container.
-Depends on the `docker` formula (installs the engine) — this formula only handles the container
+Runs [grafana/grafana-oss](https://hub.docker.com/r/grafana/grafana-oss) as a Podman container (Quadlet unit via `formulas/podman`).
+Depends on the `podman` formula (runtime and container macro) — this formula only handles the container
 and its data dir.
 
 ## What it manages
@@ -10,7 +10,7 @@ and its data dir.
   datasource provisioning file (`grafana:datasources`) and a file-based dashboard provider, and
   downloads the pinned grafana.com dashboards (`grafana:dashboards`, sha256-checked) into
   `dashboards_dir`.
-- `grafana.container` — runs the container via `docker_container.running`, bind-mounting
+- `grafana.container` — runs the container via the `formulas/podman` macro (Quadlet unit `grafana`), bind-mounting
   `data_dir` to `/var/lib/grafana`. Admin credentials come in via `GF_SECURITY_ADMIN_USER`/
   `GF_SECURITY_ADMIN_PASSWORD` env vars. Only `provisioning/datasources` and
   `provisioning/dashboards` are bind-mounted (the image's other provisioning dirs stay), and the
@@ -33,7 +33,7 @@ substitution) don't resolve under file provisioning.
 # salt/top.sls
 'monitoring':
   - users
-  - docker
+  - podman
   - grafana
 ```
 
@@ -46,5 +46,5 @@ See `pillar.example.sls` for the full schema. Real values live in `pillar/grafan
 `sdb://` reference, never a literal value (.claude/docs/secrets.md). **Important quirk**:
 Grafana only applies `GF_SECURITY_ADMIN_PASSWORD` the first time the container starts against an
 empty database — changing the pillar value later does not rotate an already-provisioned admin
-password. If it drifts, reset it via `docker exec grafana grafana-cli admin reset-admin-password
+password. If it drifts, reset it via `podman exec grafana grafana-cli admin reset-admin-password
 <new>` rather than expecting a pillar change + `state.apply` to fix it.

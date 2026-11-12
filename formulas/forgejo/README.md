@@ -1,14 +1,14 @@
 # forgejo formula
 
 Runs [Forgejo](https://forgejo.org) (`data.forgejo.org/forgejo/forgejo`, rootless image, LTS
-line) as a Docker container with SQLite. Depends on the `docker` and `users` formulas — this
+line) as a Podman container (Quadlet unit via `formulas/podman`) with SQLite. Depends on the `podman` and `users` formulas — this
 formula only handles the container and its local dirs.
 
 ## What it manages
 
 - `forgejo.config` — `data_dir` (default `/opt/forgejo/data`: repos, SQLite DB, attachments
   and `custom/conf/app.ini`), owned by the pinned `git` account (972:972).
-- `forgejo.container` — the container, run as that account (docker `user:`), publishing the web
+- `forgejo.container` — the container, run as that account (`User=`, mapped 1:1 into its user namespace), publishing the web
   UI on `http_port` (3000) and git-over-SSH on `ssh_port` (2222; Forgejo's built-in SSH server,
   so the host's port 22 stays with sshd).
 - `extra_ca_certs` — self-signed certs (salt-api) written to `ca_dir` and added via
@@ -28,7 +28,7 @@ formula only handles the container and its local dirs.
 # salt/top.sls
 'forgejo':
   - users
-  - docker
+  - podman
   - forgejo
 ```
 

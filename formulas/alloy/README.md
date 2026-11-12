@@ -1,14 +1,18 @@
 # alloy formula
 
-Runs [Grafana Alloy](https://github.com/grafana/alloy) (`grafana/alloy`) as a Docker container on
-a docker host and ships its logs to Loki (`formulas/loki`). Depends on the `docker` formula.
+Runs [Grafana Alloy](https://github.com/grafana/alloy) (`docker.io/grafana/alloy`) as a Podman
+container (Quadlet unit via `formulas/podman`) on a container host and ships the host journal —
+container logs included — to Loki (`formulas/loki`). Depends on the `podman` formula.
 
 ## What it ships
 
 | Source | Labels |
 |---|---|
-| Every container's stdout/stderr, via the docker API | `job="docker"`, `container=<name>` |
-| The host's systemd journal (`/var/log/journal`) — systemd units, salt-minion, NFS, kernel | `job="journal"`, `unit=<systemd unit>`, `level=<priority>` |
+| Container stdout/stderr — Podman's journald log driver, journal entries with `CONTAINER_NAME` | `job="container"`, `container=<name>`, `unit=<name>.service`, `level` |
+| Everything else in the host journal (`/var/log/journal`) — systemd units, salt-minion, NFS, kernel | `job="journal"`, `unit=<systemd unit>`, `level=<priority>` |
+
+Until the Podman migration (2026-11) container logs came via the docker API as `job="docker"`;
+older data in Loki keeps that label. `{container="x"}` finds both.
 
 Plus `host=<minion id>` on everything. A fresh Alloy reads the journal back `journal_max_age`
 (12h); positions are kept in `data_dir` on the host, so a recreated container neither re-ships nor
@@ -17,9 +21,12 @@ skips.
 ## What it manages
 
 - `alloy.config` — `config.alloy` in `config_dir`, `data_dir` for positions.
-- `alloy.container` — the container, root inside (docker socket + journal; the socket is
-  root-equivalent anyway), docker socket / journal / `/etc/machine-id` bound read-only. No
-  published port: the debug UI (:12345) stays inside the container. Restarts when the config
+- `alloy.container` — the container, root inside its own user namespace (a sub-UID on the host),
+  no capabilities. Reads the journal through the host's `systemd-journal` group, mapped 1:1 and
+  added as a supplementary group (`journal_group`, gid looked up at render time). Journal and
+  `/etc/machine-id` bound read-only; `data_dir` handed to the container with `:U` and bound at
+  `/alloy-data` (the image's `/var/lib/alloy` is 0770 for uid 473, which root without
+  `DAC_OVERRIDE` can't traverse). No published port: the debug UI (:12345) stays inside the container. Restarts when the config
   changes. Normal bridge network on arrstack too, not behind gluetun.
 
 ## Finding Loki
@@ -39,12 +46,12 @@ The push URL is built from the Salt Mine entry `loki` that `formulas/loki` publi
 
 ## Usage
 
-Every docker host, after `docker`:
+Every container host, after `podman`:
 
 ```yaml
 # salt/top.sls
 'some-minion':
-  - docker
+  - podman
   - cadvisor
   - alloy
 ```

@@ -19,12 +19,12 @@ runtime state of the guest, not a Proxmox/Tofu resource — express "this VM nee
 at path Y" as pillar data for that minion, consumed here.
 
 `nfs-mount:lookup:required_by` (list of systemd units, default empty) adds a drop-in with
-`RequiresMountsFor=<every mountpoint>` to each listed unit (+ `daemon-reload`). Set it to
-`docker.service` on any minion whose containers bind a share: Docker then waits for the mounts
-at boot and fails instead of starting containers on the empty local mountpoint when the NAS is
-slow or down. Takes effect on Docker's next start — Salt doesn't restart it.
-A mount entry with `skip_required_by: true` stays out of that drop-in — for shares no container
-binds (the backup share), so they can't keep Docker from starting.
+`RequiresMountsFor=<every mountpoint>` to each listed unit (+ `daemon-reload`), for units that
+use a share but don't declare it themselves. Containers don't need it: Quadlet adds
+`RequiresMountsFor=` for every bound path to the container's unit (`formulas/podman`), so a
+container that binds a share waits for it at boot and fails instead of running on the empty
+mountpoint. Takes effect on the unit's next start — Salt doesn't restart it.
+A mount entry with `skip_required_by: true` stays out of that drop-in (the backup share).
 
 ## Usage
 

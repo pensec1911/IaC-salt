@@ -5,8 +5,9 @@ alloy:
     tag: v1.20.1
     config_dir: /opt/alloy/config
     data_dir: /opt/alloy/data
-    docker_socket: /var/run/docker.sock
     journal_path: /var/log/journal
+    # Host group that may read the journal; mapped 1:1 into the container.
+    journal_group: systemd-journal
     # How far back a fresh Alloy (no positions yet) reads the journal.
     journal_max_age: 12h
     # Push URL = http://<ip from this mine alias>:<loki_port>

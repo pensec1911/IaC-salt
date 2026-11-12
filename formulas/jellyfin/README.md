@@ -1,7 +1,7 @@
 # jellyfin formula
 
-Runs [Jellyfin](https://jellyfin.org) (`lscr.io/linuxserver/jellyfin`) as a Docker container,
-serving the TrueNAS media share the arrstack fills. Depends on the `docker`, `users`, and
+Runs [Jellyfin](https://jellyfin.org) (`lscr.io/linuxserver/jellyfin`) as a Podman container (Quadlet unit via `formulas/podman`),
+serving the TrueNAS media share the arrstack fills. Depends on the `podman`, `users`, and
 `nfs-mount` formulas — this formula only handles the container and its local dirs.
 
 ## What it manages
@@ -24,7 +24,7 @@ ownership lines up without any NAS-side change.
 'jellyfin':
   - users
   - nfs-mount
-  - docker
+  - podman
   - jellyfin
 ```
 

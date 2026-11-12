@@ -1,5 +1,5 @@
 {#- uid/gid: the image has no USER (runs as root); HTTP probes need no
-   privileges, so the container gets nobody via a docker `user:` override —
+   privileges, so the container gets nobody via the container `user` —
    same as formulas/prometheus. No host account: nothing on disk is written
    by it, config.yml is only read.
 

@@ -1,8 +1,8 @@
 # blackbox-exporter formula
 
 Runs [blackbox_exporter](https://github.com/prometheus/blackbox_exporter) (`prom/blackbox-exporter`)
-as a Docker container: Prometheus asks it to probe a URL (`/probe?target=…&module=…`) and gets
-`probe_success`, status code, latency, TLS expiry back. Depends on the `docker` formula.
+as a Podman container (Quadlet unit via `formulas/podman`): Prometheus asks it to probe a URL (`/probe?target=…&module=…`) and gets
+`probe_success`, status code, latency, TLS expiry back. Depends on the `podman` formula.
 
 cAdvisor only shows that a container runs; this shows that the app behind it answers.
 
@@ -34,7 +34,7 @@ Try a probe by hand: `curl 'http://<monitoring>:9115/probe?module=http_up&target
 ```yaml
 # salt/top.sls
 'monitoring':
-  - docker
+  - podman
   - blackbox-exporter
   - prometheus
 ```

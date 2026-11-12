@@ -70,7 +70,7 @@ once 1–3 haven't isolated it.
 
 ## 5. Requisite "does not exist"
 
-`Referenced state does not exist for requisite [require: (user: user-media)]` (or `sls: docker`,
+`Referenced state does not exist for requisite [require: (user: user-media)]` (or `sls: podman`,
 `mount: nfs-mount-…`) after `state.apply <formula>`: the providing formula isn't in that run.
 Use a full `state.apply` on the minion instead. If it also fails there, the minion's
 `salt/top.sls` entry is missing the dependency.

@@ -29,12 +29,12 @@ salt '<minion>' state.apply
 ```
 
 - Use a **full** `state.apply` on the minion, not `state.apply <formula>`, for formulas whose
-  requisites come from other formulas (`users`, `docker`, `nfs-mount`) — otherwise
+  requisites come from other formulas (`users`, `podman`, `nfs-mount`) — otherwise
   "Referenced state does not exist for requisite".
-- In `test=True` on a fresh minion, `docker_container.running` reports
-  "'docker_container.running' is not available" — expected, the docker Python module isn't
-  installed until the real run.
-- Recreating gluetun restarts every attached arrstack container (by design, via `watch`).
+- Restarting gluetun restarts every attached arrstack container (systemd `BindsTo`, by design).
+- Containers are systemd units named like the container: `systemctl status|restart <name>`,
+  `journalctl -u <name>`, `podman ps|logs|exec`. Not `podman stop`/`restart` — `Restart=always`
+  undoes a stop at once. More in `formulas/podman/README.md` "Day to day".
 
 ## Render check (pre-push)
 
@@ -77,9 +77,9 @@ repairs if enforce is allowed now. Otherwise it only reports. `formulas/salt-mas
 salt-api log: `journalctl -u salt-api`. Alertmanager's side:
 `alertmanager_notifications_failed_total{integration="webhook"}` on monitoring.
 
-A stopped `docker` on a docker host (down > 90 s, i.e. systemd gave up or someone stopped it)
-is started again via the service beacon → reactor (`formulas/salt-minion` "Beacons"). Pausing
-for maintenance: `salt '<minion>' beacons.disable_beacon service`.
+No container daemon to watch since the Podman migration: each container's unit restarts itself
+(`Restart=always`); a unit that hit systemd's start limit shows in `systemctl --failed` and is
+reset by the next highstate (or `systemctl reset-failed <name>; systemctl start <name>`).
 
 ## Drift check
 
@@ -111,7 +111,7 @@ The `/salt-render-debug` skill walks through render/sync failures in order.
 ## Running non-trivial commands on minions
 
 Nested quoting through `ssh` → `salt cmd.run` → `sh` breaks fast (Go templates in
-`docker inspect -f`, JSON, `$` expansions). For anything beyond a one-liner, write a script
+`podman inspect -f`, JSON, `$` expansions). For anything beyond a one-liner, write a script
 locally, `scp` it to the master, `salt-cp <minion> /tmp/x.sh /tmp/x.sh`, run it with
 `cmd.run 'sh /tmp/x.sh'`, then delete it on both sides.
 
@@ -120,10 +120,10 @@ locally, `scp` it to the master, `salt-cp <minion> /tmp/x.sh /tmp/x.sh`, run it 
 - Container data: `/opt/<formula>/…` on the minion (arrstack: `/opt/arrstack/<app>`).
 - qBittorrent WebUI user `admin`. Forgotten password: stop container, remove
   `WebUI\Password_PBKDF2` from `/opt/arrstack/qbittorrent/qBittorrent/qBittorrent.conf`, start —
-  a temporary password is printed to `docker logs qbittorrent`. "Bypass authentication for
+  a temporary password is printed to `podman logs qbittorrent`. "Bypass authentication for
   clients on localhost" must stay on (port-forwarding hook).
 - gluetun logs the hook's `wget` success line as `ERROR [port forwarding] … URL:… [1]` — not an
-  error. Real check: `docker exec gluetun wget -qO- http://127.0.0.1:8080/api/v2/app/preferences`
+  error. Real check: `podman exec gluetun wget -qO- http://127.0.0.1:8080/api/v2/app/preferences`
   → `listen_port` matches "port forwarded is …".
 - Sonarr/Radarr/Prowlarr API keys: `<ApiKey>` in `/opt/arrstack/<app>/config.xml`;
   `GET /api/v3/health` (Prowlarr `v1`) shows their health warnings.

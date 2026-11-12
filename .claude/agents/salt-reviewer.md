@@ -20,9 +20,14 @@ Check every changed formula/pillar file against:
 2. **init.sls convention**: just an include list wiring other `.sls` files together — no direct
    state logic beyond that.
 3. **Dependencies**: a formula requiring another (e.g. anything running containers requiring
-   `docker`) declares `require: - sls: <dep>`, and that dependency is listed first for the same
+   `podman`) declares `require: - sls: <dep>`, and that dependency is listed first for the same
    minion in `salt/top.sls`.
-4. **Secrets**: no literal secret-looking value (password, API key, token) in any `pillar/*.sls`
+4. **Containers** go through `formulas/podman/macros.jinja` (`container`/`network`), never a
+   hand-written Quadlet file or `docker_*` state. Check: image fully qualified; secrets in
+   `secret_env`, not `env`; no `:U` on NFS paths and no Salt `user:`/`group:` on a `:U` dir;
+   pinned app uid mapped via `keep_uids`/`keep_gids`; never map host 999 (`salt`); hardening
+   opt-outs only in the formula's map.jinja `podman` key, with the reason in the comment.
+5. **Secrets**: no literal secret-looking value (password, API key, token) in any `pillar/*.sls`
    file — must be an explicit `{{ salt['sdb.get']('sdb://osvault/homelab/data/...') | yaml_encode }}`
    call. A bare `sdb://` string is also a finding (Salt never resolves it in pillar). Flag anything that looks like a real
    credential, even a plausible placeholder.

@@ -22,13 +22,13 @@ Salt-rendered config are reproducible and not backed up.
   open. arrstack: ~1 min without Sonarr/Radarr/qBittorrent/…; gluetun stays up.
 
 - `dumps` — server databases (Postgres) whose live data dir isn't safe to copy: before restic
-  runs, each is dumped via `docker exec <container> <command>` into `file` (inside `paths`;
+  runs, each is dumped via `podman exec <container> <command>` into `file` (inside `paths`;
   written to `.tmp` and renamed, so a failed dump fails the run and leaves the last good one).
   Exclude the live data dir. The container must keep running (not in `stop_containers`).
   Today: netbox's Postgres on forgejo (`pillar/backup.sls`).
 
 The share comes from `nfs-mount` (`nfs_mounts` entry `backups`, `nofail` +
-`skip_required_by`: a refused export never keeps the VM or Docker from starting), so `nfs-mount` and
+`skip_required_by`: a refused export never keeps the VM or a container from starting), so `nfs-mount` and
 `node-exporter` (textfile directory) are listed before `backup` in `salt/top.sls`.
 
 On monitoring the hourly enforce run can, in rare cases, start grafana again during the
@@ -140,9 +140,9 @@ On the minion, as root:
 set -a; . /etc/restic/env; set +a
 restic snapshots
 restic ls latest /opt/arrstack/sonarr
-docker stop sonarr
+systemctl stop sonarr
 restic restore latest --target / --include /opt/arrstack/sonarr
-docker start sonarr
+systemctl start sonarr
 ```
 
 Lost VM: Tofu re-creates it, the start reactor applies the highstate (share mounted, password

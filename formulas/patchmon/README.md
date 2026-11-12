@@ -2,7 +2,7 @@
 
 Runs the [PatchMon](https://patchmon.net) server (`ghcr.io/patchmon/patchmon-server`): a
 patch/package inventory of every minion, fed by `formulas/patchmon-agent`. Depends on the
-`docker` formula. Next to unattended-upgrades (which still does the actual nightly patching),
+`podman` formula. Next to unattended-upgrades (which still does the actual nightly patching),
 it shows per host and per package what's outstanding, security updates, reboot need, history.
 
 ## Security model — read first
@@ -28,9 +28,9 @@ Kept closed on purpose:
   unresolved `sdb://`); `secrets_dir` (`/opt/patchmon/secrets`, 0700 root) with
   `patchmon.env` (JWT/session/AI keys, `DATABASE_URL`) and `db_password`, each bound read-only
   into its container — the server loads it via `ENV_FILE`, postgres via
-  `POSTGRES_PASSWORD_FILE`. Never in container env, state diffs or `docker inspect`. Dirs for
+  `POSTGRES_PASSWORD_FILE`. Never in container env, state diffs or `podman inspect`. Dirs for
   postgres, valkey and the backup dump.
-- `patchmon.container` — the private docker network `patchmon` and on it:
+- `patchmon.container` — the private Podman network (`network` macro, DNS by container name) `patchmon` and on it:
   - `patchmon-postgres` (`postgres:17.x-alpine`, the major upstream ships),
   - `patchmon-valkey` (instead of upstream's redis; AOF on, no password, no published port),
   - `patchmon` — UI + API + agent WebSocket on `http_port` (3001 → 3000). Runs its DB

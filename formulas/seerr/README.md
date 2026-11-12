@@ -1,9 +1,9 @@
 # seerr formula
 
-Runs [Seerr](https://github.com/seerr-team/seerr) (`ghcr.io/seerr-team/seerr`) as a Docker
-container. Users request movies and series there, and Seerr passes them on to Sonarr/Radarr.
+Runs [Seerr](https://github.com/seerr-team/seerr) (`ghcr.io/seerr-team/seerr`) as a Podman
+container (Quadlet unit via `formulas/podman`). Users request movies and series there, and Seerr passes them on to Sonarr/Radarr.
 Seerr is the merged successor of Jellyseerr and Overseerr (both archived). Depends on the
-`docker` and `users` formulas.
+`podman` and `users` formulas.
 
 ## What it manages
 
@@ -11,7 +11,7 @@ Seerr is the merged successor of Jellyseerr and Overseerr (both archived). Depen
   uid/gid, mode 0750. It stays on local disk because it holds Seerr's SQLite DB and
   `settings.json`.
 - `seerr.container` — the container, publishing the WebUI on `http_port` (default 5055). It
-  runs on the normal Docker bridge, **not** behind gluetun: Seerr only talks to TMDB and the LAN.
+  runs on the default Podman bridge, **not** behind gluetun: Seerr only talks to TMDB and the LAN.
 
 ## Dedicated user
 
@@ -25,7 +25,7 @@ login account. So the container gets a `user: 971:971` override. The `seerr` sys
 # salt/top.sls
 'arrstack':
   - users
-  - docker
+  - podman
   - seerr
 ```
 

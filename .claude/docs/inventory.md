@@ -7,17 +7,17 @@ Flat network 192.168.178.0/24 (FRITZ!Box range). Minion ID = hostname = Tofu VM 
 | Minion | IP | Formulas (`salt/top.sls`) | Services / ports |
 |---|---|---|---|
 | `salt-master` | .28 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, patchmon-agent, salt-minion, salt-master, orch | salt-master (gitfs + git_pillar); salt-api :8000 (HTTPS, webhooks only); rolling reboot 03:15 Berlin (timer, no port) |
-| `homepage` | .23 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, patchmon-agent, salt-minion, docker, cadvisor, alloy, homepage | homepage :3000 |
-| `monitoring` | .25 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, patchmon-agent, salt-minion, docker, cadvisor, blackbox-exporter, loki, alloy, grafana, prometheus, alertmanager, nfs-mount, backup | Grafana :3000, Prometheus :9090, Alertmanager :9093, blackbox_exporter :9115, Loki :3100 |
-| `arrstack` | .22 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, patchmon-agent, salt-minion, nfs-mount, docker, cadvisor, alloy, arrstack, seerr, backup | Seerr :5055; via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal); Recyclarr daily (timer, no port) |
-| `jellyfin` | .24 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, patchmon-agent, salt-minion, nfs-mount, docker, cadvisor, alloy, jellyfin, backup | Jellyfin :8096 |
-| `forgejo` | .29 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, patchmon-agent, salt-minion, nfs-mount, docker, cadvisor, alloy, forgejo, forgejo-runner, netbox, patchmon, backup | Forgejo web :3000, git SSH :2222; Actions runner (no port, jobs in its own dind), Renovate hourly (`homelab/renovate`); NetBox :8000, PatchMon :3001 (their postgres + valkey internal only) |
+| `homepage` | .23 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, patchmon-agent, salt-minion, podman, cadvisor, alloy, homepage | homepage :3000 |
+| `monitoring` | .25 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, patchmon-agent, salt-minion, podman, cadvisor, blackbox-exporter, loki, alloy, grafana, prometheus, alertmanager, nfs-mount, backup | Grafana :3000, Prometheus :9090, Alertmanager :9093, blackbox_exporter :9115, Loki :3100 |
+| `arrstack` | .22 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, patchmon-agent, salt-minion, nfs-mount, podman, cadvisor, alloy, arrstack, seerr, backup | Seerr :5055; via gluetun: qBittorrent :8080, Sonarr :8989, Radarr :7878, Prowlarr :9696, Bazarr :6767, slskd :5030; FlareSolverr :8191 (internal); Recyclarr daily (timer, no port) |
+| `jellyfin` | .24 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, patchmon-agent, salt-minion, nfs-mount, podman, cadvisor, alloy, jellyfin, backup | Jellyfin :8096 |
+| `forgejo` | .29 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, patchmon-agent, salt-minion, nfs-mount, podman, cadvisor, alloy, forgejo, forgejo-runner, netbox, patchmon, backup | Forgejo web :3000, git SSH :2222; Actions runner (no port, jobs in its own dind), Renovate hourly (`homelab/renovate`); NetBox :8000, PatchMon :3001 (their postgres + valkey internal only) |
 | `wazuh` | .27 | users, ntp, node-exporter, unattended-upgrades, patchmon-agent, salt-minion, wazuh, nfs-mount, backup | dashboard :443, indexer :9200, API :55000, agents :1514 / enrollment :1515 |
 
 Every minion: node_exporter :9100; patchmon-agent (no port, outbound WebSocket to PatchMon on
-forgejo — only once enrolled, formulas/patchmon-agent README). Docker hosts (homepage, monitoring, arrstack, jellyfin, forgejo):
+forgejo — only once enrolled, formulas/patchmon-agent README). Container hosts (homepage, monitoring, arrstack, jellyfin, forgejo — rootful Podman, every container a systemd unit):
 cAdvisor :8088. All scraped by Prometheus on monitoring — targets from the Salt Mine (`node_exporter`, `cadvisor` entries), not listed in `pillar/prometheus.sls`. Every homepage item with a status dot is also HTTP-probed via blackbox_exporter (`ProbeFailed`).
-Docker hosts also run Alloy (no port), shipping container logs + journal to Loki on monitoring
+Container hosts also run Alloy (no port), shipping the journal (container logs included, `job="container"`) to Loki on monitoring
 (Grafana → Explore, datasource `Loki`).
 arrstack, jellyfin, monitoring, wazuh and forgejo back up nightly (~02:00 Berlin) to the NAS via restic
 (`formulas/backup`, `BackupFailed` / `BackupStale`), with a weekly restore test (Sunday ~04:00,

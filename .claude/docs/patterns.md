@@ -13,8 +13,9 @@ formula declares `require: - user: user-<name>`.
 - Each service's `pillar/<name>.sls` **appends** its account(s) to `users:accounts`. This only
   merges across pillar files because the master sets `pillar_merge_lists: True`
   (`formulas/salt-master`); without it only the last file's list survives.
-- `uid`/`gid` stay unset (auto) unless a consumer needs the number at Jinja render time (Docker
-  `PUID`/`PGID`, a container `user:` override). Then pin it in pillar **and** in the formula's
+- `uid`/`gid` stay unset (auto) unless a consumer needs the number at Jinja render time
+  (`PUID`/`PGID`, a container `user`, and with it the 1:1 mapping into the container's user
+  namespace — `formulas/podman` README "User namespaces and file ownership"). Then pin it in pillar **and** in the formula's
   `map.jinja`, avoiding 65534/`nobody` and the 1000+ range (the per-minion login account from
   `GLOBAL` lands there).
 - Not every container needs a host account: if nothing on the host acts as the image's own
@@ -42,29 +43,32 @@ See `formulas/users/README.md`, `formulas/arrstack` (`media`).
   (jellyfin) — arrstack is the only writer on the media share.
 - NAS squashes root: create anything on the share as 970 (`setpriv --reuid … install -d`), not
   as root — see `formulas/arrstack/config.sls`.
-- Minions whose containers bind a share set `nfs-mount:lookup:required_by: [docker.service]`
-  (arrstack, jellyfin): Docker waits for the mounts at boot and fails rather than running on
-  the empty mountpoint. If the NAS was down at boot, `systemctl start docker` (or a highstate)
-  once it's back.
+- Containers that bind a share wait for it on their own: Quadlet adds `RequiresMountsFor=` for
+  every bound path, so the unit fails rather than running on the empty mountpoint. If the NAS
+  was down at boot, `systemctl start <container>` (or a highstate) once it's back.
+  `nfs-mount:lookup:required_by` is only for other units now.
+- Never `:U` on a share (root_squash; it would chown the library): the container maps the
+  owning uid 1:1 instead (`keep_uids`/`keep_gids`, media 970).
 
 ## VPN sidecar (gluetun)
 
-Containers that must share one VPN tunnel use `network_mode: container:<vpn>`. Consequences:
+Containers that must share one VPN tunnel join its namespace (`arrstack.attach` in
+`formulas/arrstack/map.jinja`: Quadlet `Network=gluetun.container`). Consequences:
 
-- Only the VPN container can publish ports — every WebUI port goes in gluetun's
-  `port_bindings`.
+- Only the VPN container can publish ports — every WebUI port goes in gluetun's `ports`.
 - gluetun's firewall drops inbound even on published ports unless listed in
-  `FIREWALL_INPUT_PORTS` (built from the same values as `port_bindings`, so they can't drift).
-- Attached containers must `watch` the gluetun state: when gluetun is recreated their namespace
-  is gone and they keep "running" with no network.
+  `FIREWALL_INPUT_PORTS` (built from the same list as `ports`, so they can't drift).
+- Attached units are `BindsTo=gluetun.service` and `WantedBy=gluetun.service`: when gluetun
+  goes away (restart, crash) their namespace is gone, so systemd stops them and starts them
+  again with gluetun. Each keeps its own user namespace — Podman allows that.
 - gluetun's kill switch doesn't cover packets of already-open connections when `tun0` drops —
   `gluetun.sls` adds a post-rule dropping the tunnel address as source on `eth0` (arrstack README
   "Leak guard").
 - **Port forwarding** (`gluetun:port_forwarding: true`, provider must support it — Proton yes,
   Mullvad no): gluetun picks only PF servers and calls hook scripts that push the (changing)
   forwarded port into qBittorrent via its API. Needs gluetun ≥ v3.41 and qBittorrent's
-  "bypass auth for localhost". Placeholders `{{PORT}}`/`{{VPN_INTERFACE}}` in the env must be
-  wrapped in `{% raw %}` since the sls is Jinja itself.
+  "bypass auth for localhost". Placeholders `{{PORT}}`/`{{VPN_INTERFACE}}` stay inside a Jinja
+  string literal in the sls (not rendered there).
 
 See `formulas/arrstack/README.md` ("Networking model", "Port forwarding").
 
@@ -84,10 +88,11 @@ only some values are pillar-driven, patch them in with `file.blockreplace` (mark
 instead of a full `file.managed` template that silently drops the rest. Small self-contained
 files (`opensearch.yml`) can be fully templated. See `formulas/wazuh`, `formulas/wazuh-agent`.
 
-## Docker images
+## Container images
 
 Images are pinned to a specific tag in `map.jinja` (LSIO images: `<version>-ls<build>` or plain
-version). Look up the current tag (Docker Hub / GitHub releases) instead of guessing; bump
+version), always fully qualified (`docker.io/prom/prometheus`, not `prom/prometheus`): Debian's
+Podman has no short-name search list, an unqualified name fails to pull. Look up the current tag (Docker Hub / GitHub releases) instead of guessing; bump
 deliberately.
 
 Renovate (repo `homelab/renovate`, hourly on the forgejo runner) opens a PR per bump. It finds
@@ -142,7 +147,7 @@ Every service with state Salt can't rebuild (app config, databases, keys/certs) 
   `RestoreTestFailed`/`RestoreTestStale` alert. After adding paths, run
   `systemctl start restic-backup.service` then `restic-restore-test.service` once.
 - **Postgres/MySQL/other server DBs**: a file copy of a running server isn't consistent. Add a
-  `dumps` entry (`docker exec` dump into a file under `paths`, pre-run) and exclude the live
+  `dumps` entry (`podman exec` dump into a file under `paths`, pre-run) and exclude the live
   data dir; the restore test checks the dump's header. Example: netbox on forgejo.
 - **No entry** for stateless services (exporters, FlareSolverr) or data that's fine to lose
   (Prometheus/Loki TSDB).

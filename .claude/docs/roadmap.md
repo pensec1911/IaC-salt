@@ -22,7 +22,7 @@ No order agreed; pick as needed.
   RebootRequired, …) and Wazuh are only visible if someone opens the UI or Grafana. ntfy is
   tiny (~50 MB) and gives phone push without a third-party account.
 - **Sketch**: new `formulas/ntfy` (container, auth on, deny-all default, one topic per
-  severity) on an existing Docker host; a user + access token in OpenBao. Set
+  severity) on an existing container host; a user + access token in OpenBao. Set
   `alertmanager:config` in `pillar/alertmanager.sls` with a webhook receiver (ntfy speaks the
   Alertmanager format via `?template=alertmanager` or a small bridge), token via `sdb.get`;
   route by severity, group so a burst is one message. Homepage tile + backup entry (user DB).
@@ -48,7 +48,7 @@ No order agreed; pick as needed.
 - **To decide when it's built** — proxy and CA:
   - *Caddy*: proxy + built-in CA in one (`tls internal`, can also serve ACME to other hosts);
     simplest, config is one Caddyfile from pillar. Leaning this way.
-  - *Traefik*: Docker-label routing, built-in forward-auth middleware; needs a CA/ACME source.
+  - *Traefik*: container-label routing, built-in forward-auth middleware; needs a CA/ACME source.
   - *nginx*: proxy only, no CA and no automatic certs — would need step-ca or OpenBao PKI.
   - CA: Caddy's internal CA / *step-ca* (separate ACME CA, also SSH certificates) /
     *OpenBao PKI* (already running, but makes OpenBao a dependency of every TLS renewal) /
@@ -100,8 +100,8 @@ No order agreed; pick as needed.
   apply time. Zot caches them on-demand, so applies and rebuilds survive upstream outages,
   rate limits and deleted tags, and gives the Trivy workflow one local place to scan.
 - **Sketch**: `formulas/zot` with `sync` extension in on-demand mode per upstream registry;
-  storage on local disk (cache, rebuildable → no backup). Docker daemon `registry-mirrors`
-  (formulas/docker pillar) covers Docker Hub; other registries need the image prefix rewritten
+  storage on local disk (cache, rebuildable → no backup). a `registries.conf.d` mirror entry
+  (formulas/podman) covers Docker Hub; other registries need the image prefix rewritten
   via a `registry` lookup key in the formulas.
 - **Open**: rewriting image refs breaks Renovate's upstream lookup unless the original name
   stays in pillar and the prefix is added at render time; TLS for the registry (reverse proxy
@@ -111,10 +111,10 @@ No order agreed; pick as needed.
 ### PatchMon (patch visibility per host)
 
 - **Why**: unattended-upgrades patches Debian main/security daily, but the excluded repos
-  (Docker, Salt, Wazuh — on purpose, `formulas/unattended-upgrades`) and non-minions (OpenBao,
+  (Salt, Wazuh — on purpose, `formulas/unattended-upgrades`) and non-minions (OpenBao,
   omada-controller, tailscale-router, Proxmox nodes) are invisible today. PatchMon shows
   pending updates per host in one place.
-- **Sketch**: `formulas/patchmon` (server container + DB) on a Docker host; `formulas/
+- **Sketch**: `formulas/patchmon` (server container + DB) on a container host; `formulas/
   patchmon-agent` on every minion, enrollment key via `sdb.get`. Non-minions enrolled by hand
   (documented in the README). Homepage tile + backup entry.
 - **Open**: overlap with `RebootRequired` / a node_exporter textfile for pending updates
@@ -126,7 +126,7 @@ No order agreed; pick as needed.
 - **Why**: the Trivy workflow (`.forgejo/workflows/trivy.yml`) gives a weekly point-in-time
   scan. Dependency-Track keeps an SBOM per image and re-evaluates it as new CVEs appear, so
   "which running image is affected by CVE-X" is a query, not a re-scan.
-- **Sketch**: `formulas/dependency-track` (API server + frontend + postgres, ~4 GB) on a Docker
+- **Sketch**: `formulas/dependency-track` (API server + frontend + postgres, ~4 GB) on a container
   host; the Trivy workflow additionally emits CycloneDX SBOMs and uploads them per image
   (project = image, version = pinned tag). Notifications via webhook → ntfy. API key in
   OpenBao. Homepage tile + backup (postgres via the `dumps` feature of `formulas/backup`).
@@ -139,7 +139,7 @@ No order agreed; pick as needed.
 - **Why**: Trivy/Dependency-Track see image contents; nothing looks at the hosts from the
   network side (open ports, weak TLS, default creds, outdated services on non-minions like
   Proxmox, TrueNAS, FRITZ!Box, omada-controller).
-- **Sketch**: Greenbone Community containers on a Docker host, scheduled weekly scan of the
+- **Sketch**: Greenbone Community containers on a container host, scheduled weekly scan of the
   LAN range; scan target list from pillar (or later NetBox). Not always-on heavy if feeds +
   scanner are stopped between runs. Homepage tile + backup (gvmd postgres: targets, results).
 - **Open**: RAM/CPU during scans (~4–8 GB); feed sync size; authenticated scans (SSH creds in
@@ -159,7 +159,7 @@ No order agreed; pick as needed.
 - **Why**: decode/encode, hashes, JWT/cert inspection, regex, cron, subnet calc — locally
   instead of pasting secrets into random websites.
 - **Sketch**: one `formulas/toolbox` with both static containers (stateless → no backup) on
-  homepage or another light Docker host; two homepage tiles in a "Tools" group; behind SSO
+  homepage or another light container host; two homepage tiles in a "Tools" group; behind SSO
   once that exists.
 - **Open**: none worth noting — pick host and ports.
 
@@ -205,7 +205,7 @@ No order agreed; pick as needed.
 - **Why**: Wazuh-style visibility (processes, persistence, logins, file hashes across all
   hosts) without an always-on 8 GB SIEM — query fleet-wide when something looks off (e.g. an
   OpenCanary/Greenbone/Nuclei finding), otherwise idle.
-- **Sketch**: `formulas/velociraptor` (server, single binary, own datastore) on a Docker host or
+- **Sketch**: `formulas/velociraptor` (server, single binary, own datastore) on a container host or
   its own small VM; `formulas/velociraptor-client` on every minion with the client config
   rendered from pillar, deployment certs via `sdb.get`. Scheduled hunts for basics (new SUID
   files, new systemd units, new `authorized_keys`) → ntfy. Homepage tile + backup (datastore,

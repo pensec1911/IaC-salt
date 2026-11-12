@@ -4,7 +4,7 @@
 
    mine: Salt Mine entry the prometheus formula reads its node targets from
    (mine.get('*', alias)). interface: network.ip_addrs without it also
-   returns docker0's 172.17.0.1 on the Docker hosts. #}
+   returns the container bridge's address on the container hosts. #}
 {%- set defaults = {
     'pkg': 'prometheus-node-exporter',
     'service': 'prometheus-node-exporter',

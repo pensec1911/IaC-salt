@@ -17,7 +17,7 @@ nfs-mount-{{ mnt.name }}:
       - pkg: nfs-mount-prereqs
 {%- endfor %}
 
-{#- Units that must not start before (or without) the mounts — e.g. docker,
+{#- Units that must not start before (or without) the mounts — e.g. a service,
    whose bind mounts would otherwise land on the empty local mountpoint
    when the NAS is slow at boot. RequiresMountsFor= adds Requires= + After=
    on the mount units: if a mount fails, the unit fails too instead of

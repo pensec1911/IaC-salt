@@ -1,7 +1,7 @@
 # prometheus formula
 
-Runs [prom/prometheus](https://hub.docker.com/r/prom/prometheus) as a Docker container. Depends
-on the `docker` formula (installs the engine) — this formula only handles the container and its
+Runs [prom/prometheus](https://hub.docker.com/r/prom/prometheus) as a Podman container (Quadlet unit via `formulas/podman`). Depends
+on the `podman` formula (runtime and container macro) — this formula only handles the container and its
 config.
 
 ## What it manages
@@ -10,7 +10,7 @@ config.
   `files/prometheus.yml.j2` (pillar-driven `scrape_configs`; defaults to scraping only itself if
   unset; `alerting` → Alertmanager targets) and the rule file from `files/rules.yml.j2`
   (`rule_groups`, always present, empty if unset).
-- `prometheus.container` — runs the container via `docker_container.running`, bind-mounting both
+- `prometheus.container` — runs the container via the `formulas/podman` macro (Quadlet unit `prometheus`), bind-mounting both
   dirs. Restarts automatically when the rendered config or rules change (`watch`).
 
 No dedicated host user (`users` formula) is created for this. The official image already runs
@@ -25,7 +25,7 @@ set to match — no `/etc/passwd` entry needed for a bind mount to work.
 # salt/top.sls
 'monitoring':
   - users
-  - docker
+  - podman
   - prometheus
 ```
 

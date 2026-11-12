@@ -34,7 +34,9 @@ pillar/     per-minion data (git_pillar)
   `sdb://` string (silently not resolved). Details: [secrets.md](.claude/docs/secrets.md).
 - **Formula convention**: defaults only in `map.jinja` (`pillar.get('<f>:lookup', default=…,
   merge=True)`); `init.sls` is just an include list; plus `pillar.example.sls` and `README.md`.
-  No hardcoded values in `.sls` files. Reference: `formulas/docker`, `formulas/homepage`.
+  No hardcoded values in `.sls` files. Reference: `formulas/homepage`. Containers only via the
+  `formulas/podman` macro (rootful Podman + Quadlet, hardened by default; `formulas/docker` is
+  retired, applied nowhere) — ownership rules in its README.
 - **Don't duplicate, require**: dependencies via `require: - sls: <dep>` and listed first in
   `salt/top.sls`. Service users come from the shared `users` formula
   (`require: - user: user-<name>`), mounts from `nfs-mount` (`require: - mount: nfs-mount-<name>`)

@@ -22,7 +22,7 @@ Steps (operations.md "Deploy a change"). All `salt` commands via `ssh salt-maste
    Full highstate, never `state.apply <formula>`.
 5. **Summarize per minion**, short: which states change and what (file diff gist, container
    recreated → which ones restart; gluetun recreated restarts all of arrstack). Leave out known
-   noise: `'docker_container.running' is not available` on a fresh minion. Failures → stop,
+   noise: on a fresh container host every `<id>-image` pull shows as a change. Failures → stop,
    use `/salt-render-debug`.
 6. **Stop and ask for OK** — applying is outward-facing, and the user wants a per-task go
    (memory "Push yes, deploy ask"). Mention restarts/downtime and, on arrstack/jellyfin outside

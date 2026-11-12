@@ -38,6 +38,6 @@ users:
     #   shell: /bin/zsh     # defaults to lookup.default_shell
     #   uid: 970            # pin instead of auto-assigning — needed when a
     #   gid: 970            # consuming formula's own map.jinja has to know
-    #                       # this number too (e.g. a Docker PUID/PGID env
-    #                       # var, or a docker_container.running `user:`
-    #                       # param) — see formulas/arrstack for an example.
+    #                       # this number too (e.g. a PUID/PGID env var,
+    #                       # or a container `user` mapped 1:1 into its
+    #                       # user namespace) — see formulas/arrstack for an example.

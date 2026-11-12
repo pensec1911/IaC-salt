@@ -1,8 +1,8 @@
 # alertmanager formula
 
-Runs [prom/alertmanager](https://hub.docker.com/r/prom/alertmanager) as a Docker container —
+Runs [prom/alertmanager](https://hub.docker.com/r/prom/alertmanager) as a Podman container (Quadlet unit via `formulas/podman`) —
 receives firing alerts from Prometheus and routes them to notification receivers. Depends on the
-`docker` formula. The alert *rules* live in Prometheus (`prometheus:rule_groups`); Prometheus is
+`podman` formula. The alert *rules* live in Prometheus (`prometheus:rule_groups`); Prometheus is
 pointed here via `prometheus:alerting`.
 
 ## What it manages
@@ -23,7 +23,7 @@ Default config (no pillar) has only a `null` receiver: alerts are visible in the
 ```yaml
 # salt/top.sls
 'monitoring':
-  - docker
+  - podman
   - prometheus
   - alertmanager
 ```

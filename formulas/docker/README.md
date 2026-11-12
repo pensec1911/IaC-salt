@@ -1,5 +1,9 @@
 # docker formula
 
+> **Retired (2026-11).** No minion applies it any more — every container host runs
+> `formulas/podman` (rootful Podman + Quadlet). Kept in the repo for reference and as the way
+> back (`formulas/podman` README "Rollback"). Don't use it for new services.
+
 Installs Docker Engine from Docker's official apt repo (Debian), plus what Salt itself needs to
 manage containers: the `saltext.dockermod` extension and the `docker` Python library, installed
 into Salt's onedir Python via `salt-pip`.

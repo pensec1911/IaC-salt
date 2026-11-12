@@ -24,6 +24,30 @@ Remove an entry once fixed (the fix lives in git history).
   snapshot save` timer to the NAS — either by hand on the host or by making it a minion, which
   is a security decision (CLAUDE.md: security-critical bootstrap stays manual).
 
+## Podman migration (2026-11-12) — follow-ups
+
+- **PatchMon DB needs a reset**: its first migration ran while Postgres hung on the AppArmor
+  signal bug (formulas/podman map.jinja `apparmor_disable`) and left `Dirty database version
+  18`; `patchmon.service` fails until then. The DB was empty (0 users, 0 hosts). Fix on forgejo:
+  `printf 'DROP DATABASE patchmon_db;\nCREATE DATABASE patchmon_db OWNER patchmon_user;\n' |
+  sudo podman exec -i patchmon-postgres psql -U patchmon_user -d postgres`, then
+  `sudo systemctl reset-failed patchmon; sudo systemctl start patchmon`.
+- **Docker is still installed on the five container hosts** (stopped, disabled; old containers
+  and images in `/var/lib/docker`, ~1.6–4 GB each) — the rollback path. Purge by hand once the
+  hosts ran a while on Podman: formulas/podman README "Migration from Docker", step 3.
+- **Hardening opt-outs** (map.jinja `podman` keys, reason in each comment): writable root for
+  forgejo (deploy source — try read-only with a manual apply), gluetun, flaresolverr (Chromium
+  profile), the LinuxServer images (s6 init) and both postgres; dind privileged in the host user
+  namespace. Each is worth a try with a manual apply when there's time.
+- **No image pruning**: tag bumps leave old images in `/var/lib/containers`. `podman image
+  prune -a` by hand, or a timer in formulas/podman.
+- **Downtime on a migration = image pull time**: `podman.migrate` stops Docker before the
+  `<id>-image` pulls run. Irrelevant now that all hosts are migrated; matters for a new host only
+  if it had Docker.
+- **`salt-master:lookup:beacon_restart_services: [docker]`** is inert (no minion runs the
+  service beacon). Dropping it rewrites the master's reactor config (master restart) — do it
+  with a planned master apply.
+
 ## Smaller items
 
 - **bootstrap.sh still assumes GitHub** for the deploy key (registers it via `gh`). Since

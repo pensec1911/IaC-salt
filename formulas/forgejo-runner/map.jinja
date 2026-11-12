@@ -1,5 +1,5 @@
 {#- uid/gid are pinned to the shared `forgejo-runner` account
-   (pillar/forgejo.sls): the runner container runs as it via a docker
+   (pillar/forgejo.sls): the runner container runs as it via a container
    `user:` override and owns data_dir; the users entry must match.
 
    Jobs never touch the VM's Docker daemon: the runner talks to its own

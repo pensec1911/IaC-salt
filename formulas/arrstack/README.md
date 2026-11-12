@@ -1,7 +1,7 @@
 # arrstack formula
 
-Runs qBittorrent, Sonarr, Radarr, Prowlarr, Bazarr, FlareSolverr and slskd (Soulseek) as Docker containers, all routed
-through a VPN (currently Proton VPN) via [gluetun](https://github.com/qdm12/gluetun). Depends on the `docker`,
+Runs qBittorrent, Sonarr, Radarr, Prowlarr, Bazarr, FlareSolverr and slskd (Soulseek) as Podman containers (Quadlet units via `formulas/podman`), all routed
+through a VPN (currently Proton VPN) via [gluetun](https://github.com/qdm12/gluetun). Depends on the `podman`,
 `users`, and `nfs-mount` formulas — this formula only handles the eight containers and their config.
 
 Unlike `formulas/grafana`/`formulas/prometheus`, this is one formula for a tightly-coupled group
@@ -17,7 +17,7 @@ tunnel. This has a consequence worth understanding before touching `gluetun.sls`
 port (qBittorrent, Sonarr, Radarr, Prowlarr, Bazarr, slskd) is published on `gluetun-container`, not on
 the app container it actually belongs to — `port_bindings` in `gluetun.sls` lists all six.
 
-**gluetun's own firewall drops inbound connections by default, even to ports Docker published**,
+**gluetun's own firewall drops inbound connections by default, even to ports Podman published**,
 unless explicitly allowed via `FIREWALL_INPUT_PORTS`. That's the actual mechanism behind "WebUIs
 reachable on the LAN, everything else only via the VPN" — it's not a separate exception you have
 to build, it's what this one env var (built from the same port values as `port_bindings`, so they
@@ -36,7 +36,7 @@ writes `/iptables/post-rules.txt` (bound from `<config_base>/gluetun/iptables`),
 runs after its own firewall setup: one `DROP` per address in `wireguard_addresses` for traffic
 out of `uplink_interface`. WireGuard only (OpenVPN's tunnel address isn't known up front).
 
-Verify: `docker exec gluetun ip link set tun0 down` while capturing on the VM NIC
+Verify: `podman exec gluetun ip link set tun0 down` while capturing on the VM NIC
 (`tcpdump -i eth0 -nn src net 10.0.0.0/8`) — must stay empty; gluetun reconnects by itself
 within ~1 min.
 
@@ -53,7 +53,7 @@ qBittorrent's listen port and bind it to the VPN interface via the WebUI API. Ne
 **One-time manual step:** the hooks call the API unauthenticated, so in qBittorrent tick
 *Tools → Options → WebUI → "Bypass authentication for clients on localhost"*. That only exempts
 127.0.0.1 — i.e. the containers sharing gluetun's namespace — not LAN clients, which reach the
-WebUI through Docker's port publish. Without it the hook fails with a 403 in the gluetun log and
+WebUI through Podman's port publish. Without it the hook fails with a 403 in the gluetun log and
 qBittorrent keeps its old port. Not automated because qBittorrent rewrites its config file on
 exit, so a Salt-managed edit races the running container.
 
@@ -63,7 +63,7 @@ to `/media/torrents/<tv|movies>`, Sonarr/Radarr hardlink from there into `/media
 Same NFS dataset, so hardlinks work. In qBittorrent: default save path `/media/torrents`, default
 Torrent Management Mode **Automatic** (in Manual mode category paths are ignored), category
 `tv-sonarr` → `/media/torrents/tv`, `radarr` → `/media/torrents/movies`. Set 2026-10-17 via the
-WebUI API (`docker exec qbittorrent curl localhost:8080/api/v2/...`).
+WebUI API (`podman exec qbittorrent curl localhost:8080/api/v2/...`).
 
 **One-time manual step — incomplete torrents on local disk.** Torrents still downloading go to
 `/downloads/incomplete` (bound from `qbittorrent:incomplete_dir` on the VM's own disk), and
@@ -102,7 +102,7 @@ Sonarr/Radarr still pick the releases — Recyclarr only maintains their setting
   (no x265 for HD). Config: `recyclarr:instances` (map.jinja defaults, `pillar.example.sls`),
   rendered to `/opt/arrstack/recyclarr/recyclarr.yml`.
 - Run: `recyclarr-sync.timer` daily ~07:00 Berlin (after the 02:00 backup and the 03:00–06:00
-  enforce window) → `/usr/local/sbin/recyclarr-sync` → `docker run --rm … sync` in gluetun's
+  enforce window) → `/usr/local/sbin/recyclarr-sync` → `podman run --rm … sync` in gluetun's
   namespace. No permanent container. By hand: `sudo systemctl start recyclarr-sync`.
 - **API keys**: read from each app's `config.xml` at run time, passed as env vars
   (`!env_var` in recyclarr.yml). Not in OpenBao: the apps generate them, a copy would only drift.
@@ -136,7 +136,7 @@ permission errors.
 'arrstack':
   - users
   - nfs-mount
-  - docker
+  - podman
   - arrstack
 ```
 

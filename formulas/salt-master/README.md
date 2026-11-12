@@ -46,7 +46,7 @@ A minion's service beacon (`formulas/salt-minion`, "Beacons") fires
 `salt/beacon/<id>/service/<name>` when a watched service has been down for a while.
 `reactor.conf` maps that to `reactor/beacon-service.sls`, which runs `service.start <name>` on
 that minion — only for `running: False` and only for services in `beacon_restart_services`
-(pillar: `docker`), written into `reactor.conf` as `homelab_beacon_restart_services`. No
+(pillar: `docker` — inert since the Podman migration, no minion runs the beacon), written into `reactor.conf` as `homelab_beacon_restart_services`. No
 highstate: it must stay harmless on arrstack/jellyfin at any hour (they only self-repair at night).
 
 The master doesn't verify the `id` inside beacon events (unlike `salt/minion/<id>/start`), so a
