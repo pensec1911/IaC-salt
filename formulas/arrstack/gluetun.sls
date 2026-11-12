@@ -118,6 +118,7 @@ arrstack-gluetun-pf-down-script:
     'tag': arrstack.gluetun.tag,
     'cap_add': arrstack.gluetun.cap_add,
     'devices': ['/dev/net/tun:/dev/net/tun'],
+    'tmpfs': arrstack.gluetun.tmpfs,
     'ports': ports,
     'volumes': volumes,
     'env': env,
