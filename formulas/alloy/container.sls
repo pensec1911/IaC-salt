@@ -9,7 +9,8 @@ include:
 {#- Root inside, a sub-UID on the host. Reads the journal through the host's
    systemd-journal group, mapped 1:1 into the container (journal_gid) and
    added as a supplementary group. data_dir: :U hands it to the container's
-   root (map.jinja). #}
+   root (map.jinja); bound outside the image's /var/lib/alloy, which is
+   0770 for uid 473 — root without DAC_OVERRIDE can't get through it. #}
 {%- set spec = {
     'name': alloy.container_name,
     'image': alloy.image,
@@ -18,11 +19,11 @@ include:
     'group_add': [alloy.journal_gid],
     'volumes': [
         alloy.config_dir ~ ':/etc/alloy:ro',
-        alloy.data_dir ~ ':/var/lib/alloy/data:U',
+        alloy.data_dir ~ ':/alloy-data:U',
         alloy.journal_path ~ ':/var/log/journal:ro',
         '/etc/machine-id:/etc/machine-id:ro',
     ],
-    'command': ['run', '/etc/alloy/config.alloy', '--storage.path=/var/lib/alloy/data'],
+    'command': ['run', '/etc/alloy/config.alloy', '--storage.path=/alloy-data'],
 } %}
 {%- do spec.update(alloy.podman) %}
 {{ container('alloy-container', spec,
