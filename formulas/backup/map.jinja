@@ -14,7 +14,7 @@
 
    dumps: database dumps taken before restic runs, for server DBs whose
    live data dir isn't safe to copy (Postgres). Each: container, command
-   (argv run via `docker exec`, writes the dump to stdout), file (host path,
+   (argv run via `podman exec`, writes the dump to stdout), file (host path,
    inside `paths`), format ('pg_custom' = pg_dump -Fc; the restore test
    checks its header). Written to <file>.tmp and renamed, so a failed dump
    never replaces the last good one — and fails the run. The container must
@@ -22,7 +22,11 @@
 
    stop_containers: stopped for the run and started again afterwards (by
    the unit, ExecStopPost, so also after a failed or timed-out run) — the
-   apps' SQLite databases aren't safe to copy while open.
+   apps' SQLite databases aren't safe to copy while open. Container name =
+   its Quadlet unit (formulas/podman), stopped with `systemctl stop`: a
+   `podman stop` would be undone at once by the unit's Restart=always. The
+   grace period is the container's own StopTimeout (podman map.jinja
+   stop_timeout).
 
    on_calendar + randomized_delay + timeout: ends by 02:55 at the latest,
    before the 03:00–06:00 enforce window of arrstack/jellyfin
@@ -47,7 +51,8 @@
 {%- set defaults = {
     'pkg': 'restic',
     'restic_bin': '/usr/bin/restic',
-    'docker_bin': '/usr/bin/docker',
+    'podman_bin': '/usr/bin/podman',
+    'systemctl_bin': '/usr/bin/systemctl',
     'python': '/usr/bin/python3',
     'mount_name': 'backups',
     'repo_base': '/mnt/backups',
@@ -58,7 +63,6 @@
     'excludes': [],
     'stop_containers': [],
     'dumps': [],
-    'stop_timeout_seconds': 60,
     'keep': {'daily': 7, 'weekly': 4, 'monthly': 6},
     'retry_lock': '10m',
     'unit': 'restic-backup',

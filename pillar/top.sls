@@ -8,10 +8,6 @@ base:
     - ntp
     - patchmon-agent
 
-  'homepage,monitoring,arrstack,jellyfin,forgejo':
-    - match: list
-    - salt-minion-beacons
-
   'arrstack,jellyfin,monitoring,wazuh,forgejo':
     - match: list
     - backup

@@ -6,8 +6,10 @@ salt-master:
       - monitoring
 
     # Started again by the reactor when a minion's service beacon reports
-    # them stopped (pillar/salt-minion-beacons.sls says which minions watch
-    # what).
+    # them stopped. No minion runs the beacon since the Podman migration
+    # (2026-11: no daemon left to watch); the entry is inert. Dropping it
+    # changes the master's reactor config — do it with a planned master
+    # apply (known-issues.md).
     beacon_restart_services:
       - docker
 

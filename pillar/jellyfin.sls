@@ -10,12 +10,9 @@ users:
       uid: 970
       gid: 970
 
-# Containers bind the share — Docker must not start before it's mounted
-# (empty /mnt/media after a reboot with a slow NAS, 2026-10-17).
-nfs-mount:
-  lookup:
-    required_by:
-      - docker.service
+# The container binds the share and must not start before it's mounted
+# (empty /mnt/media after a reboot with a slow NAS, 2026-10-17). Quadlet
+# adds RequiresMountsFor= for every bound path to the unit itself.
 
 # Same share the arrstack writes to, mounted read-only here — Jellyfin only
 # reads the library.

@@ -1,5 +1,5 @@
 {%- set defaults = {
-    'image': 'prom/alertmanager',
+    'image': 'docker.io/prom/alertmanager',
     'tag': 'v0.34.1',
     'container_name': 'alertmanager',
     'host_port': 9093,
@@ -7,6 +7,7 @@
     'data_dir': '/opt/alertmanager/data',
     'uid': 65534,
     'gid': 65534,
+    'podman': {},
 } %}
 {%- set alertmanager = salt['pillar.get']('alertmanager:lookup', default=defaults, merge=True) %}
 {#- The alertmanager.yml content itself (route/receivers). Kept out of

@@ -86,8 +86,8 @@ backup:
     dumps: {{ this.get('dumps', []) | json }}
 
 # Appended to the minion's other mounts (pillar_merge_lists). No container
-# binds it: skip_required_by keeps it out of docker's RequiresMountsFor= on
-# arrstack/jellyfin, nofail keeps a refused export from failing the boot.
+# binds it: skip_required_by keeps it out of nfs-mount's required_by units,
+# nofail keeps a refused export from failing the boot.
 # The backup unit has its own RequiresMountsFor=.
 nfs_mounts:
   - name: backups

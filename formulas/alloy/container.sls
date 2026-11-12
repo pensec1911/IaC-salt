@@ -1,31 +1,33 @@
 {% from "alloy/map.jinja" import alloy with context %}
+{% from "podman/macros.jinja" import container with context %}
 
 {%- if alloy.loki_url %}
 
 include:
   - alloy.config
 
-alloy-container:
-  docker_container.running:
-    - name: {{ alloy.container_name }}
-    - image: {{ alloy.image }}:{{ alloy.tag }}
-    - restart_policy: unless-stopped
-    - binds:
-      - {{ alloy.config_dir }}:/etc/alloy:ro
-      - {{ alloy.data_dir }}:/var/lib/alloy/data:rw
-      - {{ alloy.docker_socket }}:/var/run/docker.sock:ro
-      - {{ alloy.journal_path }}:/var/log/journal:ro
-      - /etc/machine-id:/etc/machine-id:ro
-    - command:
-      - run
-      - /etc/alloy/config.alloy
-      - --storage.path=/var/lib/alloy/data
-    - require:
-      - sls: docker
-      - file: alloy-data-dir
-      - file: alloy-config
-    - watch:
-      - file: alloy-config
+{#- Root inside, a sub-UID on the host. Reads the journal through the host's
+   systemd-journal group, mapped 1:1 into the container (journal_gid) and
+   added as a supplementary group. data_dir: :U hands it to the container's
+   root (map.jinja). #}
+{%- set spec = {
+    'name': alloy.container_name,
+    'image': alloy.image,
+    'tag': alloy.tag,
+    'keep_gids': [alloy.journal_gid],
+    'group_add': [alloy.journal_gid],
+    'volumes': [
+        alloy.config_dir ~ ':/etc/alloy:ro',
+        alloy.data_dir ~ ':/var/lib/alloy/data:U',
+        alloy.journal_path ~ ':/var/log/journal:ro',
+        '/etc/machine-id:/etc/machine-id:ro',
+    ],
+    'command': ['run', '/etc/alloy/config.alloy', '--storage.path=/var/lib/alloy/data'],
+} %}
+{%- do spec.update(alloy.podman) %}
+{{ container('alloy-container', spec,
+             require=[{'file': 'alloy-data-dir'}, {'file': 'alloy-config'}],
+             watch=[{'file': 'alloy-config'}]) }}
 
 {%- else %}
 

@@ -1,31 +1,25 @@
 {% from "arrstack/map.jinja" import arrstack with context %}
+{% from "podman/macros.jinja" import container with context %}
 
 include:
   - arrstack.gluetun
 
-qbittorrent-container:
-  docker_container.running:
-    - name: {{ arrstack.qbittorrent.container_name }}
-    - image: {{ arrstack.qbittorrent.image }}:{{ arrstack.qbittorrent.tag }}
-    - restart_policy: unless-stopped
-    - network_mode: container:{{ arrstack.gluetun.container_name }}
-    - environment:
-      - PUID={{ arrstack.puid }}
-      - PGID={{ arrstack.pgid }}
-      - TZ={{ arrstack.timezone }}
-      - WEBUI_PORT={{ arrstack.qbittorrent.webui_port }}
-    - binds:
-      - {{ arrstack.config_base }}/qbittorrent:/config:rw
-      - {{ arrstack.media_mount }}:/media:rw
-      - {{ arrstack.qbittorrent.incomplete_dir }}:{{ arrstack.qbittorrent.incomplete_container_path }}:rw
-    # watch, not just require: this container lives in gluetun's network
-    # namespace, and when gluetun is recreated (image bump, env change) that
-    # namespace is gone — the container keeps "running" with no network at
-    # all. watch restarts it whenever gluetun changes.
-    - watch:
-      - docker_container: gluetun-container
-    - require:
-      - user: user-media
-      - file: arrstack-qbittorrent-config-dir
-      - file: arrstack-qbittorrent-incomplete-dir
-      - mount: nfs-mount-media
+{#- LinuxServer image in gluetun's network namespace (map.jinja attach,
+   lsio_podman). PUID/PGID = media, mapped 1:1 in its user namespace. #}
+{%- set spec = {
+    'name': arrstack.qbittorrent.container_name,
+    'image': arrstack.qbittorrent.image,
+    'tag': arrstack.qbittorrent.tag,
+    'keep_uids': [arrstack.puid],
+    'keep_gids': [arrstack.pgid],
+    'env': {'PUID': arrstack.puid, 'PGID': arrstack.pgid, 'TZ': arrstack.timezone, 'WEBUI_PORT': arrstack.qbittorrent.webui_port},
+    'volumes': [
+        arrstack.config_base ~ '/qbittorrent:/config:rw',
+        arrstack.media_mount ~ ':/media:rw',
+        arrstack.qbittorrent.incomplete_dir ~ ':' ~ arrstack.qbittorrent.incomplete_container_path ~ ':rw',
+    ],
+} %}
+{%- do spec.update(arrstack.attach) %}
+{%- do spec.update(arrstack.lsio_podman) %}
+{{ container('qbittorrent-container', spec, require=[{'user': 'user-media'}, {'file': 'arrstack-qbittorrent-config-dir'},
+                  {'file': 'arrstack-qbittorrent-incomplete-dir'}, {'mount': 'nfs-mount-media'}]) }}

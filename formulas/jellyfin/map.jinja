@@ -2,7 +2,11 @@
    arrstack's) so Jellyfin can read what the arrstack writes to the NAS —
    LSIO images take them as PUID/PGID env vars, so they have to be known at
    render time. The matching formulas/users account entry
-   (pillar/jellyfin.sls) must use the same numbers. #}
+   (pillar/jellyfin.sls) must use the same numbers.
+   podman: spec overrides — LinuxServer image, same as arrstack's
+   lsio_podman: s6 init starts as root, rewrites /etc/passwd and chowns
+   /config before dropping to PUID, so writable root fs and those
+   capabilities. #}
 {%- set defaults = {
     'image': 'lscr.io/linuxserver/jellyfin',
     'tag': '12.2ubu2604-ls54',
@@ -15,5 +19,9 @@
     'cache_dir': '/opt/jellyfin/cache',
     'media_mount': '/mnt/media',
     'published_server_url': '',
+    'podman': {
+        'read_only': False,
+        'cap_add': ['CHOWN', 'DAC_OVERRIDE', 'FOWNER', 'FSETID', 'SETUID', 'SETGID', 'KILL'],
+    },
 } %}
 {%- set jellyfin = salt['pillar.get']('jellyfin:lookup', default=defaults, merge=True) %}

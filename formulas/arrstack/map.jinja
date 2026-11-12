@@ -1,6 +1,6 @@
 {#- media/soulseek uid/gid are pinned (not auto-assigned) on purpose: LSIO
    images take them as PUID/PGID env vars, and slskd gets an explicit
-   docker `user:` override — both need a number known at render time, the
+   Podman `User=` — both need a number known at render time, the
    same reasoning as grafana/prometheus's pinned uid/gid. The matching
    formulas/users account entry (pillar/arrstack.sls) must use the same
    numbers.
@@ -13,7 +13,7 @@
    pass, so Sonarr/Radarr still hardlink on the NFS dataset. Sized by the
    VM disk (IaC-opentofu vms/arrstack, disk_size).
 
-   gluetun.uplink_interface: gluetun's own docker interface (always eth0 in
+   gluetun.uplink_interface: gluetun's own network interface (always eth0 in
    a container). Leak guard: packets carrying the tunnel address as source
    must never leave through it. gluetun's firewall accepts ESTABLISHED
    traffic on any interface, so when tun0 drops, packets of connections
@@ -21,9 +21,19 @@
    back to the default route via eth0 and left the VM unmasqueraded —
    observed 2026-10-18 by taking tun0 down. Added as gluetun post-rules.
 
+   gluetun.cap_add: NET_ADMIN for its firewall/routes/WireGuard link,
+   NET_BIND_SERVICE for its DNS server on :53, NET_RAW for its health
+   check — all inside its own user/network namespace (Podman creates the
+   netns in the container's userns, checked 2026-11-12).
+   lsio_podman: spec overrides for the LinuxServer images (qbittorrent,
+   sonarr, radarr, prowlarr, bazarr): their s6 init starts as root, rewrites
+   /etc/passwd for PUID/PGID and chowns /config before dropping to it — so
+   writable root fs and the capabilities for that, nothing more.
+   Every app keeps the media uid/gid 1:1 in its user namespace: files on
+   the NFS share (root_squash) and in config_base stay owned by 970.
    recyclarr: syncs TRaSH Guides quality profiles, custom formats and
    quality definitions into Sonarr/Radarr. Not a long-running container: a
-   systemd timer runs `docker run --rm … sync` in gluetun's namespace (so
+   systemd timer runs `podman run --rm … sync` in gluetun's namespace (so
    the apps are on localhost, like for each other). API keys are read from
    each app's own config.xml at run time and passed as env vars — the apps
    generate them, so there is no second copy (no OpenBao entry) to drift.
@@ -40,9 +50,13 @@
     'timezone': 'Etc/UTC',
     'config_base': '/opt/arrstack',
     'media_mount': '/mnt/media',
+    'lsio_podman': {
+        'read_only': False,
+        'cap_add': ['CHOWN', 'DAC_OVERRIDE', 'FOWNER', 'FSETID', 'SETUID', 'SETGID', 'KILL'],
+    },
 
     'gluetun': {
-        'image': 'qmcgaw/gluetun',
+        'image': 'docker.io/qmcgaw/gluetun',
         'tag': 'v3.41.3',
         'container_name': 'gluetun',
         'vpn_service_provider': 'mullvad',
@@ -52,6 +66,8 @@
         'server_countries': '',
         'port_forwarding': False,
         'uplink_interface': 'eth0',
+        'cap_add': ['NET_ADMIN', 'NET_BIND_SERVICE', 'NET_RAW'],
+        'podman': {'read_only': False},
     },
 
     'qbittorrent': {
@@ -92,6 +108,7 @@
         'container_name': 'flaresolverr',
         'port': 8191,
         'log_level': 'info',
+        'podman': {'read_only': False},
     },
     'recyclarr': {
         'image': 'ghcr.io/recyclarr/recyclarr',
@@ -99,7 +116,7 @@
         'container_name': 'recyclarr',
         'unit': 'recyclarr-sync',
         'script': '/usr/local/sbin/recyclarr-sync',
-        'docker_bin': '/usr/bin/docker',
+        'podman_bin': '/usr/bin/podman',
         'on_calendar': '*-*-* 07:00:00 Europe/Berlin',
         'randomized_delay': '30min',
         'timeout': '15min',
@@ -146,6 +163,19 @@
         'soulseek_password': '',
         'web_username': '',
         'web_password': '',
+        'podman': {},
     },
 } %}
 {%- set arrstack = salt['pillar.get']('arrstack:lookup', default=defaults, merge=True) %}
+
+{#- Derived: how a container joins gluetun's network namespace. Quadlet's
+   Network=<unit>.container orders it after gluetun (Requires/After);
+   BindsTo stops it whenever gluetun goes away — also on a crash, when the
+   namespace it lives in is gone — and WantedBy gluetun.service starts it
+   again with gluetun. Docker needed a Salt `watch` for half of that. #}
+{%- set g_unit = arrstack.gluetun.container_name ~ '.service' %}
+{%- do arrstack.update({'attach': {
+        'network': arrstack.gluetun.container_name ~ '.container',
+        'unit': {'BindsTo': [g_unit]},
+        'wanted_by': ['multi-user.target', g_unit],
+    }}) %}

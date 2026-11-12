@@ -30,17 +30,8 @@ netbox-base-dir:
     - mode: '0755'
     - makedirs: True
 
-netbox-media-dir:
-  file.directory:
-    - name: {{ netbox.media_dir }}
-    - user: {{ netbox.media_uid }}
-    - group: {{ netbox.media_gid }}
-    - mode: '0750'
-    - require:
-      - file: netbox-base-dir
-
-{#- Owner/mode left to the entrypoints (they chown on start): only create. #}
-{%- for name, dir in [('postgres', netbox.postgres_dir), ('valkey', netbox.valkey_dir)] %}
+{#- Owner left to the containers (:U, container.sls): only create. #}
+{%- for name, dir in [('media', netbox.media_dir), ('postgres', netbox.postgres_dir), ('valkey', netbox.valkey_dir)] %}
 
 netbox-{{ name }}-dir:
   file.directory:
@@ -58,14 +49,14 @@ netbox-dump-dir:
     - require:
       - file: netbox-base-dir
 
-{#- Group 0: netbox runs as 999:0 and reads them via the group bit;
-   postgres reads its file as root before dropping privileges. #}
+{#- Files bound one by one, 0444: the containers' users are sub-UIDs on
+   the host. The 0700 dir keeps host users out. #}
 netbox-secrets-dir:
   file.directory:
     - name: {{ netbox.secrets_dir }}
     - user: root
     - group: root
-    - mode: '0750'
+    - mode: '0700'
     - require:
       - file: netbox-base-dir
 {%- for name, value in secrets | dictsort %}
@@ -76,7 +67,7 @@ netbox-secret-{{ name }}:
     - contents: {{ value | yaml_encode }}
     - user: root
     - group: root
-    - mode: '0440'
+    - mode: '0444'
     - show_changes: False   # secret — keep it out of state output / job cache
     - require:
       - file: netbox-secrets-dir

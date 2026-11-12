@@ -1,5 +1,5 @@
 {%- set defaults = {
-    'image': 'prom/prometheus',
+    'image': 'docker.io/prom/prometheus',
     'tag': 'v2.55.1',
     'container_name': 'prometheus',
     'host_port': 9090,
@@ -9,6 +9,7 @@
     'rules_file': 'rules.yml',
     'uid': 65534,
     'gid': 65534,
+    'podman': {},
 } %}
 {%- set prometheus = salt['pillar.get']('prometheus:lookup', default=defaults, merge=True) %}
 {#- scrape_configs, rule_groups and alerting are intentionally NOT part of

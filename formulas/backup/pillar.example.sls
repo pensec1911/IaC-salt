@@ -13,8 +13,7 @@ backup:
     # Stopped for the run (SQLite DBs), started again afterwards.
     stop_containers:
       - someapp
-    stop_timeout_seconds: 60
-    # Server DBs, dumped via `docker exec <container> <command>` (stdout ->
+    # Server DBs, dumped via `podman exec <container> <command>` (stdout ->
     # file) before restic runs. file must be inside paths; exclude the live
     # data dir. The container keeps running. format pg_custom = pg_dump -Fc,
     # header-checked by the restore test.
@@ -44,7 +43,8 @@ backup:
     metrics_file: backup.prom
     pkg: restic
     restic_bin: /usr/bin/restic
-    docker_bin: /usr/bin/docker
+    podman_bin: /usr/bin/podman
+    systemctl_bin: /usr/bin/systemctl
     python: /usr/bin/python3
     # Weekly restore test: check a sample of the pack data, restore the latest
     # snapshot into tmp_dir with --verify, integrity_check every SQLite file.
@@ -66,4 +66,4 @@ nfs_mounts:
     export: /mnt/pool01/backups
     mountpoint: /mnt/backups
     opts: [_netdev, rw, noatime, nofail]
-    skip_required_by: true   # no container binds it — don't gate docker on it
+    skip_required_by: true   # no container binds it

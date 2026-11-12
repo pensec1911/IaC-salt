@@ -1,5 +1,5 @@
 {#- PatchMon server: one Go binary (API + embedded UI, runs its own DB
-   migrations on start) plus postgres and valkey, on a private docker
+   migrations on start) plus postgres and valkey, on a private Podman
    network (`network`). Only the server publishes a port. Upstream
    docker/docker-compose.yml, except: valkey instead of redis (drop-in, the
    same image netbox uses) without a password (no published port, nothing
@@ -16,12 +16,15 @@
    files in secrets_dir (0700 root) — the server's env file (it loads
    ENV_FILE itself, incl. DATABASE_URL) and postgres' POSTGRES_PASSWORD_FILE
    — each bound read-only into its container. So never in the container
-   env, state diffs or `docker inspect`. The files are 0444 because the
+   env, state diffs or `podman inspect`. The files are 0444 because the
    images' users are unknown/vary; the 0700 dir keeps host users out. All
    four required: the formula fails on a blank or unresolved one.
 
    dump_dir: target of formulas/backup's pre-run pg_dump (pillar/backup.sls
-   `dumps` repeats the path and postgres_container_name — change both). #}
+   `dumps` repeats the path and postgres_container_name — change both). 
+   postgres_user / valkey_user / *_podman: as in formulas/netbox — the
+   images' own users, data dirs handed over by :U, postgres with a
+   writable root. #}
 {%- set defaults = {
     'image': 'ghcr.io/patchmon/patchmon-server',
     'tag': '2.1.8',
@@ -48,5 +51,10 @@
     'ai_encryption_key': '',
     'db_password': '',
     'env': {},
+    'postgres_user': '70:70',
+    'valkey_user': '999:1000',
+    'podman': {},
+    'postgres_podman': {'read_only': False},
+    'valkey_podman': {},
 } %}
 {%- set patchmon = salt['pillar.get']('patchmon:lookup', default=defaults, merge=True) %}

@@ -1,4 +1,5 @@
 {% from "arrstack/map.jinja" import arrstack with context %}
+{% from "podman/macros.jinja" import container with context %}
 
 include:
   - arrstack.config
@@ -8,7 +9,7 @@ include:
    reachable port has to be published HERE, not on the app containers,
    which can't publish ports of their own once they share gluetun's stack.
    FIREWALL_INPUT_PORTS is the other half: gluetun's own firewall drops
-   inbound connections by default even to ports docker published, unless
+   inbound connections by default even to ports Podman published, unless
    explicitly allowed here. This pair is what makes "webUIs reachable on
    the LAN, everything else only via the VPN" actually work. #}
 {#- Leak guard (see map.jinja, uplink_interface): one DROP per tunnel address,
@@ -43,7 +44,7 @@ arrstack-gluetun-post-rules:
    (and may change it on reconnect), so gluetun pushes it into qBittorrent
    via its WebUI API every time it changes, binding qBittorrent to the VPN
    interface while it's at it. Scripts instead of inline commands so the
-   JSON quoting doesn't have to survive YAML + docker env + gluetun's own
+   JSON quoting doesn't have to survive YAML + container env + gluetun's own
    command parsing. Requires qBittorrent's "Bypass authentication for
    clients on localhost" — see README "Port forwarding". #}
 {%- set qbt_api = 'http://127.0.0.1:' ~ arrstack.qbittorrent.webui_port ~ '/api/v2/app/setPreferences' %}
@@ -80,48 +81,54 @@ arrstack-gluetun-pf-down-script:
       - file: arrstack-gluetun-config-dir
 {%- endif %}
 
-gluetun-container:
-  docker_container.running:
-    - name: {{ arrstack.gluetun.container_name }}
-    - image: {{ arrstack.gluetun.image }}:{{ arrstack.gluetun.tag }}
-    - restart_policy: unless-stopped
-    - cap_add:
-      - NET_ADMIN
-    - devices:
-      - /dev/net/tun:/dev/net/tun
-    - binds:
-      - {{ arrstack.config_base }}/gluetun:/gluetun:rw
-      - {{ arrstack.config_base }}/gluetun/iptables:/iptables:ro
-    - port_bindings:
-      - {{ arrstack.qbittorrent.webui_port }}:{{ arrstack.qbittorrent.webui_port }}/tcp
-      - {{ arrstack.sonarr.port }}:{{ arrstack.sonarr.port }}/tcp
-      - {{ arrstack.radarr.port }}:{{ arrstack.radarr.port }}/tcp
-      - {{ arrstack.prowlarr.port }}:{{ arrstack.prowlarr.port }}/tcp
-      - {{ arrstack.bazarr.port }}:{{ arrstack.bazarr.port }}/tcp
-      - {{ arrstack.slskd.webui_port }}:{{ arrstack.slskd.webui_port }}/tcp
-    - environment:
-      - VPN_SERVICE_PROVIDER={{ arrstack.gluetun.vpn_service_provider }}
-      - VPN_TYPE={{ arrstack.gluetun.vpn_type }}
-      - WIREGUARD_PRIVATE_KEY={{ arrstack.gluetun.wireguard_private_key }}
-      - WIREGUARD_ADDRESSES={{ arrstack.gluetun.wireguard_addresses }}
-      {%- if arrstack.gluetun.server_countries %}
-      - SERVER_COUNTRIES={{ arrstack.gluetun.server_countries }}
-      {%- endif %}
-      - FIREWALL_INPUT_PORTS={{ [arrstack.qbittorrent.webui_port, arrstack.sonarr.port, arrstack.radarr.port, arrstack.prowlarr.port, arrstack.bazarr.port, arrstack.slskd.webui_port] | map('string') | join(',') }}
-      {%- if arrstack.gluetun.port_forwarding %}
-      - VPN_PORT_FORWARDING=on
-      - PORT_FORWARD_ONLY=on
-      {#- {{PORT}}/{{VPN_INTERFACE}} are gluetun's placeholders, not Jinja. #}
-      - VPN_PORT_FORWARDING_UP_COMMAND=/bin/sh /gluetun/qbittorrent-port-up.sh {% raw %}{{PORT}} {{VPN_INTERFACE}}{% endraw %}
-      - VPN_PORT_FORWARDING_DOWN_COMMAND=/bin/sh /gluetun/qbittorrent-port-down.sh
-      {%- endif %}
-    # watch: gluetun only reads post-rules.txt when it sets up its firewall.
-    - watch:
-      - file: arrstack-gluetun-post-rules
-    - require:
-      - sls: docker
-      - file: arrstack-gluetun-config-dir
-      {%- if arrstack.gluetun.port_forwarding %}
-      - file: arrstack-gluetun-pf-up-script
-      - file: arrstack-gluetun-pf-down-script
-      {%- endif %}
+{#- Salt's files (post-rules, hook scripts) stay root-owned and are bound
+   read-only; gluetun's own state (servers.json, …) goes to data/, which
+   belongs to the container (:U — root inside, a sub-UID on the host).
+   The WireGuard key goes through the 0600 secret env file, not the unit. #}
+{%- set fw_ports = [arrstack.qbittorrent.webui_port, arrstack.sonarr.port, arrstack.radarr.port, arrstack.prowlarr.port, arrstack.bazarr.port, arrstack.slskd.webui_port] %}
+{%- set env = {
+    'VPN_SERVICE_PROVIDER': arrstack.gluetun.vpn_service_provider,
+    'VPN_TYPE': arrstack.gluetun.vpn_type,
+    'WIREGUARD_ADDRESSES': arrstack.gluetun.wireguard_addresses,
+    'FIREWALL_INPUT_PORTS': fw_ports | map('string') | join(','),
+} %}
+{%- if arrstack.gluetun.server_countries %}
+{%-   do env.update({'SERVER_COUNTRIES': arrstack.gluetun.server_countries}) %}
+{%- endif %}
+{%- set ports = [] %}
+{%- for port in fw_ports %}{% do ports.append(port ~ ':' ~ port) %}{% endfor %}
+{%- set volumes = [
+    arrstack.config_base ~ '/gluetun/data:/gluetun:U',
+    arrstack.config_base ~ '/gluetun/iptables:/iptables:ro',
+] %}
+{%- if arrstack.gluetun.port_forwarding %}
+{#- {{PORT}}/{{VPN_INTERFACE}} are gluetun's placeholders, not Jinja. #}
+{%-   do env.update({
+        'VPN_PORT_FORWARDING': 'on',
+        'PORT_FORWARD_ONLY': 'on',
+        'VPN_PORT_FORWARDING_UP_COMMAND': '/bin/sh /scripts/qbittorrent-port-up.sh {{PORT}} {{VPN_INTERFACE}}',
+        'VPN_PORT_FORWARDING_DOWN_COMMAND': '/bin/sh /scripts/qbittorrent-port-down.sh',
+      }) %}
+{%-   do volumes.append(arrstack.config_base ~ '/gluetun/qbittorrent-port-up.sh:/scripts/qbittorrent-port-up.sh:ro') %}
+{%-   do volumes.append(arrstack.config_base ~ '/gluetun/qbittorrent-port-down.sh:/scripts/qbittorrent-port-down.sh:ro') %}
+{%- endif %}
+{%- set spec = {
+    'name': arrstack.gluetun.container_name,
+    'image': arrstack.gluetun.image,
+    'tag': arrstack.gluetun.tag,
+    'cap_add': arrstack.gluetun.cap_add,
+    'devices': ['/dev/net/tun:/dev/net/tun'],
+    'ports': ports,
+    'volumes': volumes,
+    'env': env,
+} %}
+{%- do spec.update({'secret_env': {}}) %}
+{%- do spec.secret_env.update({'WIREGUARD_PRIVATE_KEY': arrstack.gluetun.wireguard_private_key}) %}{#- secret-scan: allow (variable, not a value) #}
+{%- do spec.update(arrstack.gluetun.podman) %}
+{%- set req = [{'file': 'arrstack-gluetun-data-dir'}, {'file': 'arrstack-gluetun-post-rules'}] %}
+{%- if arrstack.gluetun.port_forwarding %}
+{%-   do req.extend([{'file': 'arrstack-gluetun-pf-up-script'}, {'file': 'arrstack-gluetun-pf-down-script'}]) %}
+{%- endif %}
+{#- watch: gluetun only reads post-rules.txt when it sets up its firewall. #}
+{{ container('gluetun-container', spec, require=req,
+             watch=[{'file': 'arrstack-gluetun-post-rules'}]) }}

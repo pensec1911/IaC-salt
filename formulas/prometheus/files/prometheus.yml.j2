@@ -77,4 +77,8 @@ scrape_configs:
 {%- endfor %}
 {%- endif %}
 {%- endfor %}
+{#- Passed through as-is (upstream schema), applied to scraped samples. #}
+{%- if job.get('metric_relabel_configs') %}
+    metric_relabel_configs: {{ job.metric_relabel_configs | json }}
+{%- endif %}
 {%- endfor %}

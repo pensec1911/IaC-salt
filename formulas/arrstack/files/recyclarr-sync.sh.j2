@@ -18,9 +18,14 @@ key() {
 {%- endfor %}
 
 rc=0
-{{ rc.docker_bin }} run --rm --name {{ rc.container_name }} \
+# Same hardening as the long-running containers (formulas/podman): own user
+# namespace with the media uid/gid mapped 1:1 (config dir stays theirs),
+# no capabilities, no privilege gain.
+{{ rc.podman_bin }} run --rm --replace --name {{ rc.container_name }} \
     --network container:{{ arrstack.gluetun.container_name }} \
+    --userns auto:uidmapping={{ arrstack.puid }}:{{ arrstack.puid }}:1,gidmapping={{ arrstack.pgid }}:{{ arrstack.pgid }}:1 \
     --user {{ arrstack.puid }}:{{ arrstack.pgid }} \
+    --cap-drop all --security-opt no-new-privileges \
     -e TZ={{ arrstack.timezone }} \
 {%- for app in rc.instances %}
     -e {{ app | upper }}_API_KEY \

@@ -1,0 +1,75 @@
+{#- Rootful Podman with Quadlet units. Containers come from consuming
+   formulas via podman/macros.jinja (`container`, `network`); this file only
+   holds the defaults the macro fills in.
+
+   subid: the range rootful `--userns=auto` carves per-container user
+   namespaces from. Podman 5.4.2 (Debian trixie) looks up the name
+   `containers` in /etc/subuid and /etc/subgid — the `storage` in the
+   commented storage.conf default is stale (checked on homepage,
+   2026-11-12). No account of that name is needed. Kept clear of the
+   login accounts' ranges (100000+), which useradd hands out.
+
+   firewall_driver: netavark keeps its rules in its own nft table
+   (inet netavark). Pinned so podman.migrate's cleanup of Docker's
+   leftover iptables tables can never hit netavark's rules.
+
+   docker_units: stopped and disabled by podman.migrate on a host that
+   still has Docker (one runtime per VM). formulas/docker stays in the
+   repo, unused; the packages and /var/lib/docker stay on the VM until
+   removed by hand (README "Migration from Docker").
+
+   container: defaults for every container — hardening on (NoNewPrivileges,
+   all capabilities dropped, read-only root with tmpfs for /tmp, /run,
+   /var/tmp), own user namespace from the subid range. A formula opts out
+   per container (cap_add, read_only: False, …) — see README "Container
+   spec" for every key.
+   stop_timeout: seconds podman waits after SIGTERM before SIGKILL, also on
+   a backup's `systemctl stop` (formulas/backup) — SQLite apps get time to
+   close their DB.
+   timeout_start_sec: covers an image pull at boot if the image is gone;
+   Salt pulls before it starts a unit, so a normal start is seconds. #}
+{%- set defaults = {
+    'pkgs': ['podman', 'crun', 'netavark', 'aardvark-dns', 'catatonit'],
+    'bin': '/usr/bin/podman',
+    'quadlet_dir': '/etc/containers/systemd',
+    'conf_dropin': '/etc/containers/containers.conf.d/50-salt.conf',
+    'log_driver': 'journald',
+    'firewall_driver': 'nftables',
+    'subid': {
+        'name': 'containers',
+        'start': 2147483647,
+        'size': 2147483648,
+        'files': ['/etc/subuid', '/etc/subgid'],
+    },
+    'docker_units': ['docker.socket', 'docker.service', 'containerd.service'],
+    'container': {
+        'image': '',
+        'tag': '',
+        'user': '',
+        'userns': 'auto',
+        'keep_uids': [],
+        'keep_gids': [],
+        'no_new_privileges': True,
+        'drop_caps': ['ALL'],
+        'cap_add': [],
+        'read_only': True,
+        'privileged': False,
+        'ports': [],
+        'volumes': [],
+        'tmpfs': [],
+        'devices': [],
+        'group_add': [],
+        'env': {},
+        'secret_env': {},
+        'command': [],
+        'network': '',
+        'hostname': '',
+        'podman_args': [],
+        'unit': {},
+        'wanted_by': ['multi-user.target'],
+        'restart': 'always',
+        'stop_timeout': 60,
+        'timeout_start_sec': 900,
+    },
+} %}
+{%- set podman = salt['pillar.get']('podman:lookup', default=defaults, merge=True) %}

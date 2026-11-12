@@ -1,16 +1,30 @@
 {#- host_port is not cAdvisor's usual 8080: qBittorrent already has that on
    arrstack.
 
+   Raw-cgroup mode, no container runtime API: cAdvisor reads the cgroup tree
+   (cgroupns=host + /sys/fs/cgroup bound read-only) and reports every cgroup
+   under raw_cgroup_prefixes. A Quadlet container is
+   id="/system.slice/<unit>.service/libpod-payload-<id>"; Prometheus derives
+   `name` (= container name = unit name) from that (pillar/prometheus.sls,
+   metric_relabel_configs on the cadvisor job). No podman socket (root-
+   equivalent), not privileged, own user namespace — checked on homepage
+   2026-11-12 with v0.60.6. docker_only stays on: it only means "no other
+   raw cgroups than the whitelisted ones"; the runtime factories just fail
+   to register (log lines at start, harmless).
+
    mine: Salt Mine entry the prometheus formula reads its cadvisor targets
    from (mine.get('*', alias)) — only minions with this formula have it.
-   interface: network.ip_addrs without it also returns docker0's
-   172.17.0.1. #}
+   interface: network.ip_addrs without it also returns podman0's address.
+
+   podman: spec overrides for the container (keys: formulas/podman README). #}
 {%- set defaults = {
     'image': 'ghcr.io/google/cadvisor',
     'tag': 'v0.60.6',
     'container_name': 'cadvisor',
     'host_port': 8088,
     'housekeeping_interval': '30s',
+    'raw_cgroup_prefixes': ['/system.slice/'],
+    'podman': {},
     'mine': {
         'alias': 'cadvisor',
         'interface': 'eth0',

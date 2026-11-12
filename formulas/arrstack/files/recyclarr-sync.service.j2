@@ -2,8 +2,9 @@
 # Managed by Salt (formulas/arrstack) — do not edit.
 [Unit]
 Description=recyclarr sync (TRaSH profiles into Sonarr/Radarr)
-After=docker.service
-Requires=docker.service
+# Runs in gluetun's network namespace (the apps are on localhost there).
+After={{ arrstack.gluetun.container_name }}.service
+Requires={{ arrstack.gluetun.container_name }}.service
 
 [Service]
 Type=oneshot

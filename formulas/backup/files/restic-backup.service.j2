@@ -5,9 +5,10 @@ Description=restic backup to the NAS
 Wants=network-online.target
 After=network-online.target
 {%- if backup.dumps %}
-# dumps run via docker exec.
-Wants=docker.service
-After=docker.service
+# dumps run via podman exec in these containers (Quadlet units).
+{%- for d in backup.dumps %}
+After={{ d.container }}.service
+{%- endfor %}
 {%- endif %}
 # Fails (no metrics written -> BackupStale) instead of running without the share.
 RequiresMountsFor={{ backup.repo_base }}
@@ -17,12 +18,13 @@ Type=oneshot
 EnvironmentFile={{ backup.config_dir }}/env
 {%- if backup.stop_containers %}
 # "-": a missing container doesn't stop the backup; ExecStopPost also runs
-# after a failed or timed-out start.
-ExecStartPre=-{{ backup.docker_bin }} stop --time {{ backup.stop_timeout_seconds }} {{ backup.stop_containers | join(' ') }}
+# after a failed or timed-out start. --no-block: queue the starts, never
+# wait on them from inside this unit's stop.
+ExecStartPre=-{{ backup.systemctl_bin }} stop {{ backup.stop_containers | join(' ') }}
 {%- endif %}
 ExecStart={{ backup.script }}
 {%- if backup.stop_containers %}
-ExecStopPost=-{{ backup.docker_bin }} start {{ backup.stop_containers | join(' ') }}
+ExecStopPost=-{{ backup.systemctl_bin }} start --no-block {{ backup.stop_containers | join(' ') }}
 {%- endif %}
 TimeoutStartSec={{ backup.timeout }}
 Nice=10

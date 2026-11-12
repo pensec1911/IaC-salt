@@ -2,7 +2,8 @@
 
 {#- gluetun runs internally as root (no PUID/PGID concept), so its own
    config dir stays root-owned — everything else runs as the pinned
-   media uid/gid via PUID/PGID or an explicit docker `user:` override. #}
+   media uid/gid via PUID/PGID or an explicit `User=` — mapped 1:1 into
+   each container's user namespace, so the host owners below stay. #}
 arrstack-gluetun-config-dir:
   file.directory:
     - name: {{ arrstack.config_base }}/gluetun
@@ -10,6 +11,13 @@ arrstack-gluetun-config-dir:
     - group: root
     - mode: '0755'
     - makedirs: True
+
+{#- gluetun's own state; owner left to the container (:U, gluetun.sls). #}
+arrstack-gluetun-data-dir:
+  file.directory:
+    - name: {{ arrstack.config_base }}/gluetun/data
+    - require:
+      - file: arrstack-gluetun-config-dir
 
 {%- for name in ['qbittorrent', 'sonarr', 'radarr', 'prowlarr', 'bazarr', 'slskd', 'recyclarr'] %}
 

@@ -1,26 +1,26 @@
 {% from "homepage/map.jinja" import homepage with context %}
+{% from "podman/macros.jinja" import container with context %}
 
 include:
   - homepage.config
 
-homepage-container:
-  docker_container.running:
-    - name: {{ homepage.container_name }}
-    - image: {{ homepage.image }}:{{ homepage.tag }}
-    - restart_policy: unless-stopped
-    - port_bindings:
-      - {{ homepage.host_port }}:3000/tcp
-    - binds:
-      - {{ homepage.config_dir }}:/app/config:rw
-    - environment:
-      - PUID={{ homepage.puid }}
-      - PGID={{ homepage.pgid }}
-      - TZ={{ homepage.timezone }}
-      - HOMEPAGE_ALLOWED_HOSTS={{ homepage.allowed_hosts }}
-    - require:
-      - sls: docker
-      - file: homepage-settings.yaml
-      - file: homepage-services.yaml
-    - watch:
-      - file: homepage-settings.yaml
-      - file: homepage-services.yaml
+{%- set spec = {
+    'name': homepage.container_name,
+    'image': homepage.image,
+    'tag': homepage.tag,
+    'user': homepage.puid ~ ':' ~ homepage.pgid,
+    'ports': [homepage.host_port ~ ':3000'],
+    'tmpfs': homepage.tmpfs,
+    'volumes': [
+        homepage.config_dir ~ '/settings.yaml:/app/config/settings.yaml:ro',
+        homepage.config_dir ~ '/services.yaml:/app/config/services.yaml:ro',
+    ],
+    'env': {
+        'TZ': homepage.timezone,
+        'HOMEPAGE_ALLOWED_HOSTS': homepage.allowed_hosts,
+        'LOG_TARGETS': 'stdout',
+    },
+} %}
+{%- do spec.update(homepage.podman) %}
+{%- set files = [{'file': 'homepage-settings.yaml'}, {'file': 'homepage-services.yaml'}] %}
+{{ container('homepage-container', spec, require=files, watch=files) }}

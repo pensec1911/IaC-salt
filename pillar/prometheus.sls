@@ -25,6 +25,15 @@ prometheus:
       mine:
         alias: cadvisor
         port: 8088
+      # cAdvisor runs in raw-cgroup mode (formulas/cadvisor): a container
+      # is only its cgroup id. name = the Quadlet unit = container name,
+      # set on the container's own cgroup (libpod-payload-*), not on the
+      # unit's or on other services' cgroups.
+      metric_relabel_configs:
+        - source_labels: [id]
+          regex: '/system\.slice/([^/]+)\.service/libpod-payload-[0-9a-f]+'
+          target_label: name
+          replacement: '$1'
     # Every web UI with a status dot on homepage (pillar/homepage.sls —
     # monitoring gets it via pillar/top.sls), probed via blackbox-exporter.
     - job_name: blackbox

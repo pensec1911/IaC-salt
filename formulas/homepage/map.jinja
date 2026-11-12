@@ -1,6 +1,18 @@
 {#- allowed_hosts is required by homepage itself (Next.js host header
    check) — every hostname/IP:port it'll be reached as must be listed or
-   it 500s. #}
+   it 500s.
+
+   puid/pgid: the uid:gid the container runs as (Podman `User=`), not
+   PUID/PGID env: without PUID the image's entrypoint skips its chown and
+   su-exec and needs no capabilities. Nothing on the host is owned by it —
+   see tmpfs.
+
+   tmpfs: /app/config is a tmpfs; Salt's settings.yaml/services.yaml are
+   bound read-only into it (root-owned, 0644 on the host), the image copies
+   its other skeleton files in on start. /app/.next/cache: Next.js' image
+   cache. So the root fs stays read-only and the host keeps no state.
+
+   podman: spec overrides for the container (keys: formulas/podman README). #}
 {%- set defaults = {
     'image': 'ghcr.io/gethomepage/homepage',
     'tag': 'v2.3.0',
@@ -11,5 +23,7 @@
     'pgid': 1000,
     'timezone': 'Etc/UTC',
     'allowed_hosts': 'localhost:3000,127.0.0.1:3000',
+    'tmpfs': ['/app/config', '/app/.next/cache'],
+    'podman': {},
 } %}
 {%- set homepage = salt['pillar.get']('homepage:lookup', default=defaults, merge=True) %}

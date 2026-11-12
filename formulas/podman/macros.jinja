@@ -1,0 +1,151 @@
+{#- Container and network states for consuming formulas. Usage in a
+   formula's container.sls:
+
+     {% from "podman/macros.jinja" import container, network with context %}
+     {{ container('homepage-container', homepage.container,
+                  require=[{'file': 'homepage-settings.yaml'}],
+                  watch=[{'file': 'homepage-settings.yaml'}]) }}
+
+   The spec (a dict from the formula's map.jinja, keys in podman/map.jinja
+   `container`, documented in podman/README.md) is merged over the podman
+   defaults. Per container:
+
+     <id>-image          podman pull, only when the image isn't there yet —
+                         so a tag bump pulls before the unit restarts, and
+                         a pull failure shows up as a failed state
+     <id>-env            <quadlet_dir>/<name>.env (non-secret env, diffed)
+     <id>-secret-env     <quadlet_dir>/<name>.secret.env, 0600, no diff —
+                         only with secret_env. Env goes through files, not
+                         Environment=: those land on podman's command line
+                         (ps, /run/systemd/generator) and systemd would
+                         expand % and $ in them.
+     <id>-quadlet        <quadlet_dir>/<name>.container
+     <id>-daemon-reload  runs the Quadlet generator on a changed unit file
+     <id>                service.running <name>; restarts on any change
+                         above or in `watch`. No `enable`: generated units
+                         can't be enabled — [Install] WantedBy does that.
+
+   A formula refers to its container as `service: <id>`. -#}
+{%- from "podman/map.jinja" import podman with context %}
+
+{%- macro container(id, spec, require=[], watch=[]) %}
+{%- set c = salt['slsutil.merge'](podman.container, spec, strategy='recurse', merge_lists=False) %}
+{%- set ref = c.image ~ ':' ~ c.tag %}
+{%- set base = podman.quadlet_dir ~ '/' ~ c.name %}
+{%- set userns = c.userns %}
+{%- if userns == 'auto' and (c.keep_uids or c.keep_gids) %}
+{%-   set maps = [] %}
+{%-   for uid in c.keep_uids %}{% do maps.append('uidmapping=' ~ uid ~ ':' ~ uid ~ ':1') %}{% endfor %}
+{%-   for gid in c.keep_gids %}{% do maps.append('gidmapping=' ~ gid ~ ':' ~ gid ~ ':1') %}{% endfor %}
+{%-   set userns = 'auto:' ~ maps | join(',') %}
+{%- endif %}
+{%- set env_files = [base ~ '.env'] %}
+{%- if c.secret_env %}{% do env_files.append(base ~ '.secret.env') %}{% endif %}
+{#- The template gets the spec without env values: state args end up in the
+   master's job cache. #}
+{%- set tc = c.copy() %}
+{%- do tc.update({'env': {}, 'secret_env': {}}) %}
+
+{{ id }}-image:
+  cmd.run:
+    - name: {{ podman.bin }} pull --quiet {{ ref }}
+    - unless: {{ podman.bin }} image exists {{ ref }}
+    - require:
+      - sls: podman
+
+{{ id }}-env:
+  file.managed:
+    - name: {{ base }}.env
+    - user: root
+    - group: root
+    - mode: '0644'
+    - contents: |
+        # Managed by Salt — do not edit.
+{%- for key, value in c.env | dictsort %}
+        {{ key }}={{ value }}
+{%- endfor %}
+    - require:
+      - file: podman-quadlet-dir
+{%- if c.secret_env %}
+
+{{ id }}-secret-env:
+  file.managed:
+    - name: {{ base }}.secret.env
+    - user: root
+    - group: root
+    - mode: '0600'
+    - show_changes: False
+    - contents: |
+        # Managed by Salt — do not edit.
+{%- for key, value in c.secret_env | dictsort %}
+        {{ key }}={{ value }}
+{%- endfor %}
+    - require:
+      - file: podman-quadlet-dir
+{%- endif %}
+
+{{ id }}-quadlet:
+  file.managed:
+    - name: {{ base }}.container
+    - source: salt://podman/files/container.j2
+    - template: jinja
+    - user: root
+    - group: root
+    - mode: '0644'
+    - context: {{ {'c': tc, 'ref': ref, 'userns': userns, 'env_files': env_files, 'log_driver': podman.log_driver} | json }}
+    - require:
+      - file: podman-quadlet-dir
+
+{{ id }}-daemon-reload:
+  cmd.run:
+    - name: systemctl daemon-reload
+    - onchanges:
+      - file: {{ id }}-quadlet
+
+{{ id }}:
+  service.running:
+    - name: {{ c.name }}
+    - require:
+      - sls: podman
+      - cmd: {{ id }}-image
+      - cmd: {{ id }}-daemon-reload
+{%- for r in require %}
+      - {{ r | json }}
+{%- endfor %}
+    - watch:
+      - cmd: {{ id }}-image
+      - file: {{ id }}-env
+{%- if c.secret_env %}
+      - file: {{ id }}-secret-env
+{%- endif %}
+      - file: {{ id }}-quadlet
+{%- for w in watch %}
+      - {{ w | json }}
+{%- endfor %}
+{%- endmacro %}
+
+{#- A user-defined network: DNS between its containers by container name
+   (aardvark-dns), like a docker network. Containers join with
+   network: '<name>.network' — Quadlet then orders them after
+   <name>-network.service, which creates it. Subnet auto-assigned. #}
+{%- macro network(id, name) %}
+
+{{ id }}:
+  file.managed:
+    - name: {{ podman.quadlet_dir }}/{{ name }}.network
+    - user: root
+    - group: root
+    - mode: '0644'
+    - contents: |
+        # Managed by Salt — do not edit.
+        [Network]
+        NetworkName={{ name }}
+    - require:
+      - file: podman-quadlet-dir
+
+{{ id }}-daemon-reload:
+  cmd.run:
+    - name: systemctl daemon-reload
+    - onchanges:
+      - file: {{ id }}
+{%- endmacro %}

@@ -30,6 +30,6 @@ forgejo-ca-{{ name }}:
     - require:
       - file: forgejo-ca-dir
     - require_in:
-      - docker_container: forgejo-container
+      - service: forgejo-container
 {%- endfor %}
 {%- endif %}

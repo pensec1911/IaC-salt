@@ -29,10 +29,11 @@
    only on a status change (onchangeonly), not at minion start
    (emitatstartup off). The master's reactor (formulas/salt-master) starts
    a stopped service again if it is on its whitelist. delay_seconds must
-   exceed the unit's StartLimitIntervalSec (docker: 1 min): systemd's own
+   exceed the unit's StartLimitIntervalSec (default 10 s): systemd's own
    Restart= gets the first go, and once it gave up (start limit hit) the
    reactor's `systemctl start` would be refused until that interval passed.
-   Off by default; on per minion in pillar/salt-minion-beacons.sls. #}
+   Off by default and currently on nowhere: it watched docker, and Podman
+   has no daemon — each Quadlet unit restarts itself (Restart=always). #}
 {%- set defaults = {
     'drift_check': {
         'enabled': True,

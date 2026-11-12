@@ -1,10 +1,14 @@
 {#- tag: v1.20.1, not v1.21.0 — 1.21.0 was a day old when this was written
    (2026-10-20); bump deliberately.
 
-   Runs as root (the image has no USER): it reads the docker socket and the
-   host journal. The socket is root-equivalent anyway, so a uid override
-   would buy nothing. No published port — Alloy's debug UI (:12345) stays
-   inside the container.
+   Runs as root inside (the image has no USER) — in its own user namespace,
+   so a sub-UID on the host. Reads only the host journal: container logs
+   are there too (Podman's journald log driver, field CONTAINER_NAME ->
+   label `container`). journal_group: the host group that may read the
+   journal (systemd-journal); its gid is looked up at render time,
+   mapped 1:1 into the container and added as a supplementary group, which
+   is what lets it read the journal files (0640 root:systemd-journal). No
+   published port — Alloy's debug UI (:12345) stays inside the container.
 
    loki_mine_alias / loki_port: the push URL is http://<ip>:<loki_port>
    built from the Salt Mine entry formulas/loki publishes. Rendered when
@@ -17,18 +21,22 @@
    journal_max_age: how far back a fresh Alloy (no positions yet) reads.
 
    data_dir: Alloy's positions (how far each log was shipped). On the host,
-   so a recreated container neither re-ships nor skips. #}
+   so a recreated container neither re-ships nor skips. Owned by the
+   container (:U on the bind), so Salt only creates it.
+
+   podman: spec overrides for the container (keys: formulas/podman README). #}
 {%- set defaults = {
-    'image': 'grafana/alloy',
+    'image': 'docker.io/grafana/alloy',
     'tag': 'v1.20.1',
     'container_name': 'alloy',
     'config_dir': '/opt/alloy/config',
     'data_dir': '/opt/alloy/data',
-    'docker_socket': '/var/run/docker.sock',
     'journal_path': '/var/log/journal',
+    'journal_group': 'systemd-journal',
     'journal_max_age': '12h',
     'loki_mine_alias': 'loki',
     'loki_port': 3100,
+    'podman': {},
 } %}
 {%- set alloy = salt['pillar.get']('alloy:lookup', default=defaults, merge=True) %}
 
@@ -40,3 +48,6 @@
 {%- do loki_urls.append('http://' ~ ips[0] ~ ':' ~ alloy.loki_port) %}
 {%- endfor %}
 {%- do alloy.update({'loki_url': loki_urls[0] if loki_urls else ''}) %}
+
+{#- Derived: the journal group's gid on this host (container.sls maps it). #}
+{%- do alloy.update({'journal_gid': salt['file.group_to_gid'](alloy.journal_group)}) %}

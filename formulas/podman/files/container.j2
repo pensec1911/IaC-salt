@@ -1,0 +1,86 @@
+{#- Rendered by podman/macros.jinja `container` with context: c (merged
+   container spec), ref (image:tag), userns (final --userns value),
+   env_files (paths). Exec args: quoted for Quadlet's systemd-style word
+   splitting; `%` and `$` doubled, since Quadlet copies them into ExecStart
+   unchanged and systemd would expand them there. -#}
+{%- macro q(arg) -%}
+{%- set s = (arg | string).replace('\\', '\\\\').replace('"', '\\"').replace('%', '%%').replace('$', '$$') -%}
+{%- if s == '' or ' ' in s or '"' in s or "'" in s or '\t' in s -%}"{{ s }}"{%- else -%}{{ s }}{%- endif -%}
+{%- endmacro -%}
+# Managed by Salt (formulas/podman macro, used by the formula that owns
+# this container) — do not edit.
+[Unit]
+Description={{ c.name }} container
+{%- for key, values in c.unit | dictsort %}
+{%- for value in values %}
+{{ key }}={{ value }}
+{%- endfor %}
+{%- endfor %}
+
+[Container]
+ContainerName={{ c.name }}
+Image={{ ref }}
+LogDriver={{ log_driver }}
+{%- if c.user %}
+{%- set ug = (c.user | string).split(':') %}
+User={{ ug[0] }}
+{%- if ug | length > 1 %}
+Group={{ ug[1] }}
+{%- endif %}
+{%- endif %}
+UserNS={{ userns }}
+{%- if c.no_new_privileges %}
+NoNewPrivileges=true
+{%- endif %}
+{%- if c.drop_caps %}
+DropCapability={{ c.drop_caps | join(' ') }}
+{%- endif %}
+{%- if c.cap_add %}
+AddCapability={{ c.cap_add | join(' ') }}
+{%- endif %}
+{%- if c.read_only %}
+ReadOnly=true
+ReadOnlyTmpfs=true
+{%- endif %}
+{%- for path in env_files %}
+EnvironmentFile={{ path }}
+{%- endfor %}
+{%- for port in c.ports %}
+PublishPort={{ port }}
+{%- endfor %}
+{%- for volume in c.volumes %}
+Volume={{ volume }}
+{%- endfor %}
+{%- for tmpfs in c.tmpfs %}
+Tmpfs={{ tmpfs }}
+{%- endfor %}
+{%- for device in c.devices %}
+AddDevice={{ device }}
+{%- endfor %}
+{%- for group in c.group_add %}
+GroupAdd={{ group }}
+{%- endfor %}
+{%- if c.network %}
+Network={{ c.network }}
+{%- endif %}
+{%- if c.hostname %}
+HostName={{ c.hostname }}
+{%- endif %}
+{%- if c.stop_timeout %}
+StopTimeout={{ c.stop_timeout }}
+{%- endif %}
+{%- set args = c.podman_args | list %}
+{%- if c.privileged %}{% do args.insert(0, '--privileged') %}{% endif %}
+{%- if args %}
+PodmanArgs={{ args | join(' ') }}
+{%- endif %}
+{%- if c.command %}
+Exec={% for arg in c.command %}{{ q(arg) }}{% if not loop.last %} {% endif %}{% endfor %}
+{%- endif %}
+
+[Service]
+Restart={{ c.restart }}
+TimeoutStartSec={{ c.timeout_start_sec }}
+
+[Install]
+WantedBy={{ c.wanted_by | join(' ') }}

@@ -24,7 +24,7 @@ base:
     - unattended-upgrades
     - patchmon-agent
     - salt-minion
-    - docker
+    - podman
     - cadvisor
     - alloy
     - homepage
@@ -39,7 +39,7 @@ base:
     - unattended-upgrades
     - patchmon-agent
     - salt-minion
-    - docker
+    - podman
     - cadvisor
     - blackbox-exporter
     - loki
@@ -61,7 +61,7 @@ base:
     - patchmon-agent
     - salt-minion
     - nfs-mount
-    - docker
+    - podman
     - cadvisor
     - alloy
     - arrstack
@@ -90,7 +90,7 @@ base:
     - patchmon-agent
     - salt-minion
     - nfs-mount
-    - docker
+    - podman
     - cadvisor
     - alloy
     - jellyfin
@@ -107,7 +107,7 @@ base:
     - patchmon-agent
     - salt-minion
     - nfs-mount
-    - docker
+    - podman
     - cadvisor
     - alloy
     - forgejo

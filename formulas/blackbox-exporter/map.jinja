@@ -10,13 +10,14 @@
    isn't verified (Proxmox, TrueNAS, OpenBao, Wazuh use self-signed certs —
    the probe is about reachability, not trust). #}
 {%- set defaults = {
-    'image': 'prom/blackbox-exporter',
+    'image': 'docker.io/prom/blackbox-exporter',
     'tag': 'v0.29.0',
     'container_name': 'blackbox-exporter',
     'host_port': 9115,
     'config_dir': '/opt/blackbox-exporter/config',
     'uid': 65534,
     'gid': 65534,
+    'podman': {},
     'modules': {
         'http_up': {
             'prober': 'http',

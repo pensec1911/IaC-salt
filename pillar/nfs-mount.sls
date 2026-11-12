@@ -4,12 +4,10 @@
 # automatically by formulas/arrstack/config.sls the first time this mount
 # is live, no manual NAS-side step needed.
 
-# Containers bind the share — Docker must not start before it's mounted
-# (empty /mnt/media after a reboot with a slow NAS, 2026-10-17).
-nfs-mount:
-  lookup:
-    required_by:
-      - docker.service
+# Containers bind the share and must not start before it's mounted (empty
+# /mnt/media after a reboot with a slow NAS, 2026-10-17). Quadlet adds
+# RequiresMountsFor= for every bound path to the container units itself —
+# no nfs-mount:lookup:required_by needed.
 
 nfs_mounts:
   - name: media

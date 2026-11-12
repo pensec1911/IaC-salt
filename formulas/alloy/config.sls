@@ -8,12 +8,10 @@ alloy-config-dir:
     - mode: '0755'
     - makedirs: True
 
+{#- Owner left to the container (:U, container.sls): only create. #}
 alloy-data-dir:
   file.directory:
     - name: {{ alloy.data_dir }}
-    - user: root
-    - group: root
-    - mode: '0750'
     - makedirs: True
 
 alloy-config:

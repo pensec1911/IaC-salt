@@ -1,4 +1,4 @@
-{#- Four containers on a private docker network (`network`): netbox (web,
+{#- Four containers on a private Podman network (`network`): netbox (web,
    Granian on 8080 inside, published on http_port), netbox-worker (rqworker:
    background jobs, webhooks and NetBox's own housekeeping system job),
    postgres and valkey. Only netbox publishes a port; postgres/valkey are
@@ -13,15 +13,23 @@
    secret files.
 
    Secrets (OpenBao via pillar) are written as files to secrets_dir and
-   bound to /run/secrets, where the image's configuration.py and
-   POSTGRES_PASSWORD_FILE read them — never in env, so not in `docker
-   inspect`. secret_key (>= 50 chars), db_password, api_token_pepper (>= 50
+   bound one by one into /run/secrets (0444 — the containers' users are
+   sub-UIDs; the 0700 dir keeps host users out), where the image's
+   configuration.py and POSTGRES_PASSWORD_FILE read them — never in env, so
+   not in `podman inspect`. secret_key (>= 50 chars), db_password, api_token_pepper (>= 50
    chars, needed for v2 API tokens). All three required: the formula fails
    on a blank or unresolved one.
 
    media_uid: the image's `netbox` user (uid 999, gid 0, upstream
-   Dockerfile) — owns media_dir. No host account: nothing on the host acts
-   as it. postgres/valkey chown their own data dirs on start.
+   Dockerfile) — owns media_dir inside the container. Not mapped 1:1: host
+   uid 999 is `salt`. media_dir, postgres_dir and valkey_dir are handed to
+   the containers by :U (sub-UIDs on the host), Salt only creates them.
+   postgres_user / valkey_user: the images' own users (alpine: postgres
+   70:70, valkey 999:1000), run as directly — no root entrypoint, no
+   capabilities. postgres needs a writable root (/run/postgresql), hence
+   postgres_podman.
+   podman / postgres_podman / valkey_podman: spec overrides (keys:
+   formulas/podman README).
 
    dump_dir: where formulas/backup's pre-run pg_dump goes. pillar/backup.sls
    `dumps` repeats this path and postgres_container_name — change both
@@ -47,6 +55,12 @@
     'dump_dir': '/opt/netbox/dump',
     'media_uid': 999,
     'media_gid': 0,
+    'postgres_user': '70:70',
+    'valkey_user': '999:1000',
+    'secret_names': ['secret_key', 'db_password', 'api_token_pepper_1'],
+    'podman': {},
+    'postgres_podman': {'read_only': False},
+    'valkey_podman': {},
     'db_name': 'netbox',
     'db_user': 'netbox',
     'timezone': 'Etc/UTC',

@@ -26,7 +26,7 @@ PATHS = {{ backup.paths | json }}
 EXCLUDES = {{ backup.excludes | json }}
 KEEP = {{ backup.keep | json }}
 DUMPS = {{ backup.dumps | json }}
-DOCKER = "{{ backup.docker_bin }}"
+PODMAN = "{{ backup.podman_bin }}"
 RETRY_LOCK = "{{ backup.retry_lock }}"
 OUT = "{{ backup.textfile_dir }}/{{ backup.metrics_file }}"
 
@@ -45,13 +45,13 @@ def restic(*args):
 
 
 def dump(d):
-    """docker exec <container> <command> > <file>, atomically. True on success."""
+    """podman exec <container> <command> > <file>, atomically. True on success."""
     tmp = d["file"] + ".tmp"
     os.makedirs(os.path.dirname(d["file"]), mode=0o700, exist_ok=True)
     try:
         with open(tmp, "wb") as out:
             os.fchmod(out.fileno(), 0o600)
-            proc = subprocess.run([DOCKER, "exec", d["container"], *d["command"]],
+            proc = subprocess.run([PODMAN, "exec", d["container"], *d["command"]],
                                   stdout=out, stderr=subprocess.PIPE)
         if proc.stderr:
             sys.stderr.write(proc.stderr.decode(errors="replace"))

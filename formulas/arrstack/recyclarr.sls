@@ -7,9 +7,11 @@ include:
 
 {#- Pulled here so the timer never pulls at run time (pinned tag). #}
 recyclarr-image:
-  docker_image.present:
-    - name: {{ rc.image }}
-    - tag: {{ rc.tag }}
+  cmd.run:
+    - name: {{ rc.podman_bin }} pull --quiet {{ rc.image }}:{{ rc.tag }}
+    - unless: {{ rc.podman_bin }} image exists {{ rc.image }}:{{ rc.tag }}
+    - require:
+      - sls: podman
 
 {#- No secrets in here — api_key is !env_var, filled by the sync script. #}
 recyclarr-config:
@@ -40,9 +42,9 @@ recyclarr-unit:
     - require:
       - file: recyclarr-script
       - file: recyclarr-config
-      - docker_image: recyclarr-image
-      - docker_container: sonarr-container
-      - docker_container: radarr-container
+      - cmd: recyclarr-image
+      - service: sonarr-container
+      - service: radarr-container
 
 recyclarr-timer:
   file.managed:

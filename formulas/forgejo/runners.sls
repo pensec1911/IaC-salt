@@ -3,7 +3,7 @@
 include:
   - forgejo.container
 
-{#- The secret goes in via the environment (docker exec -e S takes the
+{#- The secret goes in via the environment (podman exec -e S takes the
    value from the calling shell), never on a command line or in the state
    output. The marker holds only its sha256. #}
 {%- for name, r in forgejo.runners | dictsort %}
@@ -18,7 +18,7 @@ forgejo-runner-register-{{ name }}:
 forgejo-runner-register-{{ name }}:
   cmd.run:
     - name: >-
-        docker exec -e S {{ forgejo.container_name }}
+        {{ forgejo.podman_bin }} exec -e S {{ forgejo.container_name }}
         sh -c 'forgejo forgejo-cli actions register --name "$0" --scope "$1" --secret "$S"'
         {{ name | yaml_encode }} {{ r.get('scope', '') | yaml_encode }}
         && printf %s "$S" | sha256sum > {{ marker }}
@@ -28,6 +28,6 @@ forgejo-runner-register-{{ name }}:
     - env:
       - S: {{ r.secret | yaml_encode }}
     - require:
-      - docker_container: forgejo-container
+      - service: forgejo-container
 {%-   endif %}
 {%- endfor %}

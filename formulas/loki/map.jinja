@@ -14,7 +14,7 @@
    mine: Salt Mine entry formulas/alloy reads the Loki address from
    (mine.get('*', alias)), same mechanism as node-exporter/cadvisor. #}
 {%- set defaults = {
-    'image': 'grafana/loki',
+    'image': 'docker.io/grafana/loki',
     'tag': '3.7.8',
     'container_name': 'loki',
     'host_port': 3100,
@@ -25,6 +25,7 @@
     'retention_period': '720h',
     'schema_from': '2026-10-20',
     'log_level': 'warn',
+    'podman': {},
     'mine': {
         'alias': 'loki',
         'interface': 'eth0',

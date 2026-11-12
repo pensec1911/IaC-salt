@@ -1,31 +1,31 @@
 {%- from "alloy/map.jinja" import alloy with context -%}
-// Managed by formulas/alloy — docker container logs + host journal -> Loki.
-
-discovery.docker "containers" {
-  host = "unix:///var/run/docker.sock"
-}
-
-// "/sonarr" -> container="sonarr"
-discovery.relabel "containers" {
-  targets = []
-
-  rule {
-    source_labels = ["__meta_docker_container_name"]
-    regex         = "/(.*)"
-    target_label  = "container"
-  }
-}
-
-loki.source.docker "containers" {
-  host          = "unix:///var/run/docker.sock"
-  targets       = discovery.docker.containers.targets
-  labels        = {"job" = "docker"}
-  relabel_rules = discovery.relabel.containers.rules
-  forward_to    = [loki.write.default.receiver]
-}
+// Managed by formulas/alloy — host journal (incl. container logs) -> Loki.
+//
+// Podman's journald log driver writes every container line to the journal
+// with CONTAINER_NAME set: those get job="container" and container=<name>,
+// everything else job="journal". unit is set on both (a container's lines
+// carry its Quadlet unit, <name>.service).
 
 loki.relabel "journal" {
   forward_to = []
+
+  rule {
+    target_label = "job"
+    replacement  = "journal"
+  }
+
+  rule {
+    source_labels = ["__journal_container_name"]
+    regex         = "(.+)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__journal_container_name"]
+    regex         = ".+"
+    target_label  = "job"
+    replacement   = "container"
+  }
 
   rule {
     source_labels = ["__journal__systemd_unit"]
@@ -41,7 +41,6 @@ loki.relabel "journal" {
 loki.source.journal "host" {
   path          = "/var/log/journal"
   max_age       = "{{ alloy.journal_max_age }}"
-  labels        = {"job" = "journal"}
   relabel_rules = loki.relabel.journal.rules
   forward_to    = [loki.write.default.receiver]
 }
