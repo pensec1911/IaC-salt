@@ -23,7 +23,8 @@
 
    gluetun.cap_add: NET_ADMIN for its firewall/routes/WireGuard link,
    NET_BIND_SERVICE for its DNS server on :53, NET_RAW for its health
-   check — all inside its own user/network namespace (Podman creates the
+   check, CHOWN to hand its forwarded-port file to its PUID — all inside
+   its own user/network namespace (Podman creates the
    netns in the container's userns, checked 2026-11-12).
    gluetun.tmpfs: /tmp/gluetun (public IP and forwarded-port files) is
    owned by another user in the image; root without DAC_OVERRIDE can't
@@ -69,7 +70,7 @@
         'server_countries': '',
         'port_forwarding': False,
         'uplink_interface': 'eth0',
-        'cap_add': ['NET_ADMIN', 'NET_BIND_SERVICE', 'NET_RAW'],
+        'cap_add': ['NET_ADMIN', 'NET_BIND_SERVICE', 'NET_RAW', 'CHOWN'],
         'tmpfs': ['/tmp/gluetun'],
         'podman': {'read_only': False},
     },
