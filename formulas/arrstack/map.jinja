@@ -23,9 +23,15 @@
 
    gluetun.cap_add: NET_ADMIN for its firewall/routes/WireGuard link,
    NET_BIND_SERVICE for its DNS server on :53, NET_RAW for its health
-   check, CHOWN to hand its forwarded-port file to its PUID — all inside
-   its own user/network namespace (Podman creates the
+   check — all inside its own user/network namespace (Podman creates the
    netns in the container's userns, checked 2026-11-12).
+   gluetun.file_puid/file_pgid: owner gluetun gives its /tmp/gluetun files
+   (its PUID/PGID, image default 1000). 0 = stays root's: with CHOWN it
+   handed forwarded_port to 1000 and then, without DAC_OVERRIDE, couldn't
+   rewrite it on the next port-forwarding restart — an endless retry loop
+   that re-ran the down/up hooks every few seconds, flipping qBittorrent
+   between lo and tun0 (observed 2026-11-13, 374 loops in one boot). Nothing
+   else reads the file, so no CHOWN, no DAC_OVERRIDE.
    gluetun.tmpfs: /tmp/gluetun (public IP and forwarded-port files) is
    owned by another user in the image; root without DAC_OVERRIDE can't
    write it, which also kept the port-forwarding hook from running.
@@ -70,7 +76,9 @@
         'server_countries': '',
         'port_forwarding': False,
         'uplink_interface': 'eth0',
-        'cap_add': ['NET_ADMIN', 'NET_BIND_SERVICE', 'NET_RAW', 'CHOWN'],
+        'cap_add': ['NET_ADMIN', 'NET_BIND_SERVICE', 'NET_RAW'],
+        'file_puid': 0,
+        'file_pgid': 0,
         'tmpfs': ['/tmp/gluetun'],
         'podman': {'read_only': False},
     },

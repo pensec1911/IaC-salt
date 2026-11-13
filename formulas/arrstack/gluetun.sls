@@ -91,6 +91,8 @@ arrstack-gluetun-pf-down-script:
     'VPN_TYPE': arrstack.gluetun.vpn_type,
     'WIREGUARD_ADDRESSES': arrstack.gluetun.wireguard_addresses,
     'FIREWALL_INPUT_PORTS': fw_ports | map('string') | join(','),
+    'PUID': arrstack.gluetun.file_puid | string,
+    'PGID': arrstack.gluetun.file_pgid | string,
 } %}
 {%- if arrstack.gluetun.server_countries %}
 {%-   do env.update({'SERVER_COUNTRIES': arrstack.gluetun.server_countries}) %}
