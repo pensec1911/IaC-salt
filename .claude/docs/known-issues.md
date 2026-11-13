@@ -26,12 +26,6 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Podman migration (2026-11-12) — follow-ups
 
-- **PatchMon DB needs a reset**: its first migration ran while Postgres hung on the AppArmor
-  signal bug (formulas/podman map.jinja `apparmor_disable`) and left `Dirty database version
-  18`; `patchmon.service` fails until then. The DB was empty (0 users, 0 hosts). Fix on forgejo:
-  `printf 'DROP DATABASE patchmon_db;\nCREATE DATABASE patchmon_db OWNER patchmon_user;\n' |
-  sudo podman exec -i patchmon-postgres psql -U patchmon_user -d postgres`, then
-  `sudo systemctl reset-failed patchmon; sudo systemctl start patchmon`.
 - **Docker is still installed on the five container hosts** (stopped, disabled; old containers
   and images in `/var/lib/docker`, ~1.6–4 GB each) — the rollback path. Purge by hand once the
   hosts ran a while on Podman: formulas/podman README "Migration from Docker", step 3.
