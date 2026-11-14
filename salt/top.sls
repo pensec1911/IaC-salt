@@ -51,6 +51,7 @@ base:
     - prometheus
     - alertmanager
     - toolbox
+    - infra-exporters
     - nfs-mount
     - backup
 

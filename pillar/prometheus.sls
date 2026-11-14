@@ -8,6 +8,13 @@
    it would just sit firing in the UI. #}
 {%- set hc_ping_key = salt['sdb.get']('sdb://osvault/homelab/data/healthchecks/project?ping_key') or '' %}
 {%- set watchdog = hc_ping_key is string and hc_ping_key | length > 0 and not hc_ping_key.startswith('sdb://') %}
+{#- Proxmox / FRITZ!Box exporters (formulas/infra-exporters) only run once
+   their secret is in OpenBao — same checks as pillar/infra-exporters.sls;
+   their jobs and rules follow, so nothing changes before that. #}
+{%- set pve_token = salt['sdb.get']('sdb://osvault/homelab/data/proxmox/exporter?token_value') or '' %}
+{%- set pve = pve_token is string and pve_token | length > 0 and not pve_token.startswith('sdb://') %}
+{%- set fritz_password = salt['sdb.get']('sdb://osvault/homelab/data/fritzbox/exporter?password') or '' %}
+{%- set fritzbox = fritz_password is string and fritz_password | length > 0 and not fritz_password.startswith('sdb://') %}
 prometheus:
   scrape_configs:
     - job_name: prometheus
@@ -46,6 +53,57 @@ prometheus:
         module: http_up
         exporter: {{ monitoring_ip }}:9115
         homepage: True
+{%- if pve %}
+    # prometheus-pve-exporter (formulas/infra-exporters): one scrape per
+    # node via ?target=. cluster=1 on every node, so the cluster view
+    # (all nodes, storages, guests) survives one node being down — the
+    # cluster series come three times (instance = the node asked), the
+    # rules aggregate by id.
+    - job_name: pve
+      scrape_interval: 60s
+      scrape_timeout: 30s
+      metrics_path: /pve
+      params:
+        module: [default]
+        cluster: ['1']
+        node: ['1']
+      static_configs:
+        - targets: [192.168.178.11]
+          labels:
+            instance: pve01
+        - targets: [192.168.178.12]
+          labels:
+            instance: pve02
+        - targets: [192.168.178.13]
+          labels:
+            instance: pve03
+      relabel_configs:
+        - source_labels: [__address__]
+          target_label: __param_target
+        - target_label: __address__
+          replacement: {{ monitoring_ip }}:9221
+{%- endif %}
+{%- if fritzbox %}
+    # fritz_exporter (TR-064 is slow — 60s, as upstream suggests).
+    - job_name: fritzbox
+      scrape_interval: 60s
+      scrape_timeout: 30s
+      static_configs:
+        - targets:
+            - {{ monitoring_ip }}:9787
+          labels:
+            instance: fritzbox
+{%- endif %}
+    # graphite_exporter, fed by TrueNAS' Reporting → Exporters push. The
+    # mapping sets job="truenas" and instance=<TrueNAS hostname> per series
+    # (honor_labels keeps them; hostname is set to "truenas" there).
+    - job_name: truenas
+      honor_labels: true
+      static_configs:
+        - targets:
+            - {{ monitoring_ip }}:9108
+          labels:
+            instance: truenas
 
   alerting:
     - {{ monitoring_ip }}:9093
@@ -292,3 +350,92 @@ prometheus:
             severity: warning
           annotations:
             summary: {% raw %}"Patch metrics on {{ $labels.instance }} failing or stale — journalctl -u os-patch-metrics"{% endraw %}
+        {#- pve_* from prometheus-pve-exporter (job pve, only while its token
+           is in OpenBao). Every node reports the whole cluster, so the
+           rules take max by (id): one answering node is enough. All three
+           down → TargetDown on job pve. #}
+{%- if pve %}
+        - alert: PveNodeDown
+          expr: max by (id) (pve_up{job="pve", id=~"node/.+"}) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: {% raw %}"Proxmox {{ $labels.id }} is offline in the cluster"{% endraw %}
+        - alert: PveNodeMemoryHigh
+          expr: >-
+            max by (id) (
+              pve_memory_usage_bytes{job="pve", id=~"node/.+"}
+              / pve_memory_size_bytes{job="pve", id=~"node/.+"}
+            ) > 0.90
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"Proxmox {{ $labels.id }} uses {{ $value | humanizePercentage }} of its RAM — rebalance VMs (.claude/docs/capacity.md)"{% endraw %}
+        - alert: PveStorageAlmostFull
+          expr: >-
+            max by (id) (
+              pve_disk_usage_bytes{job="pve", id=~"storage/.+"}
+              / (pve_disk_size_bytes{job="pve", id=~"storage/.+"} > 0)
+            ) > 0.90
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"Proxmox {{ $labels.id }} is {{ $value | humanizePercentage }} full"{% endraw %}
+{%- endif %}
+        {#- fritz_* from fritz_exporter (job fritzbox, only while its password
+           is in OpenBao). phys link = DSL sync (or cable/fibre link); PPP
+           only exists on a PPPoE line — absent series never fire. #}
+{%- if fritzbox %}
+        - alert: FritzboxUnreachable
+          expr: fritz_device_reachable{job="fritzbox"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"fritz_exporter can't reach {{ $labels.friendly_name }} — TR-064 on, user/password right? (formulas/infra-exporters README)"{% endraw %}
+        - alert: FritzboxWanLinkDown
+          expr: fritz_wan_phys_link_status{job="fritzbox"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: {% raw %}"{{ $labels.friendly_name }}: WAN link down (DSL sync lost)"{% endraw %}
+        - alert: FritzboxInternetDisconnected
+          expr: >-
+            fritz_ppp_connection_state{job="fritzbox"} == 0
+            unless on(serial) fritz_wan_phys_link_status{job="fritzbox"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: {% raw %}"{{ $labels.friendly_name }}: line is up but the PPP session is not connected"{% endraw %}
+{%- endif %}
+        {#- zfs_pool / disk_temperature: Netdata charts via TrueNAS' Graphite
+           push and the Supporterino mapping (formulas/infra-exporters).
+           zfs_pool is 1 for the pool's current state, 0 for the others.
+           graphite_exporter drops series 5m after the last push, so a
+           stopped push or a missing Netdata chart shows as Missing. #}
+        - alert: TruenasPoolNotOnline
+          expr: zfs_pool{job="truenas", state!="online"} == 1
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: {% raw %}"TrueNAS pool {{ $labels.pool }} is {{ $labels.state }}"{% endraw %}
+        - alert: TruenasPoolStateMissing
+          expr: absent(zfs_pool{job="truenas"})
+          for: 6h
+          labels:
+            severity: warning
+          annotations:
+            summary: "No ZFS pool state from TrueNAS — Reporting → Exporters set up, Netdata config applied? (formulas/infra-exporters README)"
+        - alert: TruenasDiskHot
+          expr: disk_temperature{job="truenas"} > 55
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"TrueNAS disk {{ $labels.serial }} at {{ $value }}°C"{% endraw %}

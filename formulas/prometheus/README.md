@@ -59,6 +59,11 @@ highstate renders `prometheus.yml`. A new minion's own highstate publishes its e
 `pillar/homepage.sls` item with a status dot (`instance` = item name, `group` = homepage group),
 so that pillar must be assigned to this minion too. Combinable with `static_configs` of URLs.
 
+**Pass-through keys**: `scrape_interval`, `scrape_timeout`, `honor_labels` and
+`metric_relabel_configs` on any job; `metrics_path`, `params` and `relabel_configs` on non-probe
+jobs (a probe job sets those itself). Upstream schema, rendered as given — e.g. the multi-target
+`pve` job in `pillar/prometheus.sls` (`?target=` per node, `__address__` = the exporter).
+
 On a fresh `monitoring` the first highstate misses monitoring's *own* targets (the template
 renders before its own mine states run); the same event queues a second run right after, which
 adds them.

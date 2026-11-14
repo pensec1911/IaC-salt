@@ -48,6 +48,16 @@ scrape_configs:
 {%- endfor %}
 {%- endif %}
   - job_name: {{ job.job_name }}
+{#- Passed through as-is (upstream schema). metrics_path, params and
+   relabel_configs only on non-probe jobs — a probe job sets its own. #}
+{%- for key in ['scrape_interval', 'scrape_timeout', 'honor_labels'] if key in job %}
+    {{ key }}: {{ job[key] | json }}
+{%- endfor %}
+{%- if not probe %}
+{%- for key in ['metrics_path', 'params', 'relabel_configs'] if key in job %}
+    {{ key }}: {{ job[key] | json }}
+{%- endfor %}
+{%- endif %}
 {%- if probe %}
     metrics_path: /probe
     params:

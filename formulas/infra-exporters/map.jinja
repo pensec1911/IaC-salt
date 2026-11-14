@@ -1,0 +1,68 @@
+{#- Metrics exporters for the hosts that aren't Salt minions, as Podman
+   containers on monitoring. All three are stateless.
+
+   pve: prometheus-pve-exporter, multi-target — Prometheus passes the PVE
+     node as ?target= (pillar/prometheus.sls job `pve`). Authenticates with
+     a read-only API token (user/token_name here, token_value from OpenBao).
+     verify_ssl False: the nodes' API certs are self-signed (same as the
+     blackbox probes). Image user 101, writes nothing.
+   fritzbox: pdreker/fritz_exporter (TR-064 + web UI), one device, configured
+     by env. The image runs as 65534 and listens on 0.0.0.0 already.
+     name = the friendly_name label. The password is at most 32 characters (the
+     exporter refuses longer ones).
+   truenas: graphite_exporter — TrueNAS SCALE pushes its Netdata reporting
+     data as Graphite plaintext to graphite_port (Reporting → Exporters);
+     the mapping file (Supporterino/truenas-graphite-to-prometheus, pinned
+     release + sha256) turns it into Prometheus series. Strict match: only
+     mapped paths become series. Runs as nobody (65534) and reads the
+     root-owned 0644 mapping through the "other" bits.
+
+   enabled: pve and fritzbox only render when pillar sets it — and
+   pillar/infra-exporters.sls only sets it once the secret resolves, so a
+   missing secret leaves monitoring as it was. truenas needs no secret.
+   host_port / graphite_port: published on monitoring; Prometheus and
+   TrueNAS point there.
+   podman: spec overrides per container (keys: formulas/podman README). #}
+{%- set defaults = {
+    'config_dir': '/opt/infra-exporters',
+    'pve': {
+        'enabled': False,
+        'image': 'docker.io/prompve/prometheus-pve-exporter',
+        'tag': '3.11.0',
+        'container_name': 'pve-exporter',
+        'host_port': 9221,
+        'container_port': 9221,
+        'user': 'prometheus@pve',
+        'token_name': 'exporter',
+        'token_value': '',
+        'verify_ssl': False,
+        'podman': {},
+    },
+    'fritzbox': {
+        'enabled': False,
+        'image': 'docker.io/pdreker/fritz_exporter',
+        'tag': '4.0.3',
+        'container_name': 'fritz-exporter',
+        'host_port': 9787,
+        'container_port': 9787,
+        'name': 'fritzbox',
+        'hostname': 'fritz.box',
+        'username': 'prometheus',
+        'password': '',
+        'podman': {},
+    },
+    'truenas': {
+        'enabled': True,
+        'image': 'docker.io/prom/graphite-exporter',
+        'tag': 'v0.17.0',
+        'container_name': 'graphite-exporter',
+        'host_port': 9108,
+        'container_port': 9108,
+        'graphite_port': 9109,
+        'mapping_source': 'https://raw.githubusercontent.com/Supporterino/truenas-graphite-to-prometheus/v2.2.1/graphite_mapping.conf',
+        'mapping_sha256': '1bb30fd1ad4c548d56f53974fbdef23fdf45b027df6ce5edcf19158a9f55da99',
+        'sample_expiry': '5m',
+        'podman': {},
+    },
+} %}
+{%- set infra_exporters = salt['pillar.get']('infra-exporters:lookup', default=defaults, merge=True) %}

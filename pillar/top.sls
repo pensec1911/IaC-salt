@@ -40,6 +40,7 @@ base:
     - alertmanager
     # Read by prometheus' blackbox job (probe targets = homepage items).
     - homepage
+    - infra-exporters
 
   'arrstack':
     - nfs-mount
