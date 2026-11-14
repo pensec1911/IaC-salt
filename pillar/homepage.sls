@@ -1,5 +1,4 @@
 {%- from 'features.jinja' import features %}
-{%- from 'oxidized.jinja' import oxidized with context %}
 homepage:
   lookup:
     allowed_hosts: "192.168.178.23:3000,homepage:3000,localhost:3000,127.0.0.1:3000"
@@ -141,11 +140,3 @@ homepage:
           href: http://192.168.178.1
           icon: avm-fritzbox.png
           description: Router
-{%- if oxidized.enabled %}
-        # Only while it runs (pillar/oxidized.jinja). No dashboard-icons entry
-        # for Oxidized — Material Design icon instead.
-        - name: Oxidized
-          href: {{ oxidized.url }}
-          icon: mdi-router-network
-          description: Network device config backups
-{%- endif %}

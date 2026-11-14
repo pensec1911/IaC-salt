@@ -1,0 +1,54 @@
+{%- from "oxidized/map.jinja" import oxidized with context -%}
+#!{{ oxidized.status.python }}
+# Managed by Salt (formulas/oxidized) — do not edit.
+# oxidized-web's /nodes.json (loopback only) -> node-exporter textfile metrics.
+#   oxidized_up                       1 = oxidized-web answered
+#   oxidized_device_fetch_ok{device}  1 = last fetch succeeded, 0 = failed
+#                                     (fail / no_connection); no series
+#                                     before a device's first fetch
+import json
+import os
+import sys
+import urllib.request
+
+URL = "http://{{ oxidized.host_ip }}:{{ oxidized.host_port }}/nodes.json"
+OUT = "{{ oxidized.status.textfile_dir }}/{{ oxidized.status.metrics_file }}"
+
+
+def label(value):
+    return str(value).replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ")
+
+
+lines = [
+    "# HELP oxidized_up oxidized-web answered on loopback.",
+    "# TYPE oxidized_up gauge",
+]
+devices = []
+try:
+    with urllib.request.urlopen(URL, timeout=20) as resp:
+        nodes = json.load(resp)
+    lines.append("oxidized_up 1")
+    for node in nodes:
+        status = str(node.get("status") or "never")
+        if status == "never":
+            continue
+        ok = 1 if status == "success" else 0
+        # No status label: a fail <-> no_connection flip would start a new
+        # series and reset the alert's `for`.
+        devices.append('oxidized_device_fetch_ok{device="%s"} %d'
+                       % (label(node.get("name")), ok))
+except Exception as exc:  # down, restarting, bad JSON — all mean "not up"
+    print("oxidized-status: %s: %s" % (URL, exc), file=sys.stderr)
+    lines.append("oxidized_up 0")
+
+if devices:
+    lines += [
+        "# HELP oxidized_device_fetch_ok Last config fetch of the device succeeded.",
+        "# TYPE oxidized_device_fetch_ok gauge",
+    ] + devices
+
+tmp = OUT + ".tmp"
+with open(tmp, "w") as f:
+    f.write("\n".join(lines) + "\n")
+os.chmod(tmp, 0o644)
+os.replace(tmp, OUT)

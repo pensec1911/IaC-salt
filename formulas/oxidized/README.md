@@ -4,11 +4,18 @@
 neither Tofu nor Salt manage, commits every change to a local git repo and pushes it to the
 private Forgejo repo `homelab/network-configs` — every config change becomes a diff. One Podman
 container (Quadlet unit via `formulas/podman`) on monitoring; oxidized-web, bundled in the image,
-serves the device list, versions and diffs on **:8888** (homepage → Infrastructure).
+serves the device list, versions and diffs on **127.0.0.1:8888 only**.
+
+**No homepage tile, no LAN port, on purpose**: oxidized-web has no authentication and shows the
+stored configs in full — OPNsense's config.xml carries password hashes, API keys, VPN and
+certificate private keys. Published on the LAN it would undo the private Forgejo repo. Reach it
+through SSH: `ssh -L 8888:127.0.0.1:8888 debian@192.168.178.25` (or `-i ~/.ssh/homelab`), then
+http://localhost:8888. The history itself is easier to read in Forgejo (`homelab/network-configs`).
+Override `host_ip` in pillar only together with an auth proxy in front.
 
 | Container | Image | Port |
 |---|---|---|
-| `oxidized` | [oxidized/oxidized](https://hub.docker.com/r/oxidized/oxidized) (official, Debian trixie + Ruby) | :8888 (oxidized-web) |
+| `oxidized` | [oxidized/oxidized](https://hub.docker.com/r/oxidized/oxidized) (official, Debian trixie + Ruby) | 127.0.0.1:8888 (oxidized-web) |
 
 Depends on the `podman` formula only.
 
@@ -26,6 +33,7 @@ Nothing at all until `oxidized:lookup:enabled` — see "Secret guard". Then:
     keys), 0444, each bound read-only into `/keys/` — the podman README pattern for secret files.
   - `data/` (`:U`, owned by the container's mapping): the local repo `network-configs.git` and
     crash files.
+- `oxidized.status` — the status timer, see "Monitoring".
 - `oxidized.container` — `oxidized` itself as the image's `oxidized` user (30000), not via the
   image's runit/gosu start (that needs root + SETUID/SETGID and a writable root fs). So: podman
   defaults — read-only root, no capabilities, own user namespace. `HOME` and `OXIDIZED_HOME` are
@@ -40,12 +48,12 @@ key. Unchanged configs make no commit. A fetch is a few `cat`s over one SSH sess
 sustained load, so no schedule outside 02:00–06:00 is needed.
 
 **Secret guard** (`pillar/oxidized.jinja`, imported by `pillar/oxidized.sls`,
-`pillar/homepage.sls`, `pillar/prometheus.sls`, `pillar/backup.sls`): a device counts only when
+`pillar/prometheus.sls`, `pillar/backup.sls`): a device counts only when
 its pillar data (host, host key) is complete **and** its key `homelab/oxidized/<name>` resolves;
 Oxidized runs only with ≥ 1 such device **and** the Forgejo key `homelab/oxidized/forgejo`.
 Oxidized refuses to start with zero devices (`source returns no usable nodes`), and without the
 push key the history would never leave monitoring — so until both exist, there is no container,
-no homepage tile, no Prometheus job, no backup path, and monitoring's hourly self-repair changes
+no status timer, no alerts, no backup path, and monitoring's hourly self-repair changes
 nothing. Removing a secret later does not remove an already deployed container (stop it and
 delete `/etc/containers/systemd/oxidized.*` by hand).
 
@@ -111,17 +119,23 @@ security-critical bootstrap — all by hand, once.
    (`ssh-keyscan -t ed25519 <ip>` → `{'enc': 'ssh-ed25519', 'key': 'AAAA…'}`), commit, push.
 
 The next hourly self-repair on monitoring (or `/deploy monitoring`) starts Oxidized; the first
-fetch happens right away. Check: Oxidized UI (homepage → Infrastructure) shows the device with
+fetch happens right away. Check: Oxidized UI (SSH tunnel, above) shows the device with
 status `success`, and `homelab/network-configs` has a commit.
 
 ## Monitoring
 
-- The homepage tile is HTTP-probed like every other (`ProbeFailed`).
-- Prometheus job `oxidized` (`pillar/prometheus.sls`): blackbox module `oxidized_nodes_ok`
-  (`pillar/oxidized.sls`) fetches oxidized-web's `/nodes.json` and fails while any device's
-  last status is `fail` or `no_connection` (`never` = not fetched yet, passes). Alert
-  **`OxidizedFetchFailed`** after 2 h (two hourly cycles, each with 3 retries). Which device: the
-  UI. Oxidized has no Prometheus endpoint of its own (0.37.0).
+- oxidized-web is loopback-only, so blackbox (in its own container) can't reach it. Instead
+  `oxidized.status`: a host timer `oxidized-status.timer` (every 5 min) runs
+  `/usr/local/bin/oxidized-status`, which reads `http://127.0.0.1:8888/nodes.json` and writes
+  node-exporter textfile metrics to `/var/lib/prometheus/node-exporter/oxidized.prom` (scraped as
+  `job="node"`, `instance="monitoring"`):
+  - `oxidized_up` — 1 while oxidized-web answers.
+  - `oxidized_device_fetch_ok{device}` — 1 = last fetch `success`, 0 = `fail` /
+    `no_connection`; no series before a device's first fetch.
+- Alerts (`pillar/prometheus.sls`, only while enabled): **`OxidizedFetchFailed`** per device after
+  2 h (two hourly cycles, each with 3 retries); **`OxidizedDown`** after 30 min when
+  `oxidized_up` is 0/absent or the metrics file is older than 30 min (timer stopped).
+  Oxidized has no Prometheus endpoint of its own (0.37.0).
 - A failed push isn't in that status — it's in the log: `journalctl -u oxidized | grep -i push`.
   The next config change retries the push (the hook fetches + merges first).
 
@@ -141,8 +155,8 @@ container stop.
   repo) — its export is encrypted with an export password, which would then need OpenBao too.
 - Push failures don't alert (see Monitoring). If that matters: a `exec` hook on `post_store`
   writing a timestamp a textfile collector reads.
-- No auth on oxidized-web (LAN only, read-only views, but it shows the configs — which contain
-  secrets once OPNsense is in). Restrict by firewall or a reverse proxy with auth when one exists.
+- A LAN-reachable UI would need an auth proxy in front (reverse proxy roadmap item); until then
+  loopback + SSH tunnel.
 
 ## Updating
 

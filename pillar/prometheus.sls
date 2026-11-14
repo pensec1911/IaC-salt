@@ -97,21 +97,6 @@ prometheus:
           labels:
             instance: fritzbox
 {%- endif %}
-{%- if oxidized.enabled %}
-    # Oxidized: oxidized-web's device list through blackbox — fails while
-    # any device's last fetch failed (module oxidized_nodes_ok,
-    # pillar/oxidized.sls). The UI itself is probed via its homepage item.
-    - job_name: oxidized
-      scrape_interval: 60s
-      probe:
-        module: oxidized_nodes_ok
-        exporter: {{ monitoring_ip }}:9115
-      static_configs:
-        - targets:
-            - {{ oxidized.url }}/nodes.json
-          labels:
-            instance: oxidized
-{%- endif %}
     # graphite_exporter, fed by TrueNAS' Reporting → Exporters push. The
     # mapping sets job="truenas" and instance=<TrueNAS hostname> per series
     # (honor_labels keeps them; hostname is set to "truenas" there).
@@ -432,14 +417,26 @@ prometheus:
             summary: {% raw %}"{{ $labels.friendly_name }}: line is up but the PPP session is not connected"{% endraw %}
 {%- endif %}
 {%- if oxidized.enabled %}
-        {#- Hourly fetch with 3 retries: 2h = two cycles in a row failed. #}
+        {#- oxidized_* are textfile metrics of the oxidized-status timer
+           (formulas/oxidized, every 5 min, job="node"). Hourly fetch with
+           3 retries: 2h = two cycles in a row failed. #}
         - alert: OxidizedFetchFailed
-          expr: probe_success{job="oxidized"} == 0
+          expr: oxidized_device_fetch_ok == 0
           for: 2h
           labels:
             severity: warning
           annotations:
-            summary: "Oxidized couldn't fetch a network device config — which one: Oxidized UI (homepage → Infrastructure), formulas/oxidized README"
+            summary: {% raw %}"Oxidized can't fetch the config of {{ $labels.device }} — journalctl -u oxidized on monitoring"{% endraw %}
+        - alert: OxidizedDown
+          {#- Stale file = the timer stopped writing it. #}
+          expr: >-
+            oxidized_up == 0 or absent(oxidized_up)
+            or time() - node_textfile_mtime_seconds{file=~".*oxidized\\.prom"} > 1800
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Oxidized (or its oxidized-status timer) on monitoring isn't answering — systemctl status oxidized oxidized-status.timer"
 {%- endif %}
         {#- zfs_pool / disk_temperature: Netdata charts via TrueNAS' Graphite
            push and the Supporterino mapping (formulas/infra-exporters).

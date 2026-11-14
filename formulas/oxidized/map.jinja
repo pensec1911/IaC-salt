@@ -1,7 +1,9 @@
 {#- Oxidized: pulls network device configs over SSH, commits every change
    to a local git repo and pushes it to a remote (githubrepo hook).
    oxidized-web (bundled in the image) serves the device list, versions and
-   diffs on host_port.
+   diffs — unauthenticated, configs included (OPNsense config.xml: hashes,
+   private keys), so it's published on host_ip 127.0.0.1 only. Reach it
+   with `ssh -L 8888:127.0.0.1:8888 monitoring`. No homepage tile.
 
    The image normally starts runit as root, which chowns the config dir and
    drops to its `oxidized` user (30000) via gosu. Here the container runs
@@ -27,6 +29,11 @@
      verify them.
    devices: name -> {model, host, port, username, host_key: {enc, key},
      ssh_key}. Key auth only (auth_methods) — no device passwords.
+   status: a host timer (status.sls) reads oxidized-web's /nodes.json on
+     loopback every `interval` and writes node-exporter textfile metrics
+     (oxidized_up, oxidized_device_fetch_ok{device}) — blackbox can't reach a
+     loopback-only port from its own container. textfile_dir: Debian's
+     prometheus-node-exporter default (formulas/salt-minion map.jinja).
    podman: container spec overrides (keys: formulas/podman README). #}
 {%- set defaults = {
     'enabled': False,
@@ -35,6 +42,7 @@
     'container_name': 'oxidized',
     'uid': 30000,
     'gid': 30000,
+    'host_ip': '127.0.0.1',
     'host_port': 8888,
     'container_port': 8888,
     'base_dir': '/opt/oxidized',
@@ -58,6 +66,15 @@
     'forgejo_key_pub': '',
     'known_hosts': [],
     'devices': {},
+    'status': {
+        'unit': 'oxidized-status',
+        'script': '/usr/local/bin/oxidized-status',
+        'python': '/usr/bin/python3',
+        'interval': '5min',
+        'on_boot': '2min',
+        'textfile_dir': '/var/lib/prometheus/node-exporter',
+        'metrics_file': 'oxidized.prom',
+    },
     'podman': {},
 } %}
 {%- set oxidized = salt['pillar.get']('oxidized:lookup', default=defaults, merge=True) %}

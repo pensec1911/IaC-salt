@@ -35,7 +35,7 @@ include:
     'image': oxidized.image,
     'tag': oxidized.tag,
     'user': oxidized.uid ~ ':' ~ oxidized.gid,
-    'ports': [oxidized.host_port ~ ':' ~ oxidized.container_port],
+    'ports': [oxidized.host_ip ~ ':' ~ oxidized.host_port ~ ':' ~ oxidized.container_port],
     'volumes': volumes,
     'env': {
         'HOME': oxidized.container_home,

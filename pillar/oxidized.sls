@@ -8,7 +8,10 @@
 oxidized:
   lookup:
     enabled: True
-    host_port: {{ oxidized.host_port }}
+    # oxidized-web unauthenticated, shows the configs: loopback only.
+    # ssh -L 8888:127.0.0.1:8888 monitoring
+    host_ip: 127.0.0.1
+    host_port: 8888
     remote_repo: ssh://git@192.168.178.29:2222/homelab/network-configs.git
     # Deploy key with write access on homelab/network-configs (README
     # "Forgejo repo"). Legacy PEM RSA — Rugged/libssh2 needs that format.
@@ -35,19 +38,4 @@ oxidized:
         ssh_key: {{ d.ssh_key | yaml_encode }}
 {%- endfor %}
 
-{#- Fetch check for pillar/prometheus.sls' `oxidized` job: oxidized-web's
-   /nodes.json carries each device's last status; the probe fails while any
-   device's last fetch failed (no_connection / fail). "never" (not yet
-   fetched) passes. #}
-blackbox-exporter:
-  lookup:
-    modules:
-      oxidized_nodes_ok:
-        prober: http
-        timeout: 10s
-        http:
-          preferred_ip_protocol: ip4
-          valid_status_codes: [200]
-          fail_if_body_matches_regexp:
-            - '"status": ?"(fail|no_connection)"'
 {%- endif %}
