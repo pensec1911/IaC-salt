@@ -19,7 +19,8 @@ A change may add a service only if **all** of these still hold afterwards:
 2. **VM disk**: root fs keeps ≥ **5 GB** free after images + data (pulled images count; check
    the image size, don't guess).
 3. **Node RAM**: allocated `memory_mb` per node ≤ **14 GB** (≈ 2 GB stays for the PVE host).
-   **8 GB on pve01 stay reserved for wazuh**, which is off for now and comes back.
+   Nothing is reserved for wazuh — it may come back some day, but then it gets its own
+   capacity decision; until then its RAM counts as free.
 4. **CPU**: no service with sustained load (scanners, indexers, transcoders) on a 1–2 core VM
    without a schedule outside 02:00–06:00 Berlin (backups, restore test, reboots, enforce window).
 5. **Placement**: not on `homepage` (1 GB, full); `forgejo` only for things that belong to Git/CI

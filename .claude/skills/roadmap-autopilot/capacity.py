@@ -19,7 +19,7 @@ TOFU = pathlib.Path(__file__).resolve().parents[3].parent / "IaC-opentofu"
 RAM_CEILING = 0.80          # peak used + new services <= 80 % of the VM's RAM
 DISK_FLOOR_GB = 5.0         # root fs keeps >= 5 GB free after the change
 NODE_CEILING_MB = 14336     # 16 GB node minus ~2 GB for the PVE host itself
-RESERVED_MB = {"pve01": 8192}   # wazuh comes back (vms.tf comment, memory: project-wazuh-removed)
+RESERVED_MB = {}   # node -> MB held back for planned VMs; none at the moment
 
 
 def q(expr):

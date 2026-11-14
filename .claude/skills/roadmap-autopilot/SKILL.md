@@ -42,7 +42,8 @@ branch pushes don't deploy (`orch.push` and the pre-push render hook only act on
    the last good branch.
 5. Stop after the batch, on two blocked items in a row, or if a capacity check fails.
 6. Final report to the user (German, short): PRs in merge order with links, the **secrets
-   checklist** (OpenBao path + key + how to create the value, per PR), manual steps, capacity
+   checklist** (per PR: OpenBao path + key + the ready-to-paste `bao kv put/patch` command,
+   see Worker rule 3), manual steps, capacity
    before/after, skipped items and why. Merge order matters: merge with a merge commit,
    oldest first; secrets of a PR into OpenBao **before** merging it (a merge deploys within a
    minute via `orch.push`).
@@ -66,7 +67,17 @@ branch pushes don't deploy (`orch.push` and the pre-push render hook only act on
    Check the image size against the disk budget.
 3. **Secrets**: only `sdb.get` references, path proposed under `homelab/<service>/…`. A missing
    secret must fail the state loudly, never start a service with an empty credential — guard
-   like `formulas/netbox/config.sls` (`test.fail_without_changes`). List each secret in the PR.
+   like `formulas/netbox/config.sls` (`test.fail_without_changes`). List each secret in the PR
+   **with the ready-to-paste command** for the OpenBao host (the user runs `bao` there):
+   - generated value: `bao kv put -mount=homelab <path> <key>="$(openssl rand -base64 32)"`
+     (or `-hex 32` / the format the service needs)
+   - value that comes from elsewhere (API token from a UI): `bao kv put -mount=homelab <path> <key>=-`
+     then paste + Ctrl-D (stdin, so it stays out of shell history)
+   - path already exists (other keys under it): `bao kv patch` instead of `put` — `put`
+     replaces every key at the path. Check the KV layout in `.claude/docs/secrets.md`.
+   - several keys at one path: one command with all of them.
+   - check: `bao kv get -mount=homelab <path>`.
+   Also add new paths to the KV layout table in `.claude/docs/secrets.md`.
 4. Resolve the roadmap entry's open points with the simplest safe default; write each choice in
    the PR description under "Decisions" so the user can veto it.
 5. Append your row to "Planned additions" in `.claude/docs/capacity.md`; delete the item's
