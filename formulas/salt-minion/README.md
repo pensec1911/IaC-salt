@@ -26,6 +26,11 @@ Alerts on these live in `pillar/prometheus.sls` (`SaltDrift`, `SaltDriftCheckFai
 check **only reports**. To see *what* drifted: `salt '<minion>' state.apply test=True` on the
 master.
 
+With a Healthchecks ping key in pillar (`formulas/healthchecks-ping`), each run also pings check
+`drift-check-<minion>` — `0` if the dry run completed, `fail` if not — so a minion whose schedule
+or process silently stopped shows up in Healthchecks (period 1 h, grace 30 min) even when
+`SaltDriftCheckStale` can't fire because monitoring is down too. Detached, never fails the run.
+
 ## Self-repair (enforce)
 
 With `drift_check.enforce: True` a dry run that shows drift — and no failing states — is

@@ -48,6 +48,12 @@ On monitoring the hourly enforce run can, in rare cases, start grafana again dur
 
 What each minion backs up: the map in `pillar/backup.sls`. Schema: `pillar.example.sls`.
 
+Healthchecks: with a ping key in pillar (`formulas/healthchecks-ping`) both units get an
+`ExecStopPost=-/usr/local/sbin/hc-ping <slug>-<minion> systemd` — success or fail from the unit
+result, checks `backup-<minion>` / `restore-test-<minion>` (`formulas/healthchecks`). A run that
+never starts (share missing) sends nothing; the missing ping is the alert. Without a key the
+units have no ping line.
+
 ## Metrics and alerts
 
 `/var/lib/prometheus/node-exporter/backup.prom`:

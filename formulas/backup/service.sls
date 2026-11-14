@@ -1,4 +1,5 @@
 {% from "backup/map.jinja" import backup with context %}
+{% from "healthchecks-ping/map.jinja" import hc_ping with context %}
 
 backup-unit:
   file.managed:
@@ -10,6 +11,9 @@ backup-unit:
       - file: backup-env-file
       - file: backup-password-file
       - mount: nfs-mount-{{ backup.mount_name }}
+{%- if hc_ping.enabled %}
+      - sls: healthchecks-ping
+{%- endif %}
 
 backup-timer:
   file.managed:
@@ -31,6 +35,9 @@ backup-restore-test-unit:
       - file: backup-env-file
       - file: backup-password-file
       - mount: nfs-mount-{{ backup.mount_name }}
+{%- if hc_ping.enabled %}
+      - sls: healthchecks-ping
+{%- endif %}
 
 backup-restore-test-timer:
   file.managed:

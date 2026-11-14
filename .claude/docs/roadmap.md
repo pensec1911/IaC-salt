@@ -190,19 +190,6 @@ No order agreed; pick as needed.
   includes secrets → the repo must stay private and tightly scoped; whether OPNsense's own
   git-backup plugin is the simpler path for that device.
 
-### Healthchecks (dead-man's switch for jobs)
-
-- **Why**: Prometheus only alerts on what it can scrape; if monitoring itself, Alertmanager or a
-  timer silently stops, nothing fires. Healthchecks inverts it: every job pings after each run,
-  a missing ping is the alert. Also the dead-man's switch for Alertmanager → ntfy (both on pve02).
-- **Sketch**: `formulas/healthchecks` (container, SQLite → backup + `stop_containers`) on a host
-  other than monitoring; checks per job from pillar (backup, restore test, salt-minion enforce,
-  Renovate, Trivy, Tofu drift); job units get an `ExecStartPost`/`OnFailure` curl to the ping URL
-  (URLs via `sdb.get`). Alertmanager's `Watchdog` alert pings a check too. Notifications to ntfy.
-  Homepage tile.
-- **Open**: provisioning checks as code (API or `manage.py` vs. clicking); if the healthchecks
-  host dies, its own silence needs a second watcher (healthchecks.io free tier as last resort?).
-
 ### OpenBao PKI secrets engine (internal CA with short-lived certs)
 
 - **Why**: OpenBao already runs and every secret goes through it — a PKI mount turns it into

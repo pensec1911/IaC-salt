@@ -1,4 +1,5 @@
 {%- from "backup/map.jinja" import backup with context -%}
+{%- from "healthchecks-ping/map.jinja" import hc_ping with context -%}
 # Managed by Salt (formulas/backup) — do not edit.
 [Unit]
 Description=restic backup to the NAS
@@ -29,3 +30,8 @@ ExecStopPost=-{{ backup.systemctl_bin }} start --no-block {{ backup.stop_contain
 TimeoutStartSec={{ backup.timeout }}
 Nice=10
 IOSchedulingClass=idle
+{%- if hc_ping.enabled %}
+# Dead-man's switch (formulas/healthchecks-ping): success or fail from this
+# run's result. Returns at once; "-": a ping never fails the unit.
+ExecStopPost=-{{ hc_ping.script }} {{ backup.ping_slug }}-{{ grains['id'] }} systemd
+{%- endif %}

@@ -12,6 +12,10 @@
        cost >= 10), not the password itself.
      publisher_token is tk_ + 29 chars of [-_A-Za-z0-9].
    publisher_topics: topic patterns (`*` wildcard) the publisher may write.
+   extra_publishers: further write-only users, one per sending service
+   (never share the Alertmanager token): list of {user, password_hash,
+   token, topics}, same formats as above. Each listed entry is validated
+   like the three secrets — pillar only lists one once its secrets exist.
    default_access: what everyone else (anonymous) gets — deny-all.
    http_port: host port; ntfy listens on 8080 inside (non-root, no
    CAP_NET_BIND_SERVICE for :80).
@@ -35,6 +39,7 @@
     'publisher_password_hash': '',
     'publisher_token': '',
     'publisher_topics': ['alerts-*'],
+    'extra_publishers': [],
     'podman': {},
 } %}
 {%- set ntfy = salt['pillar.get']('ntfy:lookup', default=defaults, merge=True) %}

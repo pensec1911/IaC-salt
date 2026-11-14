@@ -17,9 +17,20 @@ require-login: true
 auth-users:
   - {{ (ntfy.admin_user ~ ':' ~ ntfy.admin_password_hash ~ ':admin') | yaml_encode }}
   - {{ (ntfy.publisher_user ~ ':' ~ ntfy.publisher_password_hash ~ ':user') | yaml_encode }}
+{%- for p in ntfy.extra_publishers %}
+  - {{ (p.user ~ ':' ~ p.password_hash ~ ':user') | yaml_encode }}
+{%- endfor %}
 auth-access:
 {%- for topic in ntfy.publisher_topics %}
   - {{ (ntfy.publisher_user ~ ':' ~ topic ~ ':write-only') | yaml_encode }}
 {%- endfor %}
+{%- for p in ntfy.extra_publishers %}
+{%-   for topic in p.topics %}
+  - {{ (p.user ~ ':' ~ topic ~ ':write-only') | yaml_encode }}
+{%-   endfor %}
+{%- endfor %}
 auth-tokens:
   - {{ (ntfy.publisher_user ~ ':' ~ ntfy.publisher_token ~ ':salt-managed') | yaml_encode }}
+{%- for p in ntfy.extra_publishers %}
+  - {{ (p.user ~ ':' ~ p.token ~ ':salt-managed') | yaml_encode }}
+{%- endfor %}

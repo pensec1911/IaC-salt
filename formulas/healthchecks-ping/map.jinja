@@ -1,0 +1,34 @@
+{#- Client side of formulas/healthchecks: a tiny helper other formulas' jobs
+   call to ping a check by slug (auto-created on first ping, ?create=1).
+
+   base_url: the Healthchecks instance (its site_root).
+   ping_key: the project's ping key (Project Settings -> Ping key), from
+   OpenBao. Optional: empty or unresolved = `enabled` False — the helper
+   and its key file are removed, and consumers (formulas/backup,
+   formulas/salt-minion) render no ping at all. Pings are a convenience
+   signal, never a reason for a job or a state run to fail.
+
+   script: `hc-ping <slug> <status>` — status 0 (success), fail, an exit
+   code, or `systemd` (from $SERVICE_RESULT in an ExecStopPost). It returns
+   at once: the curl runs in a transient systemd unit (systemd-run), so a
+   slow or down Healthchecks never delays or fails the job. curl retries
+   every retry_delay seconds for up to retry_max_time — long enough to ride
+   out Healthchecks' own nightly backup stop on jellyfin.
+   env_file: root-only, holds the ping URL (base_url/ping/<key>). #}
+{%- set defaults = {
+    'base_url': '',
+    'ping_key': '',
+    'pkg': 'curl',
+    'curl_bin': '/usr/bin/curl',
+    'systemd_run_bin': '/usr/bin/systemd-run',
+    'script': '/usr/local/sbin/hc-ping',
+    'config_dir': '/etc/healthchecks-ping',
+    'env_file': '/etc/healthchecks-ping/env',
+    'max_time': 10,
+    'retry_delay': 15,
+    'retry_max_time': 300,
+} %}
+{%- set hc_ping = salt['pillar.get']('healthchecks_ping:lookup', default=defaults, merge=True) %}
+{%- set _key = hc_ping.ping_key %}
+{%- do hc_ping.update({'enabled': (hc_ping.base_url | length > 0 and _key is string
+                                   and _key | length > 0 and not _key.startswith('sdb://'))}) %}

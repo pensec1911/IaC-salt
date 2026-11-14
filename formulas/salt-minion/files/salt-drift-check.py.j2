@@ -15,6 +15,10 @@
 # An enforce window (start/end) limits the repair to that time of day;
 # outside it the run only reports, like enforce off.
 #
+# PING (formulas/healthchecks-ping, empty = off): after the metrics are
+# written, `hc-ping <slug> 0|fail` — 0 when the dry run completed. It returns
+# at once (detached) and its errors are ignored.
+#
 # --enforce-allowed: only prints "yes" if a repair may run here right now
 # (enforce on, window open), else "no", and checks nothing. Asked by
 # orch.push (formulas/orch) before it deploys a push to this minion.
@@ -34,6 +38,7 @@ ENFORCE = {{ dc.enforce | string }}
 WINDOW_START = "{{ dc.enforce_window.start }}"
 WINDOW_END = "{{ dc.enforce_window.end }}"
 WINDOW_TZ = "{{ dc.enforce_window.timezone }}"
+PING = {{ ping | default([]) | json }}
 
 
 RETRY_SECONDS = 30
@@ -154,6 +159,14 @@ def main():
         f.write("\n".join(lines) + "\n")
     os.chmod(tmp, 0o644)
     os.replace(tmp, OUT)
+
+    if PING:
+        try:
+            subprocess.run(PING + ["0" if states is not None else "fail"],
+                           timeout=30, check=False,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except (subprocess.TimeoutExpired, OSError):
+            pass
 
 
 if __name__ == "__main__":

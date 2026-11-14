@@ -22,6 +22,12 @@ and `alerts-warning` (everything else), grouped by `alertname`, rendered by ntfy
 `?template=alertmanager`. Those receivers exist only while the token `ntfy/alertmanager` resolves
 from OpenBao; without it the config falls back to `null` instead of failing.
 
+Dead-man's switch: an always-firing `Watchdog` alert (`pillar/prometheus.sls`, `vector(1)`,
+`severity: none`) is routed first and only to a webhook that pings Healthchecks on jellyfin
+(`formulas/healthchecks`, check `alertmanager-watchdog`) every ~2 min; if the pings stop,
+Healthchecks alerts via ntfy. Rule, route and receiver exist only while the Healthchecks ping key
+(`healthchecks/project`) resolves. `/homelab-status` hides it from its firing list.
+
 ## Usage
 
 ```yaml

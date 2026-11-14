@@ -47,7 +47,14 @@
    SQLite file in it. It only reads the repo, so containers keep running and
    the Sunday-morning slot may overlap the enforce window. min_free_bytes:
    headroom left in tmp_dir after the restore, else the test fails instead
-   of filling the disk. #}
+   of filling the disk.
+
+   ping_slug / restore_test.ping_slug: Healthchecks check (formulas/healthchecks)
+   pinged after each run, as <slug>-<minion id> — success or /fail from the
+   unit's result (ExecStopPost, so also after a timeout; a run that never
+   starts, e.g. share missing, sends nothing — the missing ping alerts).
+   Only rendered while formulas/healthchecks-ping has a ping key; without it
+   the units carry no ping line at all. #}
 {%- set defaults = {
     'pkg': 'restic',
     'restic_bin': '/usr/bin/restic',
@@ -72,6 +79,7 @@
     'script': '/usr/local/sbin/restic-backup',
     'textfile_dir': '/var/lib/prometheus/node-exporter',
     'metrics_file': 'backup.prom',
+    'ping_slug': 'backup',
     'restore_test': {
         'unit': 'restic-restore-test',
         'script': '/usr/local/sbin/restic-restore-test',
@@ -82,6 +90,7 @@
         'tmp_dir': '/var/tmp',
         'min_free_bytes': 2147483648,
         'metrics_file': 'restore-test.prom',
+        'ping_slug': 'restore-test',
     },
 } %}
 {%- set backup = salt['pillar.get']('backup:lookup', default=defaults, merge=True) %}

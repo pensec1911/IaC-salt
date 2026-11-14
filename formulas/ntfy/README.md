@@ -29,10 +29,11 @@ syncs them into `auth.db` on every start and deletes provisioned entries no long
 |---|---|---|---|
 | `admin` | admin | everything | phone app / web app login |
 | `alertmanager` | user | write-only on `alerts-*` | Alertmanager, via its token (`Authorization: Bearer`) |
+| `healthchecks` | user | write-only on `alerts-critical` | Healthchecks' ntfy integration (`formulas/healthchecks`), via its token; only declared once `ntfy/healthchecks` resolves (`extra_publishers`) |
 
 Topics: `alerts-critical`, `alerts-warning` (Alertmanager routes by `severity`, see
-`pillar/alertmanager.sls`). New publishers: another user/token pair — extend the formula
-(`publisher_*` is a single user today) rather than sharing the Alertmanager token.
+`pillar/alertmanager.sls`). New publishers: another `extra_publishers` entry (user, bcrypt hash,
+token, topics) in `pillar/ntfy.sls` — never share the Alertmanager token.
 
 ## OpenBao
 
