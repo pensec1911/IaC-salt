@@ -55,3 +55,4 @@ Delete a row once the service is merged and its real usage shows in the 7-day pe
 |---|---|---|---|---|
 | 01 ntfy (Alertmanager push) | jellyfin | 50 MB | ~0.1 GB (image 37 MB compressed, data < 50 MB) | #23 |
 | 02 Healthchecks (job dead-man's switch) | jellyfin | 200 MB (2 gunicorn workers + sendalerts/sendreports) | ~0.4 GB (image 107 MB compressed, ~300 MB unpacked; SQLite < 50 MB) | #24 |
+| 03 CyberChef + IT-Tools (browser toolboxes) | monitoring | 40 MB (two static nginx, 2 workers each) | ~0.5 GB (images 121 MB + 23 MB compressed; no data) | #25 |

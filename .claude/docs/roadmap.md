@@ -112,15 +112,6 @@ No order agreed; pick as needed.
 - **Open**: runner must reach the LAN (it does, it runs on forgejo); template pinning so
   results are reproducible; excluding intrusive templates (`-etags dos,fuzz`).
 
-### CyberChef + IT-Tools (browser toolboxes)
-
-- **Why**: decode/encode, hashes, JWT/cert inspection, regex, cron, subnet calc — locally
-  instead of pasting secrets into random websites.
-- **Sketch**: one `formulas/toolbox` with both static containers (stateless → no backup) on
-  homepage or another light container host; two homepage tiles in a "Tools" group; behind SSO
-  once that exists.
-- **Open**: none worth noting — pick host and ports.
-
 ### Metrics for the non-minion infrastructure
 
 - **Why**: Proxmox nodes, TrueNAS and the FRITZ!Box are only TLS/HTTP-probed

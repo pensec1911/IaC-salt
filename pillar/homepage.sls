@@ -90,6 +90,18 @@ homepage:
           description: SIEM / XDR
 {%- endif %}
 
+    # Browser toolboxes (formulas/toolbox on monitoring) — client-side only.
+    - name: Tools
+      items:
+        - name: CyberChef
+          href: http://192.168.178.25:8081
+          icon: sh-cyberchef.png
+          description: Encode, decode, crypto, data analysis
+        - name: IT-Tools
+          href: http://192.168.178.25:8082
+          icon: it-tools.png
+          description: JWT, certs, hashes, regex, cron, subnets
+
     # Proxmox cluster nodes (managed by IaC-opentofu, not Salt).
     - name: Proxmox
       items:
