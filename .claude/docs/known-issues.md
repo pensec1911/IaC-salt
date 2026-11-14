@@ -59,6 +59,14 @@ Remove an entry once fixed (the fix lives in git history).
   uptime check in an orchestrate step), or it runs the drift check instead of a highstate on
   minions that already have one.
 
+- **A fresh VM from Tofu installs the newest 3008.\*, not the pinned Salt version.** The
+  bootstrap pin (`IaC-opentofu` `modules/vm-instance`, `salt-pin-1001` = `3008.*`) only fixes
+  the line. If the repo has a newer patch than `pillar/salt-minion-version.sls`, the new minion
+  is newer than the master. `salt-minion.version` then fails (`…-newer-salt-common`, so
+  `SaltDrift`) until it's downgraded by hand or the target is raised (master first,
+  `orch.salt-upgrade`). Fix in the Tofu repo: set the module's pin variable to the exact
+  target, or bump with Renovate in both repos.
+
 - **apt-daily rarely refreshes the package lists** (seen 2026-10-26): `update-stamp` / lists on
   salt-master and homepage from 2026-10-18, wazuh and monitoring 2026-10-20; the journal shows
   `apt-daily.service` only right after boots, not the twice-daily runs (`OnCalendar=6,18:00`,

@@ -7,6 +7,8 @@ Two runs:
 - `orch.rollout`: an ordered highstate across minions, started by hand. It does a dry run on all of them first.
 - `orch.push`: `orch.rollout` limited to the minions that may self-repair right now, started
   by the master's reactor when a push arrives (`formulas/salt-master` "deploy on push").
+- `orch.salt-upgrade`: Salt package upgrade to the pinned version, by hand. Master first, then
+  the minions one at a time.
 
 ## What it manages
 
@@ -94,6 +96,34 @@ The next push or the hourly drift check catches up.
 
 The drift check on those minions would apply the push within the hour anyway. This only makes
 it immediate and ordered.
+
+## orch.salt-upgrade
+
+Upgrades Salt to `salt-minion:lookup:version:target` (`pillar/salt-minion-version.sls`). Pin
+and the upgrade mechanics: `formulas/salt-minion` README, "Salt version". Not
+`orch.rollout`: that applies the master last, and the master's restart would cut the
+run short. Here the master goes first and alone.
+
+```sh
+salt-run state.orchestrate orch.salt-upgrade test=True   # who is behind, what would happen
+salt-run state.orchestrate orch.salt-upgrade             # run 1: salt-master only, run ends
+# wait until salt-master is back (salt-run manage.status), then
+salt-run state.orchestrate orch.salt-upgrade             # run 2: the minions
+```
+
+1. Asks every minion in `tgt` for its installed `salt-common`. Minions that don't answer are
+   left out.
+2. If `master_id` is behind, only it gets `salt-minion.upgrade`, and the run ends. The upgrade
+   runs in the background (`journalctl -u salt-upgrade` there) and restarts salt-master, salt-api
+   and salt-minion. A master restart starts a highstate on every minion through the start
+   reactor (known-issues.md). That's harmless here, because the highstate only pins.
+3. Otherwise, per minion that is behind, one at a time (`order` first, the rest alphabetically):
+   `salt-minion.upgrade` → wait up to `restart_timeout` for `salt/minion/<id>/start` → check that
+   `salt-common` is the target → a queued highstate. The first failure stops the chain. The
+   remaining minions stay on the old version, which still works with the newer master.
+
+arrstack/jellyfin are included. A Salt upgrade only restarts salt-minion and no containers, so
+it's fine by day. Keep a minion out with `tgt`/`tgt_type` as in orch.rollout.
 
 ## Pillar id
 

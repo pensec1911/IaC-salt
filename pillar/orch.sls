@@ -24,3 +24,15 @@ orch:
         - arrstack
         - jellyfin
       master_id: salt-master
+    salt_upgrade:
+      # Master alone in the first run; then monitoring first (watches the
+      # rest come back), the media hosts last. master_id must match
+      # salt-minion:lookup:version:master_id (pillar/salt-minion-version.sls).
+      order:
+        - monitoring
+        - homepage
+        - forgejo
+        - wazuh
+        - arrstack
+        - jellyfin
+      master_id: salt-master

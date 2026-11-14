@@ -7,6 +7,7 @@ base:
 {%- endif %}
     - ntp
     - patchmon-agent
+    - salt-minion-version
 
   'homepage,monitoring,salt-master,forgejo':
     - match: list

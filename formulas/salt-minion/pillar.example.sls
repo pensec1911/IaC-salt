@@ -33,3 +33,26 @@ salt-minion:
         # Down this long before the event fires. Must exceed the unit's
         # StartLimitIntervalSec (docker: 60 s) — see map.jinja.
         delay_seconds: 90
+    version:
+      # Exact Salt version for every host; empty = unmanaged (Tofu's
+      # "3008.*" pin stays). Upgrade: orch.salt-upgrade (formulas/orch).
+      target: "3008.3"
+      # The salt-master's host: exempt from the cap below.
+      master_id: salt-master
+      # Cap for every other host. Set it in pillar from salt['test.version']()
+      # — pillar renders in the master, so that is the master's own version
+      # (pillar/salt-minion-version.sls).
+      master_running: ""
+      packages: [salt-common, salt-minion, salt-master, salt-api, salt-syndic, salt-ssh, salt-cloud]
+      pin_file: /etc/apt/preferences.d/salt-pin-1001
+      pin_package: "salt-*"            # apt preference Package: line
+      pin_priority: 1001
+      upgrade:
+        unit: salt-upgrade             # transient systemd unit running apt
+        script: /usr/local/sbin/salt-upgrade
+        delay_seconds: 15              # after the state returns
+        idle_seconds: 900              # wait for running jobs, then give up
+        proc_dir: /var/cache/salt/minion/proc
+        onedir_dir: /opt/saltstack/salt
+        apt_get: /usr/bin/apt-get
+        lock_timeout: 300              # s, dpkg lock (unattended-upgrades)

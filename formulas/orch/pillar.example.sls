@@ -45,3 +45,20 @@ orch:
     push:
       # Overrides on top of rollout for orch.push (deploy on push).
       enforce_check: /usr/local/sbin/salt-drift-check --enforce-allowed
+    salt_upgrade:
+      # Salt package upgrade (orch.salt-upgrade), by hand. Target version:
+      # salt-minion:lookup:version:target (formulas/salt-minion).
+      tgt: "*"
+      tgt_type: glob
+      # Upgraded first, in this order; the rest alphabetically.
+      order:
+        - monitoring
+      # Upgraded first and alone; the run ends there (run it again).
+      master_id: salt-master
+      target_key: salt-minion:lookup:version:target
+      package: salt-common     # whose installed version counts
+      sls: salt-minion.upgrade
+      query_timeout: 30        # s, version query; silent minions are skipped
+      apply_timeout: 300       # s, the upgrade state (only schedules apt)
+      restart_timeout: 1200    # s, until salt/minion/<id>/start (idle wait + apt)
+      converge_timeout: 900    # s, queued highstate after the restart

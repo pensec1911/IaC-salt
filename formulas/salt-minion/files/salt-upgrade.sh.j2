@@ -1,0 +1,54 @@
+#!/bin/bash
+# Managed by Salt (formulas/salt-minion upgrade.sls) — do not edit here.
+#
+# salt-upgrade <version> <package>...
+# Started as a transient systemd unit by upgrade.sls (orch.salt-upgrade),
+# outside salt-minion's cgroup: the packages' postinst restarts salt-minion
+# (and salt-master/salt-api where installed), which must not kill this run.
+# Log: journalctl -u {{ u.unit }}
+set -euo pipefail
+
+version=$1
+shift
+onedir={{ u.onedir_dir }}
+
+# Wait until no Salt job runs here (the job that scheduled us included), so
+# the restart doesn't cut a highstate or a drift-check repair in half.
+deadline=$((SECONDS + {{ u.idle_seconds }}))
+while [ -n "$(ls -A {{ u.proc_dir }} 2>/dev/null)" ]; do
+    if [ "$SECONDS" -ge "$deadline" ]; then
+        echo "minion still busy after {{ u.idle_seconds }} s — not upgrading" >&2
+        exit 1
+    fi
+    sleep 5
+done
+
+pyver() { "$onedir/bin/python3" -c 'import sys; print("%d.%d" % sys.version_info[:2])'; }
+
+# salt-pip extras (pygit2, saltext.vault, ...) live per Python minor version.
+old_extras="$onedir/extras-$(pyver)"
+extras=()
+for d in "$old_extras"/*.dist-info; do
+    [ -e "$d" ] || continue
+    n=$(basename "$d" .dist-info)
+    extras+=("${n%-*}")
+done
+
+pkgs=()
+for p in "$@"; do pkgs+=("$p=$version"); done
+
+echo "upgrading ${pkgs[*]}"
+export DEBIAN_FRONTEND=noninteractive
+{{ u.apt_get }} -o DPkg::Lock::Timeout={{ u.lock_timeout }} update
+{{ u.apt_get }} -y -o DPkg::Lock::Timeout={{ u.lock_timeout }} \
+    -o Dpkg::Options::=--force-confold install "${pkgs[@]}"
+
+new_extras="$onedir/extras-$(pyver)"
+if [ "$new_extras" != "$old_extras" ] && [ -n "${extras[*]:-}" ]; then
+    echo "bundled Python changed ($old_extras -> $new_extras): reinstalling ${extras[*]}"
+    "$onedir/salt-pip" install "${extras[@]}"
+    for s in salt-master salt-api salt-minion; do
+        if systemctl is-active --quiet "$s"; then systemctl restart "$s"; fi
+    done
+fi
+echo "done: $(dpkg-query -W -f='${Version}' salt-common)"

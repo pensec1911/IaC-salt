@@ -1,7 +1,7 @@
 # salt-minion formula
 
-Minion-side Salt features: **drift detection** and **beacons** (self-healing of stopped
-services).
+Minion-side Salt features: **drift detection**, **beacons** (self-healing of stopped
+services) and the **Salt version** (exact apt pin, upgrade via `orch.salt-upgrade`).
 
 ## Drift check
 
@@ -97,6 +97,32 @@ must stay above the unit's start-limit interval, so systemd's own restart goes f
 
 Check what's configured: `salt '<minion>' beacons.list`. Restarts it triggered:
 `salt-run jobs.list_jobs search_function=service.start` on the master.
+
+## Salt version
+
+Salt comes from Broadcom's repo, which unattended-upgrades leaves alone. Tofu's cloud-init
+pins it only to the line (`/etc/apt/preferences.d/salt-pin-1001`, `3008.*`). With
+`version.target` set (`pillar/salt-minion-version.sls`, all hosts):
+
+- `version.sls` (highstate): takes over that pin file and pins `salt-*` to **exactly** the
+  effective version, so `apt upgrade` can't move Salt. An installed package **newer** than the
+  pin fails the state, which shows up as drift. It upgrades nothing.
+- **Master first, built in:** every host except `master_id` is capped at `master_running`,
+  which is the version of the salt-master rendering the pillar (`test.version` runs in the
+  master). Until the master runs the target, the minions' pin stays at the master's version,
+  whatever order a push, drift check or start reactor applies things in.
+- `upgrade.sls` (not in `init.sls`): only `orch.salt-upgrade` (`formulas/orch`) applies it. It
+  installs `salt-*=<effective>` for every Salt package installed on the host, via
+  `/usr/local/sbin/salt-upgrade` in a transient unit `salt-upgrade`, 15 s later. It has to run
+  outside the minion: the package's postinst restarts salt-minion, and `KillMode=mixed` would kill
+  an apt started from within the minion halfway through dpkg configure. The script first waits until
+  no Salt job runs on the minion (`/var/cache/salt/minion/proc` empty, max 15 min, then it
+  gives up). If the upgrade changes the bundled Python, it reinstalls the salt-pip extras
+  (`extras-<py>`: pygit2, saltext.vault — without pygit2 the master has no gitfs) and restarts
+  the active salt services. Log: `journalctl -u salt-upgrade`.
+
+Bump: Renovate proposes it (`renovate.json`, deb datasource, 3008 line only). Then merge and
+push, and run `orch.salt-upgrade` on the master twice (README of `formulas/orch`).
 
 ## Usage
 

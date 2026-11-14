@@ -42,6 +42,19 @@
    (no enforce) always. The path is salt-minion's drift_check:script; if
    that moves, this must follow, or push selects no minion at all.
 
+   salt_upgrade: Salt package upgrade to the pillar's target_key
+   (formulas/salt-minion "version"), by hand, master first. Asks every
+   minion in tgt for its installed `package` version. If master_id is
+   behind, only master_id is upgraded and the run ends — the master's
+   restart would cut the run anyway; run it again once the master is back.
+   Otherwise every minion behind the target, one at a time (order first,
+   the rest alphabetically): sls (salt-minion.upgrade, which schedules the
+   apt run in a transient unit, apply_timeout) -> wait up to
+   restart_timeout for salt/minion/<id>/start (the package restarts the
+   minion; includes the script's wait for an idle minion) -> check the
+   installed version -> queued highstate (converge_timeout). Any failure
+   stops the chain.
+
    timer: starts the run daily at on_calendar. Deliberately not Persistent —
    a night missed while the master was down must not become a reboot run
    at boot time, outside the window. timeout bounds a hung run; keep
@@ -80,6 +93,19 @@
     },
     'push': {
         'enforce_check': '/usr/local/sbin/salt-drift-check --enforce-allowed',
+    },
+    'salt_upgrade': {
+        'tgt': '*',
+        'tgt_type': 'glob',
+        'order': [],
+        'master_id': '',
+        'target_key': 'salt-minion:lookup:version:target',
+        'package': 'salt-common',
+        'sls': 'salt-minion.upgrade',
+        'query_timeout': 30,
+        'apply_timeout': 300,
+        'restart_timeout': 1200,
+        'converge_timeout': 900,
     },
 } %}
 {%- set orch = salt['pillar.get']('orch:lookup', default=defaults, merge=True) %}

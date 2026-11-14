@@ -11,9 +11,24 @@
         "'(?:[a-z]+_)?image':\\s*'(?<depName>[^']+)',\\s*\\n\\s*'(?:[a-z]+_)?tag':\\s*'(?<currentValue>[^']+)'"
       ],
       "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Salt version pin (formulas/salt-minion version; rolled out by orch.salt-upgrade)",
+      "managerFilePatterns": ["/^pillar/salt-minion-version\\.sls$/"],
+      "matchStrings": ["\\btarget:\\s*\"(?<currentValue>[^\"]+)\""],
+      "depNameTemplate": "salt-common",
+      "datasourceTemplate": "deb",
+      "registryUrlTemplate": "https://packages.broadcom.com/artifactory/saltproject-deb?suite=stable&components=main&binaryArch=amd64"
     }
   ],
   "packageRules": [
+    {
+      "description": "Salt: stay on the 3008 LTS line (Tofu's bootstrap pin is 3008.*); a new major is a manual decision",
+      "matchDepNames": ["salt-common"],
+      "matchDatasources": ["deb"],
+      "allowedVersions": "/^3008\\./"
+    },
     {
       "description": "Forgejo is the deploy source: stay on the 15.x LTS line until the next LTS",
       "matchDepNames": ["data.forgejo.org/forgejo/forgejo"],

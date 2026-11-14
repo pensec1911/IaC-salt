@@ -33,7 +33,31 @@
    Restart= gets the first go, and once it gave up (start limit hit) the
    reactor's `systemctl start` would be refused until that interval passed.
    Off by default and currently on nowhere: it watched docker, and Podman
-   has no daemon — each Quadlet unit restarts itself (Restart=always). #}
+   has no daemon — each Quadlet unit restarts itself (Restart=always).
+
+   version: the Salt version this host runs (version.sls: exact apt pin;
+   upgrade.sls: the upgrade itself, only via orch.salt-upgrade). target
+   empty = unmanaged (Tofu's "3008.*" pin stays). The pin goes into
+   pin_file — the same file Tofu's cloud-init writes, taken over here.
+
+   Master first: every host except master_id is capped at master_running,
+   the version of the salt-master that renders the pillar (pillar sets it
+   via test.version, which runs in the master). So until the master runs
+   the target, the minions' pin and upgrade stay at the master's version —
+   "master never older than its minions" holds in any apply order.
+   effective: the result of that cap, computed below.
+
+   packages: candidates; only those installed on the host are pinned and
+   upgraded, all to the same version (they depend on salt-common =).
+
+   upgrade: upgrade.sls hands the apt run to a transient systemd unit
+   (outside the salt-minion cgroup — the package's postinst restarts
+   salt-minion, and KillMode=mixed would kill an apt started by the minion
+   itself mid-configure). It starts delay_seconds later, so the state's
+   return reaches the master first, then waits up to idle_seconds until no
+   job runs on the minion (proc_dir empty), else gives up. onedir_dir:
+   salt-pip extras (pygit2, saltext.vault) live in <onedir_dir>/extras-<py>;
+   if the upgrade changes the bundled Python, the script reinstalls them. #}
 {%- set defaults = {
     'drift_check': {
         'enabled': True,
@@ -56,5 +80,32 @@
             'delay_seconds': 90,
         },
     },
+    'version': {
+        'target': '',
+        'master_id': '',
+        'master_running': '',
+        'packages': ['salt-common', 'salt-minion', 'salt-master', 'salt-api',
+                     'salt-syndic', 'salt-ssh', 'salt-cloud'],
+        'pin_file': '/etc/apt/preferences.d/salt-pin-1001',
+        'pin_package': 'salt-*',
+        'pin_priority': 1001,
+        'upgrade': {
+            'unit': 'salt-upgrade',
+            'script': '/usr/local/sbin/salt-upgrade',
+            'delay_seconds': 15,
+            'idle_seconds': 900,
+            'proc_dir': '/var/cache/salt/minion/proc',
+            'onedir_dir': '/opt/saltstack/salt',
+            'apt_get': '/usr/bin/apt-get',
+            'lock_timeout': 300,
+        },
+    },
 } %}
 {%- set salt_minion = salt['pillar.get']('salt-minion:lookup', default=defaults, merge=True) %}
+{%- set v = salt_minion.version %}
+{%- set effective = v.target %}
+{%- if v.target and v.master_running and grains['id'] != v.master_id
+      and salt['pkg.version_cmp'](v.target, v.master_running) > 0 %}
+{%-   set effective = v.master_running %}
+{%- endif %}
+{%- do v.update({'effective': effective}) %}
