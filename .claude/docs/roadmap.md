@@ -112,18 +112,6 @@ No order agreed; pick as needed.
 - **Open**: runner must reach the LAN (it does, it runs on forgejo); template pinning so
   results are reproducible; excluding intrusive templates (`-etags dos,fuzz`).
 
-### Metrics for the non-minion infrastructure
-
-- **Why**: Proxmox nodes, TrueNAS and the FRITZ!Box are only TLS/HTTP-probed
-  (`pillar/prometheus.sls`) — no metrics for host RAM/CPU, ZFS pool health, disk SMART, WAN
-  bandwidth or DSL sync. Exactly the hosts everything else depends on.
-- **Sketch**: on monitoring: `prometheus-pve-exporter` (read-only PVE API token in OpenBao),
-  a FRITZ!Box exporter (TR-064, read-only user), TrueNAS via its built-in Graphite/Netdata
-  export or node_exporter-style app; alert rules for pool degraded, SMART failing, node RAM
-  pressure (relevant for the RAM rebalancing). Grafana dashboards from the community.
-- **Open**: TrueNAS SCALE version decides the export path; Scrutiny as the dedicated SMART UI
-  vs. alerts only.
-
 ### Velociraptor (on-demand endpoint forensics)
 
 - **Why**: Wazuh-style visibility (processes, persistence, logins, file hashes across all
