@@ -71,6 +71,10 @@ homepage:
           href: http://192.168.178.25:9093
           icon: alertmanager.png
           description: Alerts
+        - name: ntfy
+          href: http://192.168.178.24:8090
+          icon: ntfy.png
+          description: Alert push notifications
         - name: PatchMon
           href: http://192.168.178.29:3001
           icon: patchmon.png

@@ -58,9 +58,13 @@
         ],
     },
     'jellyfin': {
-        'paths': ['/opt/jellyfin'],
-        'excludes': ['/opt/jellyfin/config/cache', '/opt/jellyfin/config/log'],
-        'stop_containers': ['jellyfin'],
+        'paths': ['/opt/jellyfin', '/opt/ntfy'],
+        'excludes': [
+            '/opt/jellyfin/config/cache',
+            '/opt/jellyfin/config/log',
+            '/opt/ntfy/config',
+        ],
+        'stop_containers': ['jellyfin', 'ntfy'],
     },
     'monitoring': {
         'paths': ['/opt/grafana/data', '/opt/alertmanager/data'],

@@ -15,24 +15,6 @@ _Nothing agreed yet — pick from "Later"._
 
 No order agreed; pick as needed.
 
-### Alertmanager receiver via self-hosted ntfy
-
-- **Why**: `pillar/alertmanager.sls` is empty, so the "null" receiver applies. Alerts from
-  `pillar/prometheus.sls` (BackupFailed, RestoreTestFailed, ProbeFailed, DiskAlmostFull,
-  RebootRequired, …) and Wazuh are only visible if someone opens the UI or Grafana. ntfy is
-  tiny (~50 MB) and gives phone push without a third-party account.
-- **Sketch**: new `formulas/ntfy` (container, auth on, deny-all default, one topic per
-  severity) on an existing container host; a user + access token in OpenBao. Set
-  `alertmanager:config` in `pillar/alertmanager.sls` with a webhook receiver (ntfy speaks the
-  Alertmanager format via `?template=alertmanager` or a small bridge), token via `sdb.get`;
-  route by severity, group so a burst is one message. Homepage tile + backup entry (user DB).
-  Once it exists, `IaC-opentofu`'s `.forgejo/workflows/drift.yml` can push to it too (today
-  the only drift signal is the Forgejo issue).
-- **Open**: which host (not monitoring itself — alerts must still arrive when it's down);
-  dead-man's switch (Watchdog alert → external heartbeat, e.g. healthchecks.io) so a dead
-  monitoring VM is noticed; phone access from outside (ntfy.sh upstream relay vs. the
-  tailscale-router VM).
-
 ### Reverse proxy + local DNS (names and TLS instead of IP:port)
 
 - **Why**: every UI is `http://192.168.178.x:port` — plain HTTP, credentials in clear text on
@@ -212,7 +194,7 @@ No order agreed; pick as needed.
 
 - **Why**: Prometheus only alerts on what it can scrape; if monitoring itself, Alertmanager or a
   timer silently stops, nothing fires. Healthchecks inverts it: every job pings after each run,
-  a missing ping is the alert. Also the "dead-man's switch" open point of the ntfy entry.
+  a missing ping is the alert. Also the dead-man's switch for Alertmanager → ntfy (both on pve02).
 - **Sketch**: `formulas/healthchecks` (container, SQLite → backup + `stop_containers`) on a host
   other than monitoring; checks per job from pillar (backup, restore test, salt-minion enforce,
   Renovate, Trivy, Tofu drift); job units get an `ExecStartPost`/`OnFailure` curl to the ping URL

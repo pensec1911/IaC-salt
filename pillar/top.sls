@@ -50,6 +50,7 @@ base:
 
   'jellyfin':
     - jellyfin
+    - ntfy
 
   'forgejo':
     - forgejo

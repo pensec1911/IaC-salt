@@ -1,0 +1,40 @@
+{#- uid/gid pinned to the `ntfy` system account (pillar/ntfy.sls): the image
+   runs as root by default; the container runs as this account instead
+   (Podman `User=`, mapped 1:1), so the data dir stays owned by it on the
+   host. The matching formulas/users account entry must use the same numbers.
+
+   Auth is declarative (ntfy `auth-users`/`auth-access`/`auth-tokens` in
+   server.yml): ntfy syncs users, ACLs and tokens from the config into its
+   auth DB on every start and deletes what isn't listed. Secret values are
+   empty here on purpose — pillar fills them from OpenBao; empty or
+   unresolved fails config.sls (ntfy never starts without them).
+     admin_password_hash / publisher_password_hash: bcrypt ($2a$/$2b$/$2y$,
+       cost >= 10), not the password itself.
+     publisher_token is tk_ + 29 chars of [-_A-Za-z0-9].
+   publisher_topics: topic patterns (`*` wildcard) the publisher may write.
+   default_access: what everyone else (anonymous) gets — deny-all.
+   http_port: host port; ntfy listens on 8080 inside (non-root, no
+   CAP_NET_BIND_SERVICE for :80).
+   podman: spec overrides for the container (keys: formulas/podman README). #}
+{%- set defaults = {
+    'image': 'docker.io/binwiederhier/ntfy',
+    'tag': 'v2.37.2',
+    'container_name': 'ntfy',
+    'uid': 974,
+    'gid': 974,
+    'http_port': 8090,
+    'base_dir': '/opt/ntfy',
+    'config_dir': '/opt/ntfy/config',
+    'data_dir': '/opt/ntfy/data',
+    'base_url': '',
+    'cache_duration': '12h',
+    'default_access': 'deny-all',
+    'admin_user': 'admin',
+    'admin_password_hash': '',
+    'publisher_user': 'alertmanager',
+    'publisher_password_hash': '',
+    'publisher_token': '',
+    'publisher_topics': ['alerts-*'],
+    'podman': {},
+} %}
+{%- set ntfy = salt['pillar.get']('ntfy:lookup', default=defaults, merge=True) %}
