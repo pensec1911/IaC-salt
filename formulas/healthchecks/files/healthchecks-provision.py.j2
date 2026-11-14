@@ -1,0 +1,77 @@
+{%- from "healthchecks/map.jinja" import healthchecks with context -%}
+#!{{ healthchecks.python }}
+# Managed by Salt (formulas/healthchecks) — do not edit here.
+#
+# Upserts every check in checks.json through the Healthchecks Management API
+# (POST /api/v3/checks/ with unique=["slug"]: creates a missing check,
+# updates an existing one), all project integrations assigned. Writes a stamp
+# (sha256 of the list + API key) after a fully successful run;
+# --is-current exits 0 while that stamp still matches, so Salt only runs it
+# when something changed or the last run failed. Checks no longer in the list
+# are left alone — delete them in the UI.
+import hashlib
+import json
+import sys
+import time
+import urllib.error
+import urllib.request
+
+DIR = "{{ healthchecks.provision_dir }}"
+API = "http://127.0.0.1:{{ healthchecks.http_port }}/api/v3/checks/"
+HOST = "{{ healthchecks.site_root.split('://')[-1].split('/')[0] }}"
+WAIT_SECONDS = 180
+
+
+def read(name):
+    with open(f"{DIR}/{name}", "rb") as f:
+        return f.read()
+
+
+def digest():
+    return hashlib.sha256(read("checks.json") + b"\0" + read("api_key").strip()).hexdigest()
+
+
+def stamp():
+    try:
+        return read("applied.sha256").decode().strip()
+    except OSError:
+        return ""
+
+
+def upsert(key, check, deadline):
+    body = dict(check, unique=["slug"], channels="*")
+    req = urllib.request.Request(
+        API, data=json.dumps(body).encode(), method="POST",
+        # Host = site_root's: Django only answers to ALLOWED_HOSTS.
+        headers={"X-Api-Key": key, "Content-Type": "application/json", "Host": HOST},  # secret-scan: allow (variable)
+    )
+    while True:
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                return resp.status
+        except urllib.error.HTTPError as e:
+            # 4xx = bad check or key: no point waiting.
+            raise SystemExit(f"{check.get('slug')}: HTTP {e.code} {e.read()[:200]!r}")
+        except (urllib.error.URLError, OSError) as e:
+            # Container still starting (migrations run first).
+            if time.time() > deadline:
+                raise SystemExit(f"{check.get('slug')}: {e}")
+            time.sleep(5)
+
+
+def main():
+    if sys.argv[1:] == ["--is-current"]:
+        return 0 if stamp() == digest() else 1
+    key = read("api_key").decode().strip()
+    checks = json.loads(read("checks.json"))
+    deadline = time.time() + WAIT_SECONDS
+    for check in checks:
+        status = upsert(key, check, deadline)
+        print(f"{check['slug']}: {'created' if status == 201 else 'updated'}")
+    with open(f"{DIR}/applied.sha256", "w") as f:
+        f.write(digest() + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

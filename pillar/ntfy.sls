@@ -9,6 +9,11 @@ users:
       uid: 974
       gid: 974
 
+{#- Healthchecks (formulas/healthchecks, same VM) publishes missed
+   heartbeats with its own user, write-only on alerts-critical — listed
+   only once its token is in OpenBao, so ntfy keeps working before that. #}
+{%- set hc_token = salt['sdb.get']('sdb://osvault/homelab/data/ntfy/healthchecks?token') or '' %}
+{%- set hc_publisher = hc_token is string and hc_token.startswith('tk_') %}
 # Push notifications for Alertmanager (pillar/alertmanager.sls), LAN only.
 # Topics alerts-critical / alerts-warning; the alertmanager user may only
 # publish to alerts-*, everyone else is denied. Phone: ntfy app, server
@@ -21,3 +26,11 @@ ntfy:
     admin_password_hash: {{ salt['sdb.get']('sdb://osvault/homelab/data/ntfy/admin?password_hash') | yaml_encode }}
     publisher_password_hash: {{ salt['sdb.get']('sdb://osvault/homelab/data/ntfy/alertmanager?password_hash') | yaml_encode }}
     publisher_token: {{ salt['sdb.get']('sdb://osvault/homelab/data/ntfy/alertmanager?token') | yaml_encode }}
+{%- if hc_publisher %}
+    extra_publishers:
+      - user: healthchecks
+        password_hash: {{ salt['sdb.get']('sdb://osvault/homelab/data/ntfy/healthchecks?password_hash') | yaml_encode }}
+        token: {{ hc_token | yaml_encode }}
+        topics:
+          - alerts-critical
+{%- endif %}

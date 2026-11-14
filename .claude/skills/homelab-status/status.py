@@ -45,6 +45,8 @@ def main():
     except OSError as e:
         print(f"Alertmanager unreachable: {e}")
         return 2
+    # Watchdog fires always on purpose (dead-man's switch -> Healthchecks).
+    alerts = [a for a in alerts if a["labels"].get("alertname") != "Watchdog"]
     alerts = [a for a in alerts if not only or a["labels"].get("instance") == only]
     print(f"== Firing alerts: {len(alerts)}")
     for a in sorted(alerts, key=lambda a: a["labels"].get("severity", "")):

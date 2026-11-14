@@ -1,0 +1,63 @@
+{#- uid/gid pinned to the `healthchecks` system account (pillar/healthchecks.sls):
+   the image runs as its own `hc` user (no fixed uid); the container runs as
+   this account instead (Podman `User=`, mapped 1:1), so the SQLite DB in
+   data_dir stays owned by it on the host. The matching formulas/users
+   account entry must use the same numbers.
+
+   site_root: the URL the UI and ping URLs are built from; its host part is
+   what Django accepts (allowed_hosts adds localhost for the image's own
+   HEALTHCHECK, which queries 127.0.0.1).
+
+   secret_key: Django's SECRET_KEY (sessions, signed links) — empty here on
+   purpose, pillar fills it from OpenBao; empty or unresolved fails
+   config.sls (Healthchecks never starts without it).
+
+   env: plain settings for the container (Healthchecks reads its whole config
+   from the environment, docs "Server configuration"). Merged with pillar's
+   lookup:env key by key. Registration off, no SMTP (no mail integration, no
+   password reset — the superuser logs in with its password), private IPs
+   allowed for integrations (ntfy on this LAN), 2 gunicorn workers instead
+   of the image's 4 (RAM budget, capacity.md).
+
+   api_key (secret-scan: allow): project API key (read-write) for provision.sls — optional. It only
+   exists after the first login (created in the UI), so a missing one skips
+   provisioning instead of failing; pings auto-create their checks anyway.
+   checks: what provision.sls upserts via the Management API (unique by
+   slug, all integrations assigned): slug, name, and timeout+grace (seconds)
+   or schedule+tz+grace, optional tags/desc. Checks removed from the list are
+   not deleted. provision_dir: root-only, holds the API key, the rendered
+   check list and the stamp of the last successful run.
+
+   podman: spec overrides for the container (keys: formulas/podman README). #}
+{%- set defaults = {
+    'image': 'docker.io/healthchecks/healthchecks',
+    'tag': 'v5.0.3',
+    'container_name': 'healthchecks',
+    'uid': 975,
+    'gid': 975,
+    'http_port': 8000,
+    'base_dir': '/opt/healthchecks',
+    'data_dir': '/opt/healthchecks/data',
+    'provision_dir': '/opt/healthchecks/provision',
+    'provision_script': '/usr/local/sbin/healthchecks-provision',
+    'python': '/usr/bin/python3',
+    'site_root': '',
+    'allowed_hosts': [],
+    'secret_key': '',
+    'env': {
+        'DEBUG': 'False',
+        'DB': 'sqlite',
+        'DB_NAME': '/data/hc.sqlite',
+        'SITE_NAME': 'Homelab Healthchecks',
+        'REGISTRATION_OPEN': 'False',
+        'EMAIL_USE_VERIFICATION': 'False',
+        'INTEGRATIONS_ALLOW_PRIVATE_IPS': 'True',
+        'GUNICORN_WORKERS': '2',
+    },
+    'api_key': '',
+    'checks': [],
+    'podman': {},
+} %}
+{%- set healthchecks = salt['pillar.get']('healthchecks:lookup', default=defaults, merge=True) %}
+{%- set _key = healthchecks.api_key %}
+{%- do healthchecks.update({'provision': (_key is string and _key | length > 0 and not _key.startswith('sdb://'))}) %}

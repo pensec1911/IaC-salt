@@ -50,6 +50,9 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `tofu-state/postgres` | `password` | `pillar/tofu-state.sls` — DB user `tofu` of the Tofu state postgres; also in IaC-opentofu's local `backend.hcl` and the `PG_CONN_STR` Actions secret (formulas/tofu-state README). |
 | `tofu-state/encryption` | `passphrase` | Not read by pillar — OpenTofu state encryption key (local `terraform.tfvars` + `STATE_PASSPHRASE` Actions secret). Lost = state unreadable; keep a copy outside the homelab. |
 | `ntfy/admin` | `password`, `password_hash` (bcrypt) | `pillar/ntfy.sls` reads only `password_hash` (ntfy `admin`, declaratively provisioned); `password` is the phone/web login (formulas/ntfy README "OpenBao") |
+| `ntfy/healthchecks` | `password_hash` (bcrypt), `token` (`tk_…`) | `pillar/ntfy.sls` — ntfy user `healthchecks`, only declared while `token` resolves; the token is also entered in the Healthchecks ntfy integration (UI, formulas/healthchecks README) |
+| `healthchecks/app` | `secret_key` | `pillar/healthchecks.sls` — Django `SECRET_KEY` |
+| `healthchecks/project` | `ping_key`, `api_key` | Both created in the Healthchecks UI, both optional. `ping_key`: `pillar/healthchecks-ping.sls` (every minion), `pillar/alertmanager.sls` + `pillar/prometheus.sls` (Watchdog only while it resolves). `api_key` (read-write): `pillar/healthchecks.sls`, check provisioning |
 | `ntfy/alertmanager` | `password_hash` (bcrypt), `token` (`tk_…`) | `pillar/ntfy.sls` (both) + `pillar/alertmanager.sls` (`token`, ntfy receivers only added while it resolves) — must be the same on both sides |
 | `restic/repo` | `password` | `pillar/backup.sls` — restic repo password, shared by all minion repos. Changing it needs `restic key add` first (formulas/backup README); keep a copy outside the homelab. |
 

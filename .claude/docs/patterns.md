@@ -22,7 +22,8 @@ formula declares `require: - user: user-<name>`.
   user, own its dir by the image uid from map.jinja (netbox: 999:0).
 - Pinned today: `media` = 970:970 (arrstack + jellyfin, owns the NAS media share), `seerr` =
   971:971 (container `user:` override, image default is uid 1000), `git` 972, `forgejo-runner`
-  973, `ntfy` = 974:974 (container `User=`, image default is root).
+  973, `ntfy` = 974:974 (container `User=`, image default is root), `healthchecks` = 975:975
+  (container `User=`, image default is its own `hc`).
 - `GLOBAL` creates a sudo login account named after the minion — **unless that name is a
   service's own system user** (packages silently adopt an existing user of their name, turning
   their daemons into a sudo-capable login). Such minions get a renamed login via the map in

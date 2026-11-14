@@ -1,5 +1,8 @@
 {% from "salt-minion/map.jinja" import salt_minion with context %}
+{% from "healthchecks-ping/map.jinja" import hc_ping with context %}
 {%- set dc = salt_minion.drift_check %}
+{#- Ping command for the script, empty = no ping (no key in pillar). #}
+{%- set ping = [hc_ping.script, dc.ping_slug ~ '-' ~ grains['id']] if hc_ping.enabled else [] %}
 
 {%- if dc.enabled %}
 
@@ -11,8 +14,12 @@ salt-minion-drift-check-script:
     - mode: '0755'
     - context:
         dc: {{ dc | json }}
+        ping: {{ ping | json }}
     - require:
       - sls: node-exporter
+{%- if ping %}
+      - sls: healthchecks-ping
+{%- endif %}
 
 # Persisted to /etc/salt/minion.d/_schedule.conf, so it survives restarts.
 # return_job off: the result is the textfile metric, not the job cache.

@@ -24,6 +24,13 @@
    For hosts where a repair is disruptive but fine while nobody watches
    (arrstack, jellyfin: pillar/salt-minion-enforce-window.sls).
 
+   ping_slug: Healthchecks check (formulas/healthchecks) pinged after each
+   hourly check as <slug>-<minion id> — success when the dry run rendered
+   and completed, /fail when it didn't (drift and failing states stay
+   Prometheus' job). Catches a schedule or minion that silently stopped.
+   Only while formulas/healthchecks-ping has a ping key; else no ping code
+   is rendered.
+
    beacons.service: Salt's service beacon, persisted to
    /etc/salt/minion.d/beacons.conf. Fires salt/beacon/<id>/service/<name>
    only on a status change (onchangeonly), not at minion start
@@ -87,6 +94,7 @@
         'metrics_file': 'salt_drift.prom',
         'salt_call': '/usr/bin/salt-call',
         'python': '/usr/bin/python3',
+        'ping_slug': 'drift-check',
     },
     'beacons': {
         'service': {

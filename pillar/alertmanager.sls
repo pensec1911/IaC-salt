@@ -10,12 +10,29 @@
 {%- set ntfy_url = 'http://192.168.178.24:8090' %}
 {%- set ntfy_token = salt['sdb.get']('sdb://osvault/homelab/data/ntfy/alertmanager?token') or '' %}
 {%- set ntfy = ntfy_token is string and ntfy_token.startswith('tk_') %}
+{#- Dead-man's switch: the always-firing Watchdog alert (pillar/prometheus.sls,
+   same guard) pings Healthchecks on jellyfin every ~2 min; silence there
+   means Prometheus or Alertmanager stopped. Without the ping key neither
+   the rule nor this route exists. #}
+{%- set hc_url = 'http://192.168.178.24:8000' %}
+{%- set hc_ping_key = salt['sdb.get']('sdb://osvault/homelab/data/healthchecks/project?ping_key') or '' %}
+{%- set watchdog = hc_ping_key is string and hc_ping_key | length > 0 and not hc_ping_key.startswith('sdb://') %}
 alertmanager:
   config:
     route:
       receiver: "null"
       group_by: [alertname, instance]
       routes:
+{%- if watchdog %}
+        # First and without continue: Watchdog never reaches ntfy or salt-api.
+        - receiver: healthchecks-watchdog
+          matchers:
+            - alertname="Watchdog"
+          group_by: [alertname]
+          group_wait: 0s
+          group_interval: 1m
+          repeat_interval: 2m
+{%- endif %}
         # continue: the ntfy routes below still get these too.
         - receiver: salt-api
           continue: true
@@ -70,6 +87,13 @@ alertmanager:
                   W7CoeJ9ETeaO2h0cQeXqXn0DAiAyW8FoTWHOeKjOKx4sfijvJalZtsa5VXBNnx+Q
                   iIUfNg==
                   -----END CERTIFICATE-----
+{%- if watchdog %}
+      # Ping key in the URL (Healthchecks slug ping, auto-creates the check).
+      - name: healthchecks-watchdog
+        webhook_configs:
+          - url: {{ (hc_url ~ '/ping/' ~ hc_ping_key ~ '/alertmanager-watchdog?create=1') | yaml_encode }}
+            send_resolved: false
+{%- endif %}
 {%- if ntfy %}
 {%-   for severity, priority in [('critical', 'high'), ('warning', 'default')] %}
       # Bearer credential of ntfy user "alertmanager", write-only on alerts-* (pillar/ntfy.sls).

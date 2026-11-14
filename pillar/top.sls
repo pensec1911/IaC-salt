@@ -8,6 +8,7 @@ base:
     - ntp
     - patchmon-agent
     - salt-minion-version
+    - healthchecks-ping
 
   'homepage,monitoring,salt-master,forgejo':
     - match: list
@@ -51,6 +52,7 @@ base:
   'jellyfin':
     - jellyfin
     - ntfy
+    - healthchecks
 
   'forgejo':
     - forgejo

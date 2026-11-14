@@ -3,6 +3,11 @@
    `mine:` jobs into one target per minion, `instance` = minion name). Only
    monitoring's own address is still listed here, for Alertmanager. #}
 {%- set monitoring_ip = '192.168.178.25' %}
+{#- Watchdog only while Alertmanager has somewhere to send it (the
+   Healthchecks ping key, same guard as pillar/alertmanager.sls) — otherwise
+   it would just sit firing in the UI. #}
+{%- set hc_ping_key = salt['sdb.get']('sdb://osvault/homelab/data/healthchecks/project?ping_key') or '' %}
+{%- set watchdog = hc_ping_key is string and hc_ping_key | length > 0 and not hc_ping_key.startswith('sdb://') %}
 prometheus:
   scrape_configs:
     - job_name: prometheus
@@ -50,6 +55,17 @@ prometheus:
   rule_groups:
     - name: homelab
       rules:
+{%- if watchdog %}
+        {#- Always firing: proves Prometheus evaluates rules and Alertmanager
+           delivers. Routed only to Healthchecks (pillar/alertmanager.sls),
+           which alerts when the pings stop. #}
+        - alert: Watchdog
+          expr: vector(1)
+          labels:
+            severity: none
+          annotations:
+            summary: Always firing — dead-man's switch for the alerting pipeline (Healthchecks alertmanager-watchdog)
+{%- endif %}
         - alert: TargetDown
           expr: up == 0
           for: 5m

@@ -10,6 +10,7 @@ base:
     - node-exporter
     - unattended-upgrades
     - patchmon-agent
+    - healthchecks-ping
     - salt-minion
     - salt-master
     - orch
@@ -23,6 +24,7 @@ base:
     - node-exporter
     - unattended-upgrades
     - patchmon-agent
+    - healthchecks-ping
     - salt-minion
     - podman
     - cadvisor
@@ -38,6 +40,7 @@ base:
     - node-exporter
     - unattended-upgrades
     - patchmon-agent
+    - healthchecks-ping
     - salt-minion
     - podman
     - cadvisor
@@ -59,6 +62,7 @@ base:
     - node-exporter
     - unattended-upgrades
     - patchmon-agent
+    - healthchecks-ping
     - salt-minion
     - nfs-mount
     - podman
@@ -74,6 +78,7 @@ base:
     - node-exporter
     - unattended-upgrades
     - patchmon-agent
+    - healthchecks-ping
     - salt-minion
     - wazuh
     - nfs-mount
@@ -88,6 +93,7 @@ base:
     - node-exporter
     - unattended-upgrades
     - patchmon-agent
+    - healthchecks-ping
     - salt-minion
     - nfs-mount
     - podman
@@ -95,6 +101,7 @@ base:
     - alloy
     - jellyfin
     - ntfy
+    - healthchecks
     - backup
 
   'forgejo':
@@ -106,6 +113,7 @@ base:
     - node-exporter
     - unattended-upgrades
     - patchmon-agent
+    - healthchecks-ping
     - salt-minion
     - nfs-mount
     - podman

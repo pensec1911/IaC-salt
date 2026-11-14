@@ -75,6 +75,10 @@ homepage:
           href: http://192.168.178.24:8090
           icon: ntfy.png
           description: Alert push notifications
+        - name: Healthchecks
+          href: http://192.168.178.24:8000
+          icon: healthchecks.png
+          description: Job heartbeats (dead-man's switch)
         - name: PatchMon
           href: http://192.168.178.29:3001
           icon: patchmon.png

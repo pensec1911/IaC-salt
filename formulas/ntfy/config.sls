@@ -7,6 +7,10 @@
 {%- do secrets.update({'admin_password_hash': ntfy.admin_password_hash}) %}
 {%- do secrets.update({'publisher_password_hash': ntfy.publisher_password_hash}) %}
 {%- do secrets.update({'publisher_token': ntfy.publisher_token}) %}{#- secret-scan: allow (variable, not a value) #}
+{%- for p in ntfy.extra_publishers %}
+{%-   do secrets.update({'extra_publishers[' ~ p.user ~ '].password_hash': p.password_hash}) %}
+{%-   do secrets.update({'extra_publishers[' ~ p.user ~ '].token': p.token}) %}{#- secret-scan: allow (variable, not a value) #}
+{%- endfor %}
 {%- set bad = [] %}
 {%- for name, value in secrets | dictsort %}
 {%-   if not value or value.startswith('sdb://') %}{% do bad.append(name) %}{% endif %}
@@ -15,7 +19,7 @@
 ntfy-secrets-valid:
 {%- if bad %}
   test.fail_without_changes:
-    - name: "ntfy:lookup secrets empty or unresolved: {{ bad | join(', ') }} — set them in OpenBao ntfy/admin, ntfy/alertmanager (README)"
+    - name: "ntfy:lookup secrets empty or unresolved: {{ bad | join(', ') }} — set them in OpenBao ntfy/<user> (README)"
 {%- else %}
   test.succeed_without_changes:
     - name: ntfy:lookup secrets are set
