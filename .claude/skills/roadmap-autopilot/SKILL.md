@@ -76,6 +76,9 @@ branch pushes don't deploy (`orch.push` and the pre-push render hook only act on
    - path already exists (other keys under it): `bao kv patch` instead of `put` — `put`
      replaces every key at the path. Check the KV layout in `.claude/docs/secrets.md`.
    - several keys at one path: one command with all of them.
+   - derived values (hashes etc.): compute into a variable first and only write if non-empty
+     (`H=$(…); [ -n "$H" ] && bao kv put …`), and name the package for any tool beyond
+     `openssl` — the OpenBao host is a minimal Debian (no `htpasswd`, `jq` by default).
    - check: `bao kv get -mount=homelab <path>`.
    Also add new paths to the KV layout table in `.claude/docs/secrets.md`.
 4. Resolve the roadmap entry's open points with the simplest safe default; write each choice in
