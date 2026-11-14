@@ -11,7 +11,7 @@
 salt-minion:
   lookup:
     version:
-      target: "3008.3"
+      target: "3008.5"
       # Exempt from the cap: the host the salt-master runs on.
       master_id: salt-master
       # Runs inside the salt-master rendering this pillar -> its own version.
