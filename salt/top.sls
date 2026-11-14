@@ -50,6 +50,7 @@ base:
     - grafana
     - prometheus
     - alertmanager
+    - toolbox
     - nfs-mount
     - backup
 

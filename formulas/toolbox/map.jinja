@@ -1,0 +1,39 @@
+{#- Two static browser toolboxes, each an nginx serving prebuilt files —
+   no state, no volumes, no secrets. Everything runs in the browser.
+
+   cyberchef: GCHQ's image is nginx-unprivileged (uid 101, listens on
+   8080, pid/temp files in /tmp), so the podman defaults fit as they are:
+   read-only root, no capabilities.
+
+   it_tools: built on the stock nginx image — master as root (inside its
+   own user namespace), listening on 80, workers as nginx (101). With the
+   default read-only root and ALL caps dropped it needs:
+     tmpfs /var/cache/nginx — nginx's temp dirs (the image's entrypoint
+       scripts only touch files they can write and skip the rest);
+     cap_add NET_BIND_SERVICE for :80, SETUID/SETGID to drop the workers
+       to nginx, CHOWN to hand them the temp dirs, KILL to signal them.
+   Tags: IT-Tools publishes <date>-<commit> (renovate.json rule).
+
+   host_port: published on the minion; homepage items point here.
+   podman: spec overrides per container (keys: formulas/podman README). #}
+{%- set defaults = {
+    'cyberchef': {
+        'image': 'ghcr.io/gchq/cyberchef',
+        'tag': '11.5.0',
+        'container_name': 'cyberchef',
+        'host_port': 8081,
+        'container_port': 8080,
+        'podman': {},
+    },
+    'it_tools': {
+        'image': 'ghcr.io/corentinth/it-tools',
+        'tag': '2024.10.22-7ca5933',
+        'container_name': 'it-tools',
+        'host_port': 8082,
+        'container_port': 80,
+        'tmpfs': ['/var/cache/nginx'],
+        'cap_add': ['CHOWN', 'KILL', 'NET_BIND_SERVICE', 'SETGID', 'SETUID'],
+        'podman': {},
+    },
+} %}
+{%- set toolbox = salt['pillar.get']('toolbox:lookup', default=defaults, merge=True) %}

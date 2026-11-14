@@ -119,7 +119,7 @@ Removed when the UI goes away.
 
 - **Group**: the existing one that fits — `Media` (Jellyfin, Seerr), `Arr` (Sonarr, Radarr,
   Prowlarr, Bazarr), `Downloads` (qBittorrent, slskd), `Monitoring` (Grafana, Prometheus,
-  Alertmanager, Wazuh), `Proxmox` (nodes), `Infrastructure` (NAS, OpenBao, router, other
+  Alertmanager, Wazuh), `Proxmox` (nodes), `Tools` (CyberChef, IT-Tools — browser toolboxes), `Infrastructure` (NAS, OpenBao, router, other
   appliances). A new group only if none fits.
 - **href**: `http(s)://<IP>:<port>` from `inventory.md` / the formula's `map.jinja` — the URL a
   browser on the LAN uses (arrstack apps: the port gluetun publishes on the host).
