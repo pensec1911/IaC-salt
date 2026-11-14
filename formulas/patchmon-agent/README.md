@@ -49,6 +49,29 @@ entry; one that did report is refused (`409 machine_id_match` in the state outpu
 in the UI first.
 Removing a minion: delete the host in the UI.
 
+## Hosts that aren't minions (manual, once per host)
+
+OpenBao, omada-controller, tailscale-router, the Proxmox nodes — no Salt, so they use
+PatchMon's own `direct-host` enrolment script with the same token. As root on the host (the
+secret is read without echo, so it's not in shell history or the URL):
+
+```sh
+read -rs S; curl -s -H "X-Auto-Enrollment-Key: <TOKEN_KEY>" -H "X-Auto-Enrollment-Secret: $S" \
+  "http://192.168.178.29:3001/api/v1/auto-enrollment/script?type=direct-host" \
+  | FRIENDLY_NAME=<hostname> sh; unset S
+```
+
+The script installs the agent binary served by the PatchMon server (same version as the server),
+writes `/etc/patchmon/config.yml` + `credentials.yml` and a systemd unit. Its config has the SSH
+proxy off and no RDP proxy — but nothing re-enforces that there, and nothing bumps the agent
+(server auto-update is off). Agent update by hand after a server bump: replace
+`/usr/local/bin/patchmon-agent` with the release binary (URL + sha256 in `map.jinja`),
+`systemctl restart patchmon-agent`. Don't re-run the enrol script for that — a host that has
+reported is refused (409). Check that `ssh-proxy-enabled: false` is still in
+`/etc/patchmon/config.yml` now and then.
+
+The token must still be valid (and its IP range must include the host) when you run it.
+
 ## Upgrades
 
 With every server bump (Renovate PR for `ghcr.io/patchmon/patchmon-server`): set `version` and

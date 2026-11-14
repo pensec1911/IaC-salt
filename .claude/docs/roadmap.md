@@ -95,19 +95,6 @@ No order agreed; pick as needed.
   item or Zot's own cert); host choice (forgejo already has a container registry, but no
   pull-through).
 
-### PatchMon (patch visibility per host)
-
-- **Why**: unattended-upgrades patches Debian main/security daily, but the excluded repos
-  (Salt, Wazuh — on purpose, `formulas/unattended-upgrades`) and non-minions (OpenBao,
-  omada-controller, tailscale-router, Proxmox nodes) are invisible today. PatchMon shows
-  pending updates per host in one place.
-- **Sketch**: `formulas/patchmon` (server container + DB) on a container host; `formulas/
-  patchmon-agent` on every minion, enrollment key via `sdb.get`. Non-minions enrolled by hand
-  (documented in the README). Homepage tile + backup entry.
-- **Open**: overlap with `RebootRequired` / a node_exporter textfile for pending updates
-  (cheaper alternative: `apt-get -s upgrade` count → Prometheus alert); agent update path;
-  whether it complements the Salt version-pin item (shows Salt drift across minions).
-
 ### OWASP Dependency-Track (SBOM + vulnerability history)
 
 - **Why**: the Trivy workflow (`.forgejo/workflows/trivy.yml`) gives a weekly point-in-time
