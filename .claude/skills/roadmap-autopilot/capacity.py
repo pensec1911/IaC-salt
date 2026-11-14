@@ -15,7 +15,12 @@ import urllib.parse
 import urllib.request
 
 PROM = "http://192.168.178.25:9090/api/v1/query"
-TOFU = pathlib.Path(__file__).resolve().parents[3].parent / "IaC-opentofu"
+import subprocess  # noqa: E402
+# Sibling repo next to the *main* checkout — from a worktree (.claude/worktrees/…) the file's own
+# parents point inside IaC-salt, so go via git's common dir.
+_COMMON = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+                         cwd=pathlib.Path(__file__).parent, capture_output=True, text=True).stdout.strip()
+TOFU = pathlib.Path(_COMMON).parent.parent / "IaC-opentofu"
 RAM_CEILING = 0.80          # peak used + new services <= 80 % of the VM's RAM
 DISK_FLOOR_GB = 5.0         # root fs keeps >= 5 GB free after the change
 NODE_CEILING_MB = 14336     # 16 GB node minus ~2 GB for the PVE host itself
