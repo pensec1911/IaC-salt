@@ -57,6 +57,8 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `healthchecks/project` | `ping_key`, `api_key` | Both created in the Healthchecks UI, both optional. `ping_key`: `pillar/healthchecks-ping.sls` (every minion), `pillar/alertmanager.sls` + `pillar/prometheus.sls` (Watchdog only while it resolves). `api_key` (read-write): `pillar/healthchecks.sls`, check provisioning |
 | `ntfy/alertmanager` | `password_hash` (bcrypt), `token` (`tk_…`) | `pillar/ntfy.sls` (both) + `pillar/alertmanager.sls` (`token`, ntfy receivers only added while it resolves) — must be the same on both sides |
 | `restic/repo` | `password` | `pillar/backup.sls` — restic repo password, shared by all minion repos. Changing it needs `restic key add` first (formulas/backup README); keep a copy outside the homelab. |
+| `oxidized/forgejo` | `ssh_key` (legacy PEM RSA private key), `ssh_key_pub` | `pillar/oxidized.jinja` — deploy key (write) of the private Forgejo repo `homelab/network-configs`, Oxidized's push target (formulas/oxidized README "Manual steps"). Oxidized only runs while it and ≥ 1 device key resolve. |
+| `oxidized/<device>` | `ssh_key` (SSH private key) | `pillar/oxidized.jinja` — Oxidized's login on that network device (e.g. `oxidized/opnsense`, user `oxidized`, shell access only). The device is only fetched while it resolves. |
 
 Check `grep -rn "sdb://" pillar/` for the authoritative list.
 

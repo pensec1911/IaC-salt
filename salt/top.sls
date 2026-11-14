@@ -52,6 +52,7 @@ base:
     - alertmanager
     - toolbox
     - infra-exporters
+    - oxidized
     - nfs-mount
     - backup
 

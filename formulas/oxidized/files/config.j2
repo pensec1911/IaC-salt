@@ -1,0 +1,52 @@
+{%- from "oxidized/map.jinja" import oxidized with context -%}
+# Managed by Salt (formulas/oxidized) — do not edit.
+---
+resolve_dns: false
+interval: {{ oxidized.interval }}
+retries: {{ oxidized.retries }}
+timeout: {{ oxidized.timeout }}
+threads: {{ oxidized.threads }}
+# /tmp is a fresh tmpfs per start — no stale pid file after a crash.
+pid: /tmp/oxidized.pid
+crash:
+  directory: {{ oxidized.container_data }}/crashes
+  hostnames: false
+# Every device: key auth only, never a password prompt.
+vars:
+  auth_methods: {{ oxidized.auth_methods | json }}
+extensions:
+  oxidized-web:
+    load: true
+    listen: 0.0.0.0
+    port: {{ oxidized.container_port }}
+input:
+  default: ssh
+  debug: false
+  ssh:
+    secure: {{ oxidized.input_secure | string | lower }}
+output:
+  default: git
+  git:
+    user: {{ oxidized.git_user | json }}
+    email: {{ oxidized.git_email | json }}
+    repo: {{ (oxidized.container_data ~ '/' ~ oxidized.repo_name ~ '.git') | json }}
+source:
+  default: csv
+  csv:
+    file: {{ (oxidized.container_home ~ '/router.db') | json }}
+    delimiter: "\t"
+    map:
+      name: 0
+      ip: 1
+      model: 2
+      username: 3
+    vars_map:
+      ssh_port: 4
+      ssh_keys: 5
+hooks:
+  push_to_forgejo:
+    type: githubrepo
+    events: [post_store]
+    remote_repo: {{ oxidized.remote_repo | json }}
+    privatekey: {{ (oxidized.container_keys ~ '/forgejo') | json }}
+    publickey: {{ (oxidized.container_keys ~ '/forgejo.pub') | json }}

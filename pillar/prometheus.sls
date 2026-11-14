@@ -15,6 +15,9 @@
 {%- set pve = pve_token is string and pve_token | length > 0 and not pve_token.startswith('sdb://') %}
 {%- set fritz_password = salt['sdb.get']('sdb://osvault/homelab/data/fritzbox/exporter?password') or '' %}
 {%- set fritzbox = fritz_password is string and fritz_password | length > 0 and not fritz_password.startswith('sdb://') %}
+{#- Oxidized (formulas/oxidized) only runs once its keys are in OpenBao —
+   pillar/oxidized.jinja decides; its fetch check follows. #}
+{%- from 'oxidized.jinja' import oxidized with context %}
 prometheus:
   scrape_configs:
     - job_name: prometheus
@@ -93,6 +96,21 @@ prometheus:
             - {{ monitoring_ip }}:9787
           labels:
             instance: fritzbox
+{%- endif %}
+{%- if oxidized.enabled %}
+    # Oxidized: oxidized-web's device list through blackbox — fails while
+    # any device's last fetch failed (module oxidized_nodes_ok,
+    # pillar/oxidized.sls). The UI itself is probed via its homepage item.
+    - job_name: oxidized
+      scrape_interval: 60s
+      probe:
+        module: oxidized_nodes_ok
+        exporter: {{ monitoring_ip }}:9115
+      static_configs:
+        - targets:
+            - {{ oxidized.url }}/nodes.json
+          labels:
+            instance: oxidized
 {%- endif %}
     # graphite_exporter, fed by TrueNAS' Reporting → Exporters push. The
     # mapping sets job="truenas" and instance=<TrueNAS hostname> per series
@@ -412,6 +430,16 @@ prometheus:
             severity: critical
           annotations:
             summary: {% raw %}"{{ $labels.friendly_name }}: line is up but the PPP session is not connected"{% endraw %}
+{%- endif %}
+{%- if oxidized.enabled %}
+        {#- Hourly fetch with 3 retries: 2h = two cycles in a row failed. #}
+        - alert: OxidizedFetchFailed
+          expr: probe_success{job="oxidized"} == 0
+          for: 2h
+          labels:
+            severity: warning
+          annotations:
+            summary: "Oxidized couldn't fetch a network device config — which one: Oxidized UI (homepage → Infrastructure), formulas/oxidized README"
 {%- endif %}
         {#- zfs_pool / disk_temperature: Netdata charts via TrueNAS' Graphite
            push and the Supporterino mapping (formulas/infra-exporters).

@@ -155,20 +155,6 @@ No order agreed; pick as needed.
   or just pointing at the same dir); where the prune credential lives so a minion can't get it.
   Combines well with the offsite copy above.
 
-### Oxidized (config backup of network devices into Git)
-
-- **Why**: OPNsense, FRITZ!Box and switches are managed by neither Tofu nor Salt — their config
-  changes are invisible and unbacked. Oxidized pulls them on a schedule and commits each one to
-  a Forgejo repo, so every change becomes a diff.
-- **Sketch**: `formulas/oxidized` (container) on forgejo or monitoring; device list +
-  per-model settings from pillar, read-only device credentials and a Forgejo deploy key via
-  `sdb.get`; output to a private repo `network-configs` (git push). Status API → Prometheus
-  (last successful pull per device). Homepage tile; backup only its config (the history lives
-  in Git).
-- **Open**: OPNsense model support (`opnsense` via SSH vs. the config.xml API); FRITZ!Box export
-  includes secrets → the repo must stay private and tightly scoped; whether OPNsense's own
-  git-backup plugin is the simpler path for that device.
-
 ### OpenBao PKI secrets engine (internal CA with short-lived certs)
 
 - **Why**: OpenBao already runs and every secret goes through it — a PKI mount turns it into

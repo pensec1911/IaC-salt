@@ -1,0 +1,6 @@
+{%- from "oxidized/map.jinja" import oxidized with context -%}
+# Managed by Salt (formulas/oxidized) — do not edit.
+# Tab-separated: name, ip, model, username, ssh_port, ssh_keys (key file in the container).
+{%- for name, d in oxidized.devices | dictsort %}
+{{ [name, d.host, d.model, d.username, d.get('port', 22), oxidized.container_keys ~ '/device-' ~ name] | join('\t') }}
+{%- endfor %}

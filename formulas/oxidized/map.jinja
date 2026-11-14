@@ -1,0 +1,63 @@
+{#- Oxidized: pulls network device configs over SSH, commits every change
+   to a local git repo and pushes it to a remote (githubrepo hook).
+   oxidized-web (bundled in the image) serves the device list, versions and
+   diffs on host_port.
+
+   The image normally starts runit as root, which chowns the config dir and
+   drops to its `oxidized` user (30000) via gosu. Here the container runs
+   oxidized directly as uid/gid (`user`), so no capabilities are needed
+   and the root fs stays read-only (container.sls):
+     config_dir  -> container_home, read-only: config, router.db and
+                    .ssh/known_hosts. HOME points there too — both libgit2
+                    (the push) and net-ssh (the devices) read
+                    $HOME/.ssh/known_hosts.
+     secrets_dir -> container_keys, one read-only bind per key file (0444
+                    in a 0700 dir, podman README).
+     data_dir    -> container_data, :U (the container's mapping owns it):
+                    the local git repo and crash files.
+
+   enabled: renders nothing until pillar sets it — pillar/oxidized.jinja
+     only does once the Forgejo key and >= 1 device are complete.
+   interval: seconds between two fetches of a device (Oxidized's default).
+     A fetch is one SSH exec per command; commits happen only on change.
+   remote_repo: ssh:// URL of the remote; forgejo_key(_pub): its deploy key,
+     legacy PEM (Rugged/libssh2 can't read the OpenSSH format).
+   known_hosts: [{host, port?, enc, key}] for the git remote. Device host
+     keys come from devices.<name>.host_key; input_secure makes Oxidized
+     verify them.
+   devices: name -> {model, host, port, username, host_key: {enc, key},
+     ssh_key}. Key auth only (auth_methods) — no device passwords.
+   podman: container spec overrides (keys: formulas/podman README). #}
+{%- set defaults = {
+    'enabled': False,
+    'image': 'docker.io/oxidized/oxidized',
+    'tag': '0.37.0',
+    'container_name': 'oxidized',
+    'uid': 30000,
+    'gid': 30000,
+    'host_port': 8888,
+    'container_port': 8888,
+    'base_dir': '/opt/oxidized',
+    'config_dir': '/opt/oxidized/config',
+    'secrets_dir': '/opt/oxidized/secrets',
+    'data_dir': '/opt/oxidized/data',
+    'container_home': '/etc/oxidized',
+    'container_keys': '/keys',
+    'container_data': '/var/lib/oxidized',
+    'repo_name': 'network-configs',
+    'git_user': 'Oxidized',
+    'git_email': 'oxidized@monitoring',
+    'interval': 3600,
+    'retries': 3,
+    'timeout': 30,
+    'threads': 4,
+    'auth_methods': ['publickey'],
+    'input_secure': True,
+    'remote_repo': '',
+    'forgejo_key': '',
+    'forgejo_key_pub': '',
+    'known_hosts': [],
+    'devices': {},
+    'podman': {},
+} %}
+{%- set oxidized = salt['pillar.get']('oxidized:lookup', default=defaults, merge=True) %}

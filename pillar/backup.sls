@@ -86,6 +86,16 @@
         'stop_containers': [],
     },
 } %}
+{#- Oxidized's local git repo (formulas/oxidized, only while it runs —
+   pillar/oxidized.jinja): Forgejo has a copy, but a rebuilt Oxidized with
+   an empty repo can't push onto that history (unrelated, conflicting
+   commits). No SQLite, git writes objects before refs — no stop needed. #}
+{%- if grains['id'] == 'monitoring' %}
+{%-   from 'oxidized.jinja' import oxidized with context %}
+{%-   if oxidized.enabled %}
+{%-     do per_minion.monitoring.paths.append('/opt/oxidized/data') %}
+{%-   endif %}
+{%- endif %}
 {%- set this = per_minion.get(grains['id'], {'paths': [], 'excludes': [], 'stop_containers': [], 'dumps': []}) %}
 
 backup:

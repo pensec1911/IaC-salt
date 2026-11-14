@@ -1,0 +1,54 @@
+{#- Oxidized (formulas/oxidized, on monitoring): which network devices it
+   backs up, and whether it runs at all. Imported by pillar/oxidized.sls
+   (the data), pillar/homepage.sls (its tile), pillar/prometheus.sls (fetch
+   check) and pillar/backup.sls (its local repo) — one place for the checks,
+   so the four can't disagree.
+
+   A device is in `devices` only when its pillar data is complete (host,
+   pinned SSH host key) AND its SSH key resolves from OpenBao
+   (homelab/oxidized/<name>, key `ssh_key`). Oxidized refuses to start with
+   zero devices ("source returns no usable nodes"), so `enabled` also needs
+   one — plus the Forgejo deploy key (homelab/oxidized/forgejo), without
+   which the history would never leave monitoring. Until then nothing about
+   Oxidized exists anywhere.
+
+   device_defs: name -> model (Oxidized model name), host (IP), username
+   (read-only device account), port (SSH, default 22), host_key ({enc, key}
+   from `ssh-keyscan <host>` — public data; Oxidized verifies it,
+   input.ssh.secure). FRITZ!Box and the Omada switches have no Oxidized
+   model — formulas/oxidized README "Devices".
+
+   opnsense: no OPNsense box is in inventory.md yet — set host and host_key
+   once it exists (README "OPNsense"). #}
+{%- set device_defs = {
+    'opnsense': {
+        'model': 'opnsense',
+        'host': '',
+        'username': 'oxidized',
+        'port': 22,
+        'host_key': {},
+    },
+} %}
+
+{%- set devices = {} %}
+{%- for name, d in device_defs | dictsort %}
+{%-   set key = salt['sdb.get']('sdb://osvault/homelab/data/oxidized/' ~ name ~ '?ssh_key') or '' %}
+{%-   if d.host and d.host_key and key is string and key | length > 0 and not key.startswith('sdb://') %}
+{%-     set dev = d.copy() %}
+{%-     do dev.update({'ssh_key': key}) %}
+{%-     do devices.update({name: dev}) %}
+{%-   endif %}
+{%- endfor %}
+
+{%- set forgejo_key = salt['sdb.get']('sdb://osvault/homelab/data/oxidized/forgejo?ssh_key') or '' %}
+{%- set forgejo_key_pub = salt['sdb.get']('sdb://osvault/homelab/data/oxidized/forgejo?ssh_key_pub') or '' %}
+{%- set forgejo_ok = forgejo_key is string and forgejo_key | length > 0 and not forgejo_key.startswith('sdb://') %}
+
+{%- set oxidized = {
+    'enabled': forgejo_ok and devices | length > 0,
+    'devices': devices,
+    'forgejo_key': forgejo_key,
+    'forgejo_key_pub': forgejo_key_pub,
+    'host_port': 8888,
+    'url': 'http://192.168.178.25:8888',
+} %}

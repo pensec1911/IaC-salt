@@ -41,6 +41,7 @@ base:
     # Read by prometheus' blackbox job (probe targets = homepage items).
     - homepage
     - infra-exporters
+    - oxidized
 
   'arrstack':
     - nfs-mount

@@ -1,0 +1,13 @@
+{%- from "oxidized/map.jinja" import oxidized with context -%}
+# Managed by Salt (formulas/oxidized) — do not edit.
+# Read by libgit2 (push to the remote) and net-ssh (devices) as $HOME/.ssh/known_hosts.
+{%- set entries = [] %}
+{%- for hk in oxidized.known_hosts %}
+{%-   do entries.append({'host': hk.host, 'port': hk.get('port', 22), 'enc': hk.enc, 'key': hk.key}) %}
+{%- endfor %}
+{%- for name, d in oxidized.devices | dictsort %}
+{%-   do entries.append({'host': d.host, 'port': d.get('port', 22), 'enc': d.host_key.enc, 'key': d.host_key.key}) %}
+{%- endfor %}
+{%- for e in entries %}
+{{ e.host if e.port | int == 22 else '[' ~ e.host ~ ']:' ~ e.port }} {{ e.enc }} {{ e.key }}
+{%- endfor %}
