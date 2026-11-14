@@ -1,7 +1,8 @@
 # salt-minion formula
 
 Minion-side Salt features: **drift detection**, **beacons** (self-healing of stopped
-services) and the **Salt version** (exact apt pin, upgrade via `orch.salt-upgrade`).
+services), the **Salt version** (exact apt pin, upgrade via `orch.salt-upgrade`) and a
+**reconnect watchdog** (restarts a minion stuck without its master).
 
 ## Drift check
 
@@ -123,6 +124,26 @@ pins it only to the line (`/etc/apt/preferences.d/salt-pin-1001`, `3008.*`). Wit
 
 Bump: Renovate proposes it (`renovate.json`, deb datasource, 3008 line only). Then merge and
 push, and run `orch.salt-upgrade` on the master twice (README of `formulas/orch`).
+
+## Reconnect watchdog
+
+A minion that lost its master for a while can stay `active` in systemd without ever reconnecting.
+Seen 2026-11-14 on forgejo/arrstack after pve03's NIC hung: auth timeouts, then
+`Event loop is closed` and silence, until a manual `systemctl restart salt-minion`.
+`reconnect.sls` (on by default) handles three cases:
+
+| Case | Layer |
+|---|---|
+| Process alive, but no longer authenticated | `/etc/salt/minion.d/reconnect.conf`: `ping_interval: 2` + `auth_safemode: False`. A failed re-auth restarts the minion process; `master_tries: -1` keeps it retrying. |
+| Minion loop dead (schedule no longer runs) | Schedule `heartbeat` touches `/run/salt-minion-heartbeat` every 2 min. |
+| Either, from outside | `salt-minion-watchdog.timer` every 2 min: heartbeat older than 10 min, or no established connection to the master's `:4505`. 3 failed checks in a row restart salt-minion. |
+
+The watchdog does nothing while salt-minion is stopped, during its first 10 min after a
+(re)start, or while `salt-upgrade` runs. If the master itself is down, it restarts the
+minions about every 16 min, which is harmless. A change to `reconnect.conf` restarts
+salt-minion once it's idle (transient unit `salt-minion-restart`). Log:
+`journalctl -t salt-minion-watchdog`. Every restart fires `salt/minion/<id>/start`, and with it
+the start reactor's highstate (on arrstack/jellyfin too, at any hour — known-issues.md).
 
 ## Usage
 

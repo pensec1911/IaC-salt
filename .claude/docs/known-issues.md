@@ -44,6 +44,16 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Smaller items
 
+- **pve03's onboard NIC hangs under load** (Intel I219-LM, `e1000e`: `Detected Hardware Unit
+  Hang`, then link down; 4× on 2026-11-14, ~10k hang messages; pve01/02 have the same NIC
+  and 0 hangs). The node goes red in Proxmox and arrstack/forgejo/omada drop off the network.
+  Their NFS mounts block processes, which shows as load ~100 in the VMs. Replugging the cable
+  brought it back. Mitigation, set by hand on pve03 (not managed by any repo yet):
+  `post-up /usr/sbin/ethtool -K nic0 tso off gso off gro off` under `iface nic0` in
+  `/etc/network/interfaces` (backup `interfaces.bak-2026-11-14`). If hangs continue
+  (`journalctl -k | grep "Unit Hang"`), the next steps are a USB/PCIe NIC or
+  `pcie_aspm=off`. The minions that hung after it: salt-minion reconnect watchdog.
+
 - **bootstrap.sh still assumes GitHub** for the deploy key (registers it via `gh`). Since
   2026-10-26 the master pulls from Forgejo (`pillar/salt-master.sls` `gitfs_remote`), so on a
   rebuilt master the key goes to Forgejo `homelab/IaC-salt` → Settings → Deploy keys (read-only)

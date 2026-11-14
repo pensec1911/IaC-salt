@@ -1,0 +1,69 @@
+#!/bin/bash
+# Managed by Salt (formulas/salt-minion reconnect.sls) — do not edit here.
+#
+# salt-minion-watchdog                      (timer, every {{ wd.interval }})
+#   Restarts salt-minion after {{ wd.misses }} failed checks in a row. A check fails when the
+#   heartbeat file (touched by the minion's own schedule) is older than
+#   {{ wd.stale_minutes }} min, or there is no established connection to the master's
+#   publish port {{ wd.publish_port }}.
+# salt-minion-watchdog --restart-when-idle  (after a config change)
+#   Waits until no Salt job runs, then restarts salt-minion.
+# Log: journalctl -t salt-minion-watchdog
+set -uo pipefail
+
+log() { logger -t salt-minion-watchdog "$*"; echo "$*"; }
+
+wait_idle() {
+    local deadline=$((SECONDS + {{ wd.idle_seconds }}))
+    while [ -n "$(ls -A {{ proc_dir }} 2>/dev/null)" ] && [ "$SECONDS" -lt "$deadline" ]; do
+        sleep 5
+    done
+}
+
+if [ "${1:-}" = "--restart-when-idle" ]; then
+    wait_idle
+    log "restarting salt-minion (config change)"
+    exec systemctl restart salt-minion
+fi
+
+state={{ wd.state_file }}
+
+# Stopped on purpose, or a Salt upgrade restarts it anyway.
+if ! systemctl is-active --quiet salt-minion ||
+    systemctl is-active --quiet {{ upgrade_unit }}.timer {{ upgrade_unit }}.service {{ wd.restart_unit }}.timer {{ wd.restart_unit }}.service; then
+    rm -f "$state"
+    exit 0
+fi
+
+now=$(date +%s)
+since=$(systemctl show -p ActiveEnterTimestamp --value salt-minion)
+started=$(date -d "$since" +%s 2>/dev/null || echo "$now")
+stale=$(({{ wd.stale_minutes }} * 60))
+# Freshly (re)started: give it time to connect and run its schedule.
+if [ $((now - started)) -lt "$stale" ]; then
+    rm -f "$state"
+    exit 0
+fi
+
+problem=""
+hb={{ rc.heartbeat_file }}
+if [ ! -e "$hb" ] || [ $((now - $(stat -c %Y "$hb"))) -gt "$stale" ]; then
+    problem="heartbeat older than {{ wd.stale_minutes }} min"
+elif [ -z "$(ss -Htn state established '( dport = :{{ wd.publish_port }} )')" ]; then
+    problem="no connection to the master's port {{ wd.publish_port }}"
+fi
+
+if [ -z "$problem" ]; then
+    rm -f "$state"
+    exit 0
+fi
+
+misses=$(( $(cat "$state" 2>/dev/null || echo 0) + 1 ))
+if [ "$misses" -lt {{ wd.misses }} ]; then
+    echo "$misses" > "$state"
+    log "check failed ($misses/{{ wd.misses }}): $problem"
+    exit 0
+fi
+rm -f "$state"
+log "restarting salt-minion: $problem, {{ wd.misses }} checks in a row"
+systemctl restart salt-minion

@@ -57,7 +57,23 @@
    return reaches the master first, then waits up to idle_seconds until no
    job runs on the minion (proc_dir empty), else gives up. onedir_dir:
    salt-pip extras (pygit2, saltext.vault) live in <onedir_dir>/extras-<py>;
-   if the upgrade changes the bundled Python, the script reinstalls them. #}
+   if the upgrade changes the bundled Python, the script reinstalls them.
+
+   reconnect: a minion that lost its master for a while (pve03's NIC hangs,
+   2026-11-14) can stay "active" in systemd yet never reconnect — auth
+   timeouts, then "Event loop is closed" and silence. Three layers:
+   options -> conf_file in minion.d (ping_interval + auth_safemode False:
+   a minion alive but no longer authenticated restarts its own process);
+   heartbeat -> a minion schedule touches heartbeat_file every
+   heartbeat_minutes, so a dead minion loop shows as a stale file;
+   watchdog -> a systemd timer (independent of Salt) every interval checks
+   the heartbeat (older than stale_minutes) and an established connection
+   to the master's publish_port; `misses` failed checks in a row restart
+   salt-minion. Skipped while salt-minion is stopped, younger than
+   stale_minutes, or a Salt upgrade (version:upgrade:unit) runs.
+   A changed conf_file restarts salt-minion via the watchdog script's
+   --restart-when-idle in a transient unit (restart_unit) — a direct
+   restart would kill the very state run that changed it. #}
 {%- set defaults = {
     'drift_check': {
         'enabled': True,
@@ -98,6 +114,30 @@
             'onedir_dir': '/opt/saltstack/salt',
             'apt_get': '/usr/bin/apt-get',
             'lock_timeout': 300,
+        },
+    },
+    'reconnect': {
+        'enabled': True,
+        'conf_file': '/etc/salt/minion.d/reconnect.conf',
+        'options': {
+            'ping_interval': 2,
+            'auth_safemode': False,
+            'master_alive_interval': 30,
+            'master_tries': -1,
+        },
+        'heartbeat_file': '/run/salt-minion-heartbeat',
+        'heartbeat_minutes': 2,
+        'watchdog': {
+            'unit': 'salt-minion-watchdog',
+            'script': '/usr/local/sbin/salt-minion-watchdog',
+            'interval': '2min',
+            'misses': 3,
+            'stale_minutes': 10,
+            'publish_port': 4505,
+            'state_file': '/run/salt-minion-watchdog.misses',
+            'restart_unit': 'salt-minion-restart',
+            'restart_delay_seconds': 15,
+            'idle_seconds': 900,
         },
     },
 } %}

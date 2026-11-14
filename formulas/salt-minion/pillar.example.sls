@@ -56,3 +56,25 @@ salt-minion:
         onedir_dir: /opt/saltstack/salt
         apt_get: /usr/bin/apt-get
         lock_timeout: 300              # s, dpkg lock (unattended-upgrades)
+    reconnect:
+      # Minion stuck without its master -> restart (map.jinja "reconnect").
+      enabled: True
+      conf_file: /etc/salt/minion.d/reconnect.conf
+      options:                 # minion.d options; a change restarts salt-minion once idle
+        ping_interval: 2       # min; with auth_safemode False: failed re-auth restarts the process
+        auth_safemode: False
+        master_alive_interval: 30
+        master_tries: -1
+      heartbeat_file: /run/salt-minion-heartbeat
+      heartbeat_minutes: 2     # minion schedule touches the file
+      watchdog:
+        unit: salt-minion-watchdog
+        script: /usr/local/sbin/salt-minion-watchdog
+        interval: 2min
+        misses: 3              # failed checks in a row before a restart
+        stale_minutes: 10      # heartbeat age that counts as dead; also start grace
+        publish_port: 4505
+        state_file: /run/salt-minion-watchdog.misses
+        restart_unit: salt-minion-restart
+        restart_delay_seconds: 15
+        idle_seconds: 900
