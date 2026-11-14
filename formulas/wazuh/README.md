@@ -104,8 +104,8 @@ dashboard are installed but not started yet.
 
 ```sh
 /usr/share/wazuh-indexer/bin/indexer-security-init.sh
-curl -k -u admin:admin https://192.168.178.27:9200              # cluster info, not an auth error
-curl -k -u admin:admin https://192.168.178.27:9200/_cat/nodes?v
+curl -k -u admin:admin https://192.168.178.27:9200   # cluster info; factory default, changed in step 4 — secret-scan: allow
+curl -k -u admin:admin https://192.168.178.27:9200/_cat/nodes?v   # secret-scan: allow
 ```
 
 ### 4. Set the passwords

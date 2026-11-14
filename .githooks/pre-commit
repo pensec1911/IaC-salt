@@ -1,4 +1,10 @@
 #!/bin/sh
 # Versioned pre-commit hook. Enable once per clone:
 #   git config core.hooksPath .githooks
-exec python3 "$(git rev-parse --show-toplevel)/.githooks/check-secrets.py"
+top="$(git rev-parse --show-toplevel)"
+python3 "$top/.githooks/check-secrets.py" || exit 1
+# Same gitleaks ruleset as CI (.forgejo/workflows/secret-scan.yml) — only if installed;
+# CI runs it either way.
+if command -v gitleaks >/dev/null 2>&1; then
+    gitleaks git "$top" --staged --config "$top/.gitleaks.toml" --redact --no-banner --log-level warn || exit 1
+fi

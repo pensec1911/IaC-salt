@@ -53,6 +53,19 @@ Not covered: `file.managed` templates (rendered only at apply time) and grain-de
 `git archive HEAD formulas salt pillar | ssh salt-master 'd=$(mktemp -d); tar -x -m -C $d; python3 $d/formulas/salt-master/files/render-check.py $d; rm -rf $d'`.
 Master unreachable: `SKIP_RENDER_CHECK=1 git push` (the secret scan is pre-commit, unaffected).
 
+## Secret scan (CI)
+
+`.forgejo/workflows/secret-scan.yml` runs on every push (any branch) and PR: gitleaks
+(default rules + `.gitleaks.toml`) over the new commits — each commit, not just the tip — and
+`.githooks/check-secrets.py --all` over the tree. It catches what the pre-commit hook can't:
+web-editor commits, Renovate, clones without `core.hooksPath`. Run "workflow_dispatch" in the
+Actions tab for a full-history scan. The `pull_request` run is a required check on `main`.
+
+On a hit: false positive → `secret-scan: allow` on the line (both scanners honour it), or for
+a commit already in history its fingerprint (`<commit>:<file>:<rule>:<line>`, printed by
+gitleaks) in `.gitleaksignore`. Real secret → rotate it in OpenBao and the service; history is
+not rewritten (the GitHub mirror and every clone already have it).
+
 ## Reactor
 
 A minion starting (Tofu provision, reboot, `salt-minion` restart) triggers a full

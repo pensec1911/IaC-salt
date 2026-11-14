@@ -1,0 +1,7 @@
+# gitleaks findings in history that are verified false positives (history is never rewritten;
+# a real hit gets rotated in OpenBao instead). Format: <commit>:<file>:<rule>:<line>
+# Wazuh factory default admin:admin in the bootstrap README, changed in its step 4.
+0f3da6b466f998e6838edca9e0073268108248af:formulas/wazuh/README.md:curl-auth-user:103
+0f3da6b466f998e6838edca9e0073268108248af:formulas/wazuh/README.md:curl-auth-user:104
+881b5f059a5586309a23545e03fab52e1fd2247e:formulas/wazuh/README.md:curl-auth-user:103
+881b5f059a5586309a23545e03fab52e1fd2247e:formulas/wazuh/README.md:curl-auth-user:104

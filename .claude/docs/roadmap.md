@@ -149,16 +149,14 @@ No order agreed; pick as needed.
 - **Open**: TrueNAS SCALE version decides the export path; Scrutiny as the dedicated SMART UI
   vs. alerts only.
 
-### gitleaks in Forgejo Actions (server-side secret scanning)
+### gitleaks for IaC-opentofu
 
-- **Why**: the pre-commit hook (`.githooks/`) only runs where `core.hooksPath` is set — not on
-  commits from the Forgejo web editor, Renovate, or another clone. A CI check on every push/PR
-  is the backstop, and it covers `IaC-opentofu` too.
-- **Sketch**: workflow next to `.forgejo/workflows/render-check.yml`: `gitleaks git` on the
-  pushed range (full history once), shared `.gitleaks.toml` with the repo's allowlist
-  (`sdb.get` references, `pillar.example.sls` placeholders); failing check blocks PR merge.
-- **Open**: reuse the patterns from the existing secret scanner or replace it with gitleaks
-  locally too (one ruleset); what to do with a hit in history (rotate in OpenBao, no rewrite).
+- **Why**: IaC-salt has the server-side scan (`.forgejo/workflows/secret-scan.yml`);
+  IaC-opentofu, with `terraform.tfvars`/state next to the code, has nothing server-side.
+- **Sketch**: copy the workflow + `.gitleaks.toml` (drop the `check-secrets` step or copy the
+  script too); full-history scan once, triage hits into `.gitleaksignore` or rotate. Its
+  `.github/workflows/test.yml` asks for `ubuntu-latest`, which the runner (`docker` label)
+  doesn't serve — fix alongside.
 
 ### OpenTofu plan in PRs + nightly drift check (IaC-opentofu)
 

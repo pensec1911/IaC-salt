@@ -23,8 +23,13 @@ tokens, credentials in URLs, `password:`/`token:`/`secret_id:`-style literals (i
 `Passwort`/`Kennwort`), e-mail addresses, public IPs, home-directory paths, and forbidden files
 (`.env`, keys/certs, WireGuard configs, `vault-secret-id`, `.claude/settings.local.json`, `todo/`).
 
+If `gitleaks` is installed, the hook also runs it with the CI ruleset (`.gitleaks.toml`).
+Server-side, `.forgejo/workflows/secret-scan.yml` runs gitleaks over every pushed commit plus
+`check-secrets.py --all` on every push and PR — the backstop for web-editor and Renovate commits.
+
 Never bypass with `git commit --no-verify`. For a verified false positive, append
-`secret-scan: allow` to that line and say why in the commit message.
+`secret-scan: allow` to that line (both scanners honour it) and say why in the commit message.
+A false positive only in history goes into `.gitleaksignore` by fingerprint.
 
 ## 2. Manual review (what regex misses)
 

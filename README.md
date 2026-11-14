@@ -78,7 +78,9 @@ something this repo can generate, so it stays a manual step.
 ## Before your first commit
 
 Enable the versioned pre-commit hook once per clone — it blocks commits containing secrets or
-private data (see `.githooks/check-secrets.py`, `--all` for a full audit):
+private data (see `.githooks/check-secrets.py`, `--all` for a full audit; with `gitleaks`
+installed it also runs the CI ruleset `.gitleaks.toml`). CI repeats both on every push and PR
+(`.forgejo/workflows/secret-scan.yml`):
 
 ```sh
 git config core.hooksPath .githooks
