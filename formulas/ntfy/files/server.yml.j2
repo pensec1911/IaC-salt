@@ -1,0 +1,25 @@
+{%- from "ntfy/map.jinja" import ntfy with context -%}
+# Managed by Salt (formulas/ntfy) — edit pillar ntfy:lookup.
+# Paths are inside the container (formulas/ntfy/container.sls).
+listen-http: ":8080"
+{%- if ntfy.base_url %}
+base-url: {{ ntfy.base_url | yaml_encode }}
+{%- endif %}
+cache-file: /var/lib/ntfy/cache.db
+cache-duration: {{ ntfy.cache_duration | yaml_encode }}
+auth-file: /var/lib/ntfy/auth.db
+auth-default-access: {{ ntfy.default_access | yaml_encode }}
+enable-signup: false
+enable-login: true
+require-login: true
+# Declarative auth: synced into auth.db on every start; users, ACLs and
+# tokens not listed here are removed.
+auth-users:
+  - {{ (ntfy.admin_user ~ ':' ~ ntfy.admin_password_hash ~ ':admin') | yaml_encode }}
+  - {{ (ntfy.publisher_user ~ ':' ~ ntfy.publisher_password_hash ~ ':user') | yaml_encode }}
+auth-access:
+{%- for topic in ntfy.publisher_topics %}
+  - {{ (ntfy.publisher_user ~ ':' ~ topic ~ ':write-only') | yaml_encode }}
+{%- endfor %}
+auth-tokens:
+  - {{ (ntfy.publisher_user ~ ':' ~ ntfy.publisher_token ~ ':salt-managed') | yaml_encode }}

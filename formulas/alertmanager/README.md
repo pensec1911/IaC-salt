@@ -16,7 +16,11 @@ Besides Prometheus, Wazuh posts its manager alerts here directly (`WazuhAlert`,
 `WazuhVulnerability`, label `source=wazuh` — formulas/wazuh README "Alerts to Alertmanager").
 
 Default config (no pillar) has only a `null` receiver: alerts are visible in the UI
-(`:9093`) and in Grafana, but nothing is sent anywhere.
+(`:9093`) and in Grafana, but nothing is sent anywhere. `pillar/alertmanager.sls` adds push
+notifications via ntfy on jellyfin (`formulas/ntfy`): topic `alerts-critical` (priority high)
+and `alerts-warning` (everything else), grouped by `alertname`, rendered by ntfy's built-in
+`?template=alertmanager`. Those receivers exist only while the token `ntfy/alertmanager` resolves
+from OpenBao; without it the config falls back to `null` instead of failing.
 
 ## Usage
 

@@ -94,6 +94,7 @@ base:
     - cadvisor
     - alloy
     - jellyfin
+    - ntfy
     - backup
 
   'forgejo':
