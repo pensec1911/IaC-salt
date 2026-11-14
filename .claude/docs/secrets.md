@@ -42,6 +42,9 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `forgejo/runner` | `secret` | `pillar/forgejo.sls` — 40-hex offline registration secret of the Actions runner, used on both sides (forgejo `runners`, forgejo-runner). Rotate: change the last 24 chars. |
 | `salt-api/forgejo` | `hmac` | `pillar/salt-master.sls` — HMAC secret of the Forgejo push webhook to `/hook/git` (set on the webhook in `homelab/IaC-salt`); must be the same on both sides |
 | `github/mirror` | `token` | Not read by pillar — fine-grained GitHub PAT (Contents RW on IaC-salt, IaC-opentofu) for Forgejo's push mirrors; stored encrypted in Forgejo's DB too. On rotation: update both. |
+| `netbox/app` | `secret_key`, `db_password`, `api_token_pepper` | `pillar/netbox.sls` (formulas/netbox README "OpenBao") |
+| `netbox/admin` | `username`, `password` | Not read by pillar — NetBox superuser (formulas/netbox README "First run") |
+| `netbox/tofu` | `api_token` | Not read by pillar — v2 token of the NetBox user `opentofu`, read by `IaC-opentofu` (`vault.tf`) to write the inventory. The Tofu AppRole policy needs `read` on it. |
 | `restic/repo` | `password` | `pillar/backup.sls` — restic repo password, shared by all minion repos. Changing it needs `restic key add` first (formulas/backup README); keep a copy outside the homelab. |
 
 Check `grep -rn "sdb://" pillar/` for the authoritative list.

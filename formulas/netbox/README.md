@@ -3,9 +3,10 @@
 Runs [NetBox](https://netbox.dev) (IPAM/DCIM) from the upstream
 [netbox-docker](https://github.com/netbox-community/netbox-docker) image as four Docker
 containers. Depends on the `podman` formula; nothing on the host besides the dirs under
-`/opt/netbox`. It's the inventory database for the homelab — this formula only runs it;
-what goes in, and whether Salt/Tofu read from it, is the roadmap item "NetBox as source of
-truth".
+`/opt/netbox`. It's the inventory database for the homelab — this formula only runs it.
+Content comes from `IaC-opentofu` (`netbox.tf`, README "NetBox"): every `tofu apply` writes the
+Proxmox nodes, NAS, router, all VMs and their IPs (tag `opentofu`). One direction only — Salt
+and Tofu never read from NetBox (roadmap.md "Deliberately not").
 
 ## What it manages
 
@@ -73,9 +74,9 @@ ssh -i ~/.ssh/homelab debian@192.168.178.29 \
   sudo podman exec -it netbox /opt/netbox/netbox/manage.py createsuperuser
 ```
 
-Store the account in OpenBao (`homelab/netbox/admin`, keys `username`/`password`). API tokens
-for automation (Salt ext_pillar, Tofu provider): create them in the UI under that user (or a
-dedicated one) and put them in OpenBao — never in pillar as a literal.
+Store the account in OpenBao (`homelab/netbox/admin`, keys `username`/`password`). The Tofu
+writer gets its own non-superuser `opentofu` with a scoped permission and a v2 token in
+OpenBao `netbox/tofu` — steps in the `IaC-opentofu` README "NetBox".
 
 ## Backup / restore
 
@@ -106,6 +107,6 @@ dump/restore into a fresh `postgres_dir`, so do it by hand.
 
 ## Not managed
 
-- Content (sites, prefixes, VMs, IPs) — UI/API, in the DB.
+- Content (sites, prefixes, VMs, IPs) — written by `IaC-opentofu`, in the DB.
 - Superuser and API tokens — manual, above.
 - TLS — plain HTTP in the LAN like the other UIs.

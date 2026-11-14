@@ -67,19 +67,6 @@ No order agreed; pick as needed.
   admin per service stays; IdP down = locked out → backup + its own probe; OpenBao/Proxmox
   OIDC setup is security-critical → manual, documented.
 
-### NetBox as source of truth (IPAM/DCIM)
-
-- **Why**: `inventory.md`, `pillar/*` and the Tofu `vms/*/main.tf` each hold IPs, ports and
-  sizing by hand and drift apart. `formulas/netbox` now runs NetBox on forgejo (:8000, backed
-  up via `dumps`), but it's empty — nothing reads from or writes to it yet.
-- **Sketch**: seed it with VMs, IPs and services from inventory.md (script or `netbox`
-  Tofu provider resources). Then Salt's built-in `netbox` ext_pillar for per-minion data and
-  the Tofu `netbox` provider to register/look up VMs.
-- **Open**: which direction is authoritative (NetBox -> Tofu/Salt, or Tofu writes, NetBox
-  reads); whether inventory.md is then generated or dropped; API token for Salt/Tofu in OpenBao
-  (read-only for ext_pillar); how a NetBox outage affects pillar rendering (ext_pillar failing
-  must not break every minion's render or the pre-push check).
-
 ### Zero-trust remote access (Headscale + Headplane, or alternative)
 
 - **Why**: remote access currently goes through `tailscale-router` (Tofu VM) on Tailscale's
@@ -198,7 +185,8 @@ No order agreed; pick as needed.
 - **Open**: state is a local `terraform.tfstate` today → needs a remote backend first
   (Forgejo has no state backend; options: S3 on TrueNAS/Garage/MinIO, `pg` backend, or HTTP
   backend) plus state encryption (OpenTofu native); whether the runner may reach the Proxmox
-  API; plan output may contain secrets → redact before posting.
+  API; plan output may contain secrets → redact before posting. The plan also refreshes the
+  `netbox_*` resources → needs the NetBox token (`netbox/tofu`, read-only would do for plan).
 
 ### Velociraptor (on-demand endpoint forensics)
 
@@ -255,3 +243,8 @@ No order agreed; pick as needed.
 - **inotify beacon → re-apply on config change** — needs pyinotify in the onedir bundle, fires
   on Salt's own writes too (double highstate), and on arrstack/jellyfin it would be self-repair
   through the back door. The hourly enforce run covers the other minions.
+- **NetBox as source of truth for Salt/Tofu** (ext_pillar, Tofu reading IPs from NetBox) —
+  decided 2026-11-14: the direction is Tofu → NetBox only (`IaC-opentofu` `netbox.tf`, README
+  "NetBox"). A `netbox` ext_pillar would make every render, the pre-push check and the hourly
+  self-repair depend on a NetBox that runs on forgejo itself (circular with Git/CI), for
+  pillar data that is almost all service config, not IPs. NetBox stays a read-only view.

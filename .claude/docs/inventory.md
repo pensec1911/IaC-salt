@@ -2,6 +2,11 @@
 
 Flat network 192.168.178.0/24 (FRITZ!Box range). Minion ID = hostname = Tofu VM name.
 
+VMs, IPs, sizing and the physical hosts are also in NetBox (http://192.168.178.29:8000),
+written by `IaC-opentofu` on every apply — authoritative for those is the Tofu code. This file
+stays the reference for what NetBox doesn't hold: formulas, services/ports, access, NAS
+exports, VPN.
+
 ## Salt minions
 
 | Minion | IP | Formulas (`salt/top.sls`) | Services / ports |

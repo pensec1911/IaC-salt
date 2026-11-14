@@ -44,6 +44,10 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Smaller items
 
+- **NetBox is still empty** (2026-11-14): `IaC-opentofu` `netbox.tf` is in place, but the first
+  apply waits on the manual steps in its README "NetBox" (user `opentofu`, token in OpenBao
+  `netbox/tofu`, Tofu AppRole policy). Remove this entry after the first `tofu apply`.
+
 - **bootstrap.sh still assumes GitHub** for the deploy key (registers it via `gh`). Since
   2026-10-26 the master pulls from Forgejo (`pillar/salt-master.sls` `gitfs_remote`), so on a
   rebuilt master the key goes to Forgejo `homelab/IaC-salt` → Settings → Deploy keys (read-only)
