@@ -40,10 +40,13 @@ patchmon-agent-service:
       - file: patchmon-agent-binary
       - file: patchmon-agent-unit
       - file: patchmon-agent-credentials
+{%- if agent.enroll %}
+      - cmd: patchmon-agent-enroll
+{%- endif %}
       - file: patchmon-agent-config-server
 {%- else %}
 
 patchmon-agent-not-enrolled:
   test.succeed_without_changes:
-    - name: "patchmon-agent: no credentials for {{ grains['id'] }} in OpenBao patchmon/agent/{{ grains['id'] }} — binary installed, service not set up (README)"
+    - name: "patchmon-agent: not enrolled and no auto-enrollment token (OpenBao patchmon/enroll) — binary installed, service not set up (README)"
 {%- endif %}

@@ -4,10 +4,12 @@
    server tag (README "Upgrades"); Renovate doesn't see this pin.
 
    server_url: where the agent connects (http + WebSocket).
-   api_id and api_key are this minion's credentials, created per host in the
-   PatchMon UI (README "Enrol a minion"), from OpenBao via pillar. Empty or
-   unresolved = not enrolled yet: the binary is installed, the service
-   isn't set up — no failure, so un-enrolled minions keep a clean highstate.
+   enroll_key / enroll_secret: one PatchMon auto-enrollment token for all  (secret-scan: allow)
+   minions (README "Enrolment"), from OpenBao via pillar. A minion without
+   credentials.yml enrols itself with it (friendly name = minion ID) and
+   keeps the per-host credentials it gets back; the token file is deleted
+   after that. No credentials and no token (empty/unresolved) = binary only,
+   no service, no failure — a clean highstate either way.
 
    config.yml belongs to the agent after the first write: it rewrites
    update_interval, integrations, host_id itself. Salt creates it once and
@@ -21,13 +23,21 @@
     'config_dir': '/etc/patchmon',
     'unit': 'patchmon-agent',
     'server_url': '',
-    'api_id': '',
-    'api_key': '',
+    'enroll_key': '',
+    'enroll_secret': '',
+    'enroll_script': '/usr/local/sbin/patchmon-agent-enroll',
     'log_level': 'info',
 } %}
 {%- set agent = salt['pillar.get']('patchmon-agent:lookup', default=defaults, merge=True) %}
-{%- set _id = agent.api_id or '' %}
-{%- set _key = agent.api_key or '' %}
-{%- set _ok = _id and _key and agent.server_url
-              and not _id.startswith('sdb://') and not _key.startswith('sdb://') %}
-{%- do agent.update({'enrolled': true if _ok else false}) %}
+{%- set _k = agent.enroll_key or '' %}
+{%- set _s = agent.enroll_secret or '' %}
+{%- set token_ok = (_k and _s and agent.server_url
+                    and not _k.startswith('sdb://') and not _s.startswith('sdb://')) and true or false %}
+{%- set creds_file = agent.config_dir ~ '/credentials.yml' %}
+{%- set has_creds = salt['file.file_exists'](creds_file) %}
+{%- do agent.update({
+      'creds_file': creds_file,
+      'token_file': agent.config_dir ~ '/enroll-token.json',
+      'enroll': token_ok and not has_creds,
+      'enrolled': has_creds or token_ok,
+    }) %}

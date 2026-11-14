@@ -4,10 +4,11 @@
 patchmon-agent:
   lookup:
     server_url: http://192.168.178.29:3001
-    # Per minion, created in the PatchMon UI (README "Enrol a minion").
-    # Missing in OpenBao = not enrolled: binary only, no service.
-    api_id: {{ salt['sdb.get']('sdb://osvault/homelab/data/patchmon/agent/' ~ grains['id'] ~ '?api_id') | yaml_encode }}
-    api_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/patchmon/agent/' ~ grains['id'] ~ '?api_key') | yaml_encode }}
+    # One auto-enrollment token for all minions (README "Enrolment").
+    # Missing in OpenBao = minions without credentials stay un-enrolled:
+    # binary only, no service.
+    enroll_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/patchmon/enroll?key') | yaml_encode }}
+    enroll_secret: {{ salt['sdb.get']('sdb://osvault/homelab/data/patchmon/enroll?secret') | yaml_encode }}
     # Optional — overrides for formulas/patchmon-agent/map.jinja defaults.
     # version and sha256 move together (sha256 of patchmon-agent-linux-amd64
     # from the release's SHA256SUMS).
@@ -17,3 +18,4 @@ patchmon-agent:
     bin: /usr/local/bin/patchmon-agent
     config_dir: /etc/patchmon
     unit: patchmon-agent
+    enroll_script: /usr/local/sbin/patchmon-agent-enroll

@@ -58,7 +58,7 @@ bao kv put -mount=homelab patchmon/server \
 2. Settings → General → **Server URL** = `http://192.168.178.29:3001` (the URL agents connect
    back to; stored in the DB, not in env).
 3. Settings → Agent Updates → **auto-update off**.
-4. Enrol the agents: `formulas/patchmon-agent` README.
+4. Auto-enrollment token for the agents: `formulas/patchmon-agent` README "Enrolment".
 
 ## Backup / restore
 

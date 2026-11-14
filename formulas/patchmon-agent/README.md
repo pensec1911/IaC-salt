@@ -11,32 +11,43 @@ enrolled host.
 - `patchmon-agent.install` — `/usr/local/bin/patchmon-agent` from the GitHub release, pinned
   by `version` + `sha256`. A binary changed by anything else (e.g. the server's auto-update,
   which stays off) is put back on the next highstate.
-- `patchmon-agent.config` — `/etc/patchmon` (0700); once enrolled: `credentials.yml` (0600,
-  from OpenBao) and `config.yml`. The agent rewrites `config.yml` itself (interval,
-  integrations, `host_id`), so Salt creates it once and afterwards only enforces
-  `patchmon_server` and `ssh-proxy-enabled`/`rdp-proxy-enabled: false`.
+- `patchmon-agent.config` — `/etc/patchmon` (0700) and the enrol script
+  (`/usr/local/sbin/patchmon-agent-enroll`). A minion without `credentials.yml` enrols itself
+  (below) and keeps the credentials it gets back (0600, only the mode is enforced).
+  `config.yml`: the agent rewrites it itself (interval, integrations, `host_id`), so Salt
+  creates it once and afterwards only enforces `patchmon_server` and
+  `ssh-proxy-enabled`/`rdp-proxy-enabled: false`.
 - `patchmon-agent.service` — upstream's unit (`patchmon-agent serve`, `Restart=always`),
-  restarted on a new binary, unit, credentials or server URL.
+  restarted on a new binary, unit, enrolment or server URL.
 
-Not enrolled (no OpenBao entry for the minion): only the binary is installed, and a
+No credentials and no token in OpenBao: only the binary is installed, and a
 `patchmon-agent-not-enrolled` state says so without failing.
 
-## Enrol a minion (manual, once per minion)
+## Enrolment
 
-Credentials are per host and shown only once, so this stays a UI step:
+Automatic, through PatchMon's auto-enrollment API. The token is the one manual step:
 
-1. PatchMon → Hosts → **Add host**, friendly name = minion ID. Copy API ID and API key from the
-   install command it shows — **don't run that command** (Salt installs the agent).
+1. PatchMon → Settings → Integrations → **Auto-enrollment** → new token. Restrict it as far as
+   the UI allows (allowed IP range = the homelab LAN, a small max hosts per day, a default host
+   group if wanted). Copy key and secret — the secret is shown only once.
 2. On the OpenBao host:
    ```sh
-   read -rs KEY && printf %s "$KEY" | bao kv put -mount=homelab patchmon/agent/<minion> api_id=<API_ID> api_key=- ; unset KEY
+   read -rs S && printf %s "$S" | bao kv put -mount=homelab patchmon/enroll key=<TOKEN_KEY> secret=- ; unset S
    ```
-3. Highstate the minion (or wait for its next enforce run). The host turns active in the UI
-   after its first report.
+3. Highstate (or wait for the enforce runs). Each minion without `/etc/patchmon/credentials.yml`
+   posts its minion ID + `/etc/machine-id` to `/api/v1/auto-enrollment/enroll`, writes the
+   returned `credentials.yml`, deletes the token file, and the service starts.
 
-Lost key: Host detail → Deploy Agent → API Credentials → Regenerate, then step 2 again.
-Removing a minion: delete the host in the UI and `bao kv metadata delete -mount=homelab
-patchmon/agent/<minion>`.
+The per-host credentials exist only on the host (`/etc/patchmon`, not in OpenBao, not in the
+backup — a lost one is re-enrolled, not restored). The token, in pillar of every minion, can
+only create hosts (within its limits) — not read or change any. Revoke it in the UI when no new
+minions are expected; existing agents keep working.
+
+Re-enrol a host (key lost, host deleted in the UI): `rm /etc/patchmon/credentials.yml`,
+highstate. A host this token created that never reported gets a new key for its existing
+entry; one that did report is refused (`409 machine_id_match` in the state output) — delete it
+in the UI first.
+Removing a minion: delete the host in the UI.
 
 ## Upgrades
 

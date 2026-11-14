@@ -1,9 +1,9 @@
-{#- formulas/patchmon-agent on every minion. Per-minion credentials in
-   OpenBao patchmon/agent/<minion id>; missing = not enrolled yet
-   (formulas/patchmon-agent README "Enrol a minion"). #}
-{%- set path = 'sdb://osvault/homelab/data/patchmon/agent/' ~ grains['id'] %}
+{#- formulas/patchmon-agent on every minion. One auto-enrollment token for
+   all minions in OpenBao patchmon/enroll (key, secret); a minion without
+   credentials enrols itself with it (formulas/patchmon-agent README
+   "Enrolment"). #}
 patchmon-agent:
   lookup:
     server_url: http://192.168.178.29:3001
-    api_id: {{ salt['sdb.get'](path ~ '?api_id') | yaml_encode }}
-    api_key: {{ salt['sdb.get'](path ~ '?api_key') | yaml_encode }}
+    enroll_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/patchmon/enroll?key') | yaml_encode }}
+    enroll_secret: {{ salt['sdb.get']('sdb://osvault/homelab/data/patchmon/enroll?secret') | yaml_encode }}

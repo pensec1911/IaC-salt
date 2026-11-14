@@ -6,20 +6,62 @@ patchmon-agent-config-dir:
     - user: root
     - group: root
     - mode: '0700'
-{%- if agent.enrolled %}
-
-patchmon-agent-credentials:
+{#- Kept on every minion (tiny, no secret) so a re-enrol only needs
+   credentials.yml deleted (README "Enrolment"). #}
+patchmon-agent-enroll-script:
   file.managed:
-    - name: {{ agent.config_dir }}/credentials.yml
+    - name: {{ agent.enroll_script }}
+    - source: salt://patchmon-agent/files/enroll.py
+    - user: root
+    - group: root
+    - mode: '0700'
+{%- if agent.enroll %}
+
+{#- The token only sits on disk until enrolment succeeded (the script
+   deletes it); never on the command line (ps, job cache). #}
+patchmon-agent-enroll-token:
+  file.managed:
+    - name: {{ agent.token_file }}
     - contents: |
-        api_id: {{ agent.api_id | yaml_dquote }}
-        api_key: {{ agent.api_key | yaml_dquote }}
+        {{ {'server_url': agent.server_url, 'key': agent.enroll_key, 'secret': agent.enroll_secret, 'friendly_name': grains['id']} | json }}  {# secret-scan: allow — sdb-resolved pillar #}
     - user: root
     - group: root
     - mode: '0600'
     - show_changes: False   # secret — keep it out of state output / job cache
     - require:
       - file: patchmon-agent-config-dir
+
+patchmon-agent-enroll:
+  cmd.run:
+    - name: {{ agent.enroll_script }} {{ agent.token_file }} {{ agent.creds_file }} {{ agent.config_dir }}/config.yml
+    - creates: {{ agent.creds_file }}
+    - require:
+      - file: patchmon-agent-enroll-script
+      - file: patchmon-agent-enroll-token
+{%- else %}
+
+{#- Left behind only by a failed enrolment run that was later fixed by hand. #}
+patchmon-agent-enroll-token:
+  file.absent:
+    - name: {{ agent.token_file }}
+{%- endif %}
+{%- if agent.enrolled %}
+
+{#- Written by the enrol script (or already there); only the mode is
+   enforced — the content is the agent's identity, never rewritten. #}
+patchmon-agent-credentials:
+  file.managed:
+    - name: {{ agent.creds_file }}
+    - create: False
+    - replace: False
+    - user: root
+    - group: root
+    - mode: '0600'
+    - require:
+      - file: patchmon-agent-config-dir
+{%- if agent.enroll %}
+      - cmd: patchmon-agent-enroll
+{%- endif %}
 
 {#- Created once; the agent owns it afterwards (map.jinja). #}
 patchmon-agent-config:
@@ -41,7 +83,7 @@ patchmon-agent-config:
     - group: root
     - mode: '0600'
     - require:
-      - file: patchmon-agent-config-dir
+      - file: patchmon-agent-credentials
 
 {#- What Salt keeps enforcing in the agent-owned file. The lookahead skips
    a line that's already right, quoted or not (the agent re-marshals the
