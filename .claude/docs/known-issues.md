@@ -82,3 +82,11 @@ Remove an entry once fixed (the fix lives in git history).
   were deliberately not taken: Radarr 6, Prowlarr 2, qBittorrent 5 — each migrates its config/DB
   one-way, so run a fresh backup first (`systemctl start restic-backup.service`, formulas/backup)
   and read the release notes before bumping.
+
+- **Tofu drift issue stays open: permanent diff on the three `debian13_template` VMs**
+  (IaC-opentofu, seen 2026-11-14, already present before the move to `backend "pg"`). Every
+  plan shows `ipv4_addresses` / `ipv6_addresses` / `network_interface_names`
+  `[] -> (known after apply)`: computed fields of templates that never run. So the nightly
+  `drift.yml` never sees an empty plan and its issue never closes. Fix in
+  `modules/vm-template` (likely `lifecycle { ignore_changes }` or a provider setting), check with
+  `tofu plan` → No changes.

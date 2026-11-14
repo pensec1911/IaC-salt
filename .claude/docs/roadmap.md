@@ -26,6 +26,8 @@ No order agreed; pick as needed.
   `alertmanager:config` in `pillar/alertmanager.sls` with a webhook receiver (ntfy speaks the
   Alertmanager format via `?template=alertmanager` or a small bridge), token via `sdb.get`;
   route by severity, group so a burst is one message. Homepage tile + backup entry (user DB).
+  Once it exists, `IaC-opentofu`'s `.forgejo/workflows/drift.yml` can push to it too (today
+  the only drift signal is the Forgejo issue).
 - **Open**: which host (not monitoring itself — alerts must still arrive when it's down);
   dead-man's switch (Watchdog alert → external heartbeat, e.g. healthchecks.io) so a dead
   monitoring VM is noticed; phone access from outside (ntfy.sh upstream relay vs. the
