@@ -236,6 +236,78 @@ No order agreed; pick as needed.
   yet — known-issues "Backup gaps"); distributing the root to clients; ACME (OpenBao PKI speaks
   ACME) vs. Salt-driven issuance.
 
+### OpenBao SSH secrets engine (short-lived SSH certificates)
+
+- **Why**: logins today rest on static keys in `ssh_authorized_keys` (`formulas/users`) — a
+  leaked key works until someone removes it from pillar on every host. Signed certificates with a
+  TTL of hours expire on their own and carry the principal (user) in the cert.
+- **Sketch**: `ssh-client-signer` mount in OpenBao with one role per principal set; `formulas/users`
+  (or a small `ssh-ca` formula) drops the CA public key and sets `TrustedUserCAKeys` +
+  `AuthorizedPrincipalsFile` via `file.blockreplace` in `sshd_config`; the client signs with
+  `bao write ssh-client-signer/sign/<role>` before connecting. Optionally host certs too
+  (`@cert-authority` in `known_hosts`, no more TOFU prompts on rebuilt VMs).
+- **Open**: CA creation + roles/policies are security-critical bootstrap → manual, documented;
+  break-glass if OpenBao is down (keep one static key per host, or only on the master?);
+  shares the "OpenBao isn't backed up" gap with the PKI entry.
+
+### CIS hardening + OpenSCAP compliance score
+
+- **Why**: base hardening is implicit today (unattended-upgrades, users, Podman defaults) — there
+  is no statement of *how* hardened a minion is, nor detection when it drifts. A benchmark turns
+  that into a number per host.
+- **Sketch**: `formulas/hardening` with the CIS Level 1 items that make sense for headless VMs
+  (sysctl, sshd via `file.blockreplace`, mount options, auditd basics, disabled modules), each
+  toggleable in pillar so exceptions are explicit and documented. Weekly `oscap xccdf eval`
+  (SCAP Security Guide profile for the distro) via timer → score + failed-rule count as textfile
+  metrics → Prometheus alert on drop; HTML report on the NAS.
+- **Open**: which profile (CIS L1 server vs. ANSSI/STIG) and the distro's SSG coverage; rules
+  that break Podman/NFS/Jellyfin (`noexec` on `/tmp`, IP forwarding, kernel modules) → per-minion
+  exceptions; apply incrementally, `test=True` first per minion.
+
+### Ephemeral test minion in CI (formulas tested on a real VM)
+
+- **Why**: the pre-push hook and the render-check workflow only prove a minion *renders*. Whether
+  a formula actually brings the service up (container starts, port answers, config valid) is only
+  seen on the real minion after the push — which already deploys itself via `orch.push`.
+- **Sketch**: a Forgejo workflow on PRs that touch `formulas/`: Tofu (`IaC-opentofu`, separate
+  state/workspace) clones a throwaway VM from the template with a `ci-<run>` minion ID; master
+  accepts it, a CI pillar (no real secrets — dummy values or a scoped OpenBao path) maps the
+  changed formula(s); `state.apply` twice (second run must report 0 changes = idempotent); then
+  goss/testinfra checks per formula (`formulas/<name>/tests/`); `tofu destroy` + key delete in an
+  `always` step. Result as PR status.
+- **Open**: runner needs Proxmox API + master access (scoped token, its own pool/VLAN); duration
+  (clone + highstate ≈ minutes) → only changed formulas; NFS/VPN-dependent formulas need mocks or
+  are skipped; leftover VMs/keys if the job dies (nightly sweeper).
+
+### Packer golden images
+
+- **Why**: `IaC-opentofu`'s `vm-template` downloads a stock cloud image; every new VM then installs
+  salt-minion and runs its whole first highstate from scratch. A pre-baked image boots faster,
+  is reproducible, and is the base the ephemeral test minion and the hardening entry want anyway.
+- **Sketch**: Packer (`proxmox-iso` or `proxmox-clone` builder) in a Forgejo workflow, monthly +
+  on change: stock cloud image → salt-minion (pinned version), `users`/`ntp`/`node-exporter`/
+  `hardening` applied masterless (`salt-call --local` against this repo) → cloud-init reset →
+  Proxmox template `debian-golden-<date>`. Tofu's template variable switches to it; Renovate
+  bumps the base image checksum.
+- **Open**: lives in `IaC-opentofu` or its own repo; masterless apply needs pillar without the
+  sdb secrets (only secret-free formulas go into the image); template retention/rollback;
+  keeping image and salt-minion version in sync with `formulas/salt-minion`.
+
+### Chaos job (verify self-repair and alerting)
+
+- **Why**: self-repair (hourly enforce, `orch.push`) and the alert rules are assumed to work but
+  are only exercised when something really breaks. Breaking things on purpose, on a schedule,
+  turns that into a tested property — the same idea as the weekly restore test for backups.
+- **Sketch**: a scheduled Forgejo job (or timer on the master) picks one enforce-hourly minion
+  and one fault from a pillar list — stop a container, edit a managed config file, stop
+  node-exporter, disable a systemd unit; records the start time; then checks via Prometheus that
+  the matching alert fired and via Salt that the next enforce run reverted it within the expected
+  window. Result as metric (`chaos_last_success`, per fault) + alert when a repair or alert is
+  missing.
+- **Open**: only on hourly-enforce minions, never arrstack/jellyfin outside their window or
+  forgejo during CI; a kill switch in pillar; faults must be safe (no data paths, no NFS, no
+  network) — curated list, not random; runs on the ephemeral test minion first.
+
 ## Deliberately not
 
 - **Key acceptance via reactor** — keys are currently auto-accepted master-wide
