@@ -56,4 +56,4 @@ Delete a row once the service is merged and its real usage shows in the 7-day pe
 | 02 Healthchecks (job dead-man's switch) | jellyfin | 200 MB (2 gunicorn workers + sendalerts/sendreports) | ~0.4 GB (image 107 MB compressed, ~300 MB unpacked; SQLite < 50 MB) | #24 |
 | 03 CyberChef + IT-Tools (browser toolboxes) | monitoring | 40 MB (two static nginx, 2 workers each) | ~0.5 GB (images 121 MB + 23 MB compressed; no data) | #25 |
 | 04 Infra metrics (pve-, fritz-, graphite-exporter) | monitoring | 130 MB (two Python exporters ~50 MB each, graphite_exporter ~30 MB) | ~0.3 GB (images 50 + 25 + 10 MB compressed; no data) | #28 |
-| 05 Oxidized (network config backup) | monitoring | 200 MB (Ruby + puma/oxidized-web; only runs once a device is configured) | ~0.45 GB (image 115 MB compressed, ~400 MB unpacked; git repo < 50 MB) | #? |
+| 05 Oxidized (network config backup) | monitoring | 200 MB (Ruby + puma/oxidized-web; only runs once a device is configured) | ~0.45 GB (image 115 MB compressed, ~400 MB unpacked; git repo < 50 MB) | #29 |
