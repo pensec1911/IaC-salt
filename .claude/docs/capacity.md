@@ -52,4 +52,4 @@ Delete a row once the service is merged and its real usage shows in the 7-day pe
 
 | Item | Minion | Est. RAM | Est. disk | PR |
 |---|---|---|---|---|
-| 01 ntfy (Alertmanager push) | jellyfin | 50 MB | ~0.1 GB (image 37 MB compressed, data < 50 MB) | #TBD |
+| 01 ntfy (Alertmanager push) | jellyfin | 50 MB | ~0.1 GB (image 37 MB compressed, data < 50 MB) | #23 |
