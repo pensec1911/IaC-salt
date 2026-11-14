@@ -178,6 +178,64 @@ No order agreed; pick as needed.
   (losing OpenBao loses the key to the copy). OpenBao isn't backed up at all yet
   (known-issues.md "Backup gaps") — fix that first, then its snapshot goes offsite too.
 
+### restic rest-server in append-only mode (ransomware-proof backups)
+
+- **Why**: every minion writes its repo over NFS to `/mnt/backups/<minion>` with full rights —
+  a compromised minion (or a bad `forget`) can delete its own backups along with the data. An
+  append-only target means a client can only add snapshots; deleting needs a separate host.
+- **Sketch**: `formulas/restic-server` (rest-server container, `--append-only
+  --private-repos`, htpasswd user per minion with password via `sdb.get`) on a host that is not
+  a backup client of itself, data dir on the NAS. `formulas/backup` switches
+  `RESTIC_REPOSITORY` to `rest:https://…/<minion>/` per pillar; client-side `forget --prune`
+  moves to one central prune job with a non-append-only credential. Metrics (`--prometheus`)
+  into Prometheus. Restore test keeps working (reads are allowed).
+- **Open**: which host (the NAS itself as an app would keep it off every minion); TLS for
+  rest-server (ties into reverse proxy / internal CA); migrating existing repos (`restic copy`
+  or just pointing at the same dir); where the prune credential lives so a minion can't get it.
+  Combines well with the offsite copy above.
+
+### Oxidized (config backup of network devices into Git)
+
+- **Why**: OPNsense, FRITZ!Box and switches are managed by neither Tofu nor Salt — their config
+  changes are invisible and unbacked. Oxidized pulls them on a schedule and commits each one to
+  a Forgejo repo, so every change becomes a diff.
+- **Sketch**: `formulas/oxidized` (container) on forgejo or monitoring; device list +
+  per-model settings from pillar, read-only device credentials and a Forgejo deploy key via
+  `sdb.get`; output to a private repo `network-configs` (git push). Status API → Prometheus
+  (last successful pull per device). Homepage tile; backup only its config (the history lives
+  in Git).
+- **Open**: OPNsense model support (`opnsense` via SSH vs. the config.xml API); FRITZ!Box export
+  includes secrets → the repo must stay private and tightly scoped; whether OPNsense's own
+  git-backup plugin is the simpler path for that device.
+
+### Healthchecks (dead-man's switch for jobs)
+
+- **Why**: Prometheus only alerts on what it can scrape; if monitoring itself, Alertmanager or a
+  timer silently stops, nothing fires. Healthchecks inverts it: every job pings after each run,
+  a missing ping is the alert. Also the "dead-man's switch" open point of the ntfy entry.
+- **Sketch**: `formulas/healthchecks` (container, SQLite → backup + `stop_containers`) on a host
+  other than monitoring; checks per job from pillar (backup, restore test, salt-minion enforce,
+  Renovate, Trivy, Tofu drift); job units get an `ExecStartPost`/`OnFailure` curl to the ping URL
+  (URLs via `sdb.get`). Alertmanager's `Watchdog` alert pings a check too. Notifications to ntfy.
+  Homepage tile.
+- **Open**: provisioning checks as code (API or `manage.py` vs. clicking); if the healthchecks
+  host dies, its own silence needs a second watcher (healthchecks.io free tier as last resort?).
+
+### OpenBao PKI secrets engine (internal CA with short-lived certs)
+
+- **Why**: OpenBao already runs and every secret goes through it — a PKI mount turns it into
+  the internal CA without another service. Short-lived certs issued per host replace
+  self-signed/plain-HTTP UIs and give salt-api, rest-server, Loki etc. real TLS.
+- **Sketch**: offline-ish root (generated once, key kept out of OpenBao) → intermediate in a
+  `pki_int` mount; one role per use (`homelab-servers`, short TTL); Salt issues and renews via
+  the `vault` execution module or `sdb`/`http.query`, writes cert + key with `file.managed` and
+  restarts the consumer on change. `CertificateExpiringSoon` already covers expiry. Also an option
+  for the CA choice in the reverse-proxy entry.
+- **Open**: root/intermediate creation and AppRole policy are security-critical bootstrap →
+  manual, documented; OpenBao becomes a hard dependency for every renewal (and isn't backed up
+  yet — known-issues "Backup gaps"); distributing the root to clients; ACME (OpenBao PKI speaks
+  ACME) vs. Salt-driven issuance.
+
 ## Deliberately not
 
 - **Key acceptance via reactor** — keys are currently auto-accepted master-wide
