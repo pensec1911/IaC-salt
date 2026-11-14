@@ -12,7 +12,7 @@ healthchecks:
     gid: 975
     http_port: 8000
     site_root: "http://192.168.178.24:8000"
-    allowed_hosts: []          # extra Host names besides site_root's and localhost
+    allowed_hosts: [localhost, 127.0.0.1]   # besides site_root's host; keep these two
     env:                       # merged key by key over map.jinja's env
       SITE_NAME: Homelab Healthchecks
       GUNICORN_WORKERS: "2"

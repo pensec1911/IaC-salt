@@ -5,8 +5,10 @@
    account entry must use the same numbers.
 
    site_root: the URL the UI and ping URLs are built from; its host part is
-   what Django accepts (allowed_hosts adds localhost for the image's own
-   HEALTHCHECK, which queries 127.0.0.1).
+   what Django accepts, plus allowed_hosts (localhost for the image's own
+   HEALTHCHECK, which queries 127.0.0.1 — a pillar list replaces it, keep
+   those two). container_port / data_mount: gunicorn's port and the data
+   dir inside the image (env DB_NAME must point into it).
 
    secret_key: Django's SECRET_KEY (sessions, signed links) — empty here on
    purpose, pillar fills it from OpenBao; empty or unresolved fails
@@ -27,6 +29,8 @@
    or schedule+tz+grace, optional tags/desc. Checks removed from the list are
    not deleted. provision_dir: root-only, holds the API key, the rendered
    check list and the stamp of the last successful run.
+   provision_wait_seconds: how long the run waits for a (re)starting
+   container (migrations first) before it fails.
 
    podman: spec overrides for the container (keys: formulas/podman README). #}
 {%- set defaults = {
@@ -36,13 +40,15 @@
     'uid': 975,
     'gid': 975,
     'http_port': 8000,
+    'container_port': 8000,
+    'data_mount': '/data',
     'base_dir': '/opt/healthchecks',
     'data_dir': '/opt/healthchecks/data',
     'provision_dir': '/opt/healthchecks/provision',
     'provision_script': '/usr/local/sbin/healthchecks-provision',
     'python': '/usr/bin/python3',
     'site_root': '',
-    'allowed_hosts': [],
+    'allowed_hosts': ['localhost', '127.0.0.1'],
     'secret_key': '',
     'env': {
         'DEBUG': 'False',
@@ -56,6 +62,7 @@
     },
     'api_key': '',
     'checks': [],
+    'provision_wait_seconds': 180,
     'podman': {},
 } %}
 {%- set healthchecks = salt['pillar.get']('healthchecks:lookup', default=defaults, merge=True) %}

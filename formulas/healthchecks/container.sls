@@ -8,12 +8,13 @@ include:
    in /data (SQLite); the app itself only needs the tmpfs /tmp, so the
    default read-only root fits. SECRET_KEY goes through the 0600 secret env
    file, not the unit. The image's run.sh migrates the DB, then starts
-   gunicorn (:8000), sendalerts and sendreports. #}
+   gunicorn (container_port), sendalerts and sendreports. #}
 {%- set host = healthchecks.site_root.split('://')[-1].split('/')[0].split(':')[0] %}
-{%- set hosts = [host] + healthchecks.allowed_hosts + ['localhost', '127.0.0.1'] %}
+{%- set hosts = [host] + healthchecks.allowed_hosts %}
 {%- set env = {
     'SITE_ROOT': healthchecks.site_root,
     'ALLOWED_HOSTS': hosts | unique | join(','),
+    'GUNICORN_PORT': healthchecks.container_port | string,
 } %}
 {%- do env.update(healthchecks.env) %}
 {%- set spec = {
@@ -23,8 +24,8 @@ include:
     'user': healthchecks.uid ~ ':' ~ healthchecks.gid,
     'keep_uids': [healthchecks.uid],
     'keep_gids': [healthchecks.gid],
-    'ports': [healthchecks.http_port ~ ':8000'],
-    'volumes': [healthchecks.data_dir ~ ':/data:rw'],
+    'ports': [healthchecks.http_port ~ ':' ~ healthchecks.container_port],
+    'volumes': [healthchecks.data_dir ~ ':' ~ healthchecks.data_mount ~ ':rw'],
     'env': env,
     'secret_env': {},
 } %}

@@ -19,7 +19,7 @@ import urllib.request
 DIR = "{{ healthchecks.provision_dir }}"
 API = "http://127.0.0.1:{{ healthchecks.http_port }}/api/v3/checks/"
 HOST = "{{ healthchecks.site_root.split('://')[-1].split('/')[0] }}"
-WAIT_SECONDS = 180
+WAIT_SECONDS = {{ healthchecks.provision_wait_seconds }}
 
 
 def read(name):
