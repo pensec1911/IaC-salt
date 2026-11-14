@@ -35,7 +35,7 @@ arrstack:
       port_forwarding: true
 
     qbittorrent:
-      tag: 4.6.7
+      tag: 5.3.0
       webui_port: 8080
       # Torrents in progress live on local disk, not NFS (random writes to
       # the NAS cap at ~1.3 MB/s). Must fit max_active_downloads at once.
@@ -45,10 +45,10 @@ arrstack:
       tag: 4.0.20
       port: 8989
     radarr:
-      tag: 5.28.0
+      tag: 6.4.4
       port: 7878
     prowlarr:
-      tag: 1.37.0
+      tag: 2.7.0
       port: 9696
 
     bazarr:

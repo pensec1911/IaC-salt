@@ -81,15 +81,15 @@ Remove an entry once fixed (the fix lives in git history).
   gluetun's PF hook `signal: killed`), log shows a gap and then "System wake-up event detected".
   Comes back by itself when the move is done; roughly minutes per tens of GB at the NAS's
   ~110 MB/s. Inherent to the local-disk-then-move design (arrstack README). Options if it
-  bothers: qBittorrent 5 (see major bumps below — unverified whether it moves off the main
-  thread), or accept it.
+  bothers: accept it. Now on qBittorrent 5.3 (2026-11-14) — unverified whether 5.x moves
+  off the main thread; re-check on the next big move and drop this entry if the WebUI stays up.
 - **Proton NAT-PMP renewals fail intermittently** (`recvfrom: connection refused` to
   `10.2.0.1:5351`, several times an hour on 2026-10-20). gluetun retries and gets the same port
   back within seconds, so qBittorrent keeps its listen port — noise, not an outage.
-- arrstack is on the latest release *within* each major (2026-10-17). Newer majors exist and
-  were deliberately not taken: Radarr 6, Prowlarr 2, qBittorrent 5 — each migrates its config/DB
-  one-way, so run a fresh backup first (`systemctl start restic-backup.service`, formulas/backup)
-  and read the release notes before bumping.
+- arrstack majors (2026-11-14): Radarr 6, Prowlarr 2, qBittorrent 5 taken. Radarr 7 and
+  Prowlarr 3 (.NET 10) are upstream pre-releases only (LSIO: develop/nightly tags) — take them
+  once stable. Each major migrates its config/DB one-way: fresh backup first
+  (`systemctl start restic-backup.service`, formulas/backup), read the release notes, then bump.
 
 - **Tofu drift issue stays open: permanent diff on the three `debian13_template` VMs**
   (IaC-opentofu, seen 2026-11-14, already present before the move to `backend "pg"`). Every
