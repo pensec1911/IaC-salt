@@ -45,6 +45,10 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `netbox/app` | `secret_key`, `db_password`, `api_token_pepper` | `pillar/netbox.sls` (formulas/netbox README "OpenBao") |
 | `netbox/admin` | `username`, `password` | Not read by pillar — NetBox superuser (formulas/netbox README "First run") |
 | `netbox/tofu` | `api_token` | Not read by pillar — v2 token of the NetBox user `opentofu`, read by `IaC-opentofu` (`vault.tf`) to write the inventory. The Tofu AppRole policy needs `read` on it. |
+| `netbox/tofu-plan` | `api_token` | Not read by pillar — read-only (Write off) v2 token of `opentofu`, used by IaC-opentofu's plan/drift jobs in Forgejo Actions (AppRole `tofu-plan`). |
+| `proxmox/plan` | `api_token` | Not read by pillar — token of `tofu-plan@pve` (PVEAuditor), same jobs. |
+| `tofu-state/postgres` | `password` | `pillar/tofu-state.sls` — DB user `tofu` of the Tofu state postgres; also in IaC-opentofu's local `backend.hcl` and the `PG_CONN_STR` Actions secret (formulas/tofu-state README). |
+| `tofu-state/encryption` | `passphrase` | Not read by pillar — OpenTofu state encryption key (local `terraform.tfvars` + `STATE_PASSPHRASE` Actions secret). Lost = state unreadable; keep a copy outside the homelab. |
 | `restic/repo` | `password` | `pillar/backup.sls` — restic repo password, shared by all minion repos. Changing it needs `restic key add` first (formulas/backup README); keep a copy outside the homelab. |
 
 Check `grep -rn "sdb://" pillar/` for the authoritative list.

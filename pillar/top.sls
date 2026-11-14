@@ -54,3 +54,4 @@ base:
     - forgejo
     - netbox
     - patchmon
+    - tofu-state

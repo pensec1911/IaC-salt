@@ -114,6 +114,7 @@ base:
     - forgejo-runner
     - netbox
     - patchmon
+    - tofu-state
     - backup
 
   # Targeting is by minion ID, which matches the Tofu VM `name` in

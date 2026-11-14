@@ -28,7 +28,7 @@
         'stop_containers': ['sonarr', 'radarr', 'prowlarr', 'bazarr', 'qbittorrent', 'slskd', 'seerr'],
     },
     'forgejo': {
-        'paths': ['/opt/forgejo', '/opt/netbox', '/opt/patchmon'],
+        'paths': ['/opt/forgejo', '/opt/netbox', '/opt/patchmon', '/opt/tofu-state'],
         'excludes': [
             '/opt/forgejo/data/tmp',
             '/opt/forgejo/data/repo-archive',
@@ -38,6 +38,8 @@
             '/opt/patchmon/postgres',
             '/opt/patchmon/valkey',
             '/opt/patchmon/secrets',
+            '/opt/tofu-state/postgres',
+            '/opt/tofu-state/secrets',
         ],
         'stop_containers': ['forgejo'],
         'dumps': [
@@ -48,6 +50,10 @@
             {'container': 'patchmon-postgres',
              'command': ['pg_dump', '-U', 'patchmon_user', '-Fc', 'patchmon_db'],
              'file': '/opt/patchmon/dump/patchmon.pgdump',
+             'format': 'pg_custom'},
+            {'container': 'tofu-state-postgres',
+             'command': ['pg_dump', '-U', 'tofu', '-Fc', 'tofu'],
+             'file': '/opt/tofu-state/dump/tofu.pgdump',
              'format': 'pg_custom'},
         ],
     },

@@ -1,0 +1,35 @@
+{#- One postgres container that holds the OpenTofu state of IaC-opentofu
+   (`backend "pg"`). Published on postgres_port to the LAN: both the user's
+   machine (apply) and Forgejo Actions jobs (plan, drift check) connect.
+   scram-sha-256 (the image's pg_hba default once a password is set). The
+   state itself is encrypted client-side by OpenTofu (README), so the DB
+   only ever holds ciphertext.
+
+   postgres_user: the alpine image's own user (70:70), run as directly — no
+   root entrypoint, no capabilities; data_dir handed to it by :U. Needs a
+   writable root (/run/postgresql), hence read_only False in podman.
+   podman: spec overrides (keys: formulas/podman README).
+
+   The DB password is required (OpenBao tofu-state/postgres); the formula fails on
+   a blank or unresolved one.
+
+   dump_dir: where formulas/backup's pre-run pg_dump goes. pillar/backup.sls
+   `dumps` repeats this path, container_name, db_user and db_name — change
+   them together. #}
+{%- set defaults = {
+    'image': 'docker.io/library/postgres',
+    'tag': '18.6-alpine',
+    'container_name': 'tofu-state-postgres',
+    'postgres_port': 5432,
+    'postgres_user': '70:70',
+    'base_dir': '/opt/tofu-state',
+    'data_dir': '/opt/tofu-state/postgres',
+    'secrets_dir': '/opt/tofu-state/secrets',
+    'dump_dir': '/opt/tofu-state/dump',
+    'db_name': 'tofu',
+    'db_user': 'tofu',
+    'db_password': '',
+    'timezone': 'Etc/UTC',
+    'podman': {'read_only': False},
+} %}
+{%- set tofu_state = salt['pillar.get']('tofu-state:lookup', default=defaults, merge=True) %}
