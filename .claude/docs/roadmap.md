@@ -149,21 +149,6 @@ No order agreed; pick as needed.
 - **Open**: TrueNAS SCALE version decides the export path; Scrutiny as the dedicated SMART UI
   vs. alerts only.
 
-### OpenTofu plan in PRs + nightly drift check (IaC-opentofu)
-
-- **Why**: Salt changes get a render check before merge; Tofu changes get nothing — `tofu plan`
-  only runs on the user's machine. A plan as PR comment shows what a merge will create/destroy,
-  and a nightly plan catches drift (VMs changed by hand in Proxmox).
-- **Sketch**: Forgejo Actions workflow in `IaC-opentofu` on the existing runner: `tofu init`
-  + `tofu plan -lock-timeout`, plan summary posted as PR comment; scheduled run → ntfy /
-  Forgejo issue on non-empty plan. Proxmox API token (plan-only role where possible) and
-  OpenBao access via Actions secrets. `apply` stays manual.
-- **Open**: state is a local `terraform.tfstate` today → needs a remote backend first
-  (Forgejo has no state backend; options: S3 on TrueNAS/Garage/MinIO, `pg` backend, or HTTP
-  backend) plus state encryption (OpenTofu native); whether the runner may reach the Proxmox
-  API; plan output may contain secrets → redact before posting. The plan also refreshes the
-  `netbox_*` resources → needs the NetBox token (`netbox/tofu`, read-only would do for plan).
-
 ### Velociraptor (on-demand endpoint forensics)
 
 - **Why**: Wazuh-style visibility (processes, persistence, logins, file hashes across all
