@@ -149,15 +149,6 @@ No order agreed; pick as needed.
 - **Open**: TrueNAS SCALE version decides the export path; Scrutiny as the dedicated SMART UI
   vs. alerts only.
 
-### gitleaks for IaC-opentofu
-
-- **Why**: IaC-salt has the server-side scan (`.forgejo/workflows/secret-scan.yml`);
-  IaC-opentofu, with `terraform.tfvars`/state next to the code, has nothing server-side.
-- **Sketch**: copy the workflow + `.gitleaks.toml` (drop the `check-secrets` step or copy the
-  script too); full-history scan once, triage hits into `.gitleaksignore` or rotate. Its
-  `.github/workflows/test.yml` asks for `ubuntu-latest`, which the runner (`docker` label)
-  doesn't serve — fix alongside.
-
 ### OpenTofu plan in PRs + nightly drift check (IaC-opentofu)
 
 - **Why**: Salt changes get a render check before merge; Tofu changes get nothing — `tofu plan`

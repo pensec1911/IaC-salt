@@ -1,6 +1,6 @@
 # gitleaks config — CI backstop for .githooks/check-secrets.py (.forgejo/workflows/secret-scan.yml).
 # gitleaks' default ruleset plus the repo's own patterns; the allowlists mirror the hook's
-# exemptions. Kept in sync by hand with IaC-opentofu's copy.
+# exemptions. Identical copy in IaC-opentofu — keep both in sync by hand.
 title = "homelab"
 
 [extend]
@@ -32,6 +32,10 @@ regexes = [
   '''sdb\.get''',                     # OpenBao reference, resolved at render time
   '''\{\{.*\}\}''',                   # Jinja expression, not a literal
 ]
+
+[[allowlists]]
+description = "OpenTofu provider lock files (h1:/zh: hashes look like 32-byte base64 keys)"
+paths = ['''(^|/)\.terraform\.lock\.hcl$''']
 
 [[allowlists]]
 description = "SSH public keys (host keys in known_hosts pillar, authorized_keys)"

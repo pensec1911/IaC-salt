@@ -60,6 +60,8 @@ Master unreachable: `SKIP_RENDER_CHECK=1 git push` (the secret scan is pre-commi
 `.githooks/check-secrets.py --all` over the tree. It catches what the pre-commit hook can't:
 web-editor commits, Renovate, clones without `core.hooksPath`. Run "workflow_dispatch" in the
 Actions tab for a full-history scan. The `pull_request` run is a required check on `main`.
+IaC-opentofu runs the same workflow with an identical `.gitleaks.toml` (no `check-secrets`
+step there) — change the config in both repos.
 
 On a hit: false positive → `secret-scan: allow` on the line (both scanners honour it), or for
 a commit already in history its fingerprint (`<commit>:<file>:<rule>:<line>`, printed by
