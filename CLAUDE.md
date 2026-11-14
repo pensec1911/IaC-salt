@@ -23,6 +23,7 @@ pillar/     per-minion data (git_pillar)
 | [.claude/docs/inventory.md](.claude/docs/inventory.md) | minions, IPs, ports, NAS, VPN provider, how to reach hosts |
 | [.claude/docs/operations.md](.claude/docs/operations.md) | deploy/debug commands, gotchas, runtime facts |
 | [.claude/docs/known-issues.md](.claude/docs/known-issues.md) | open bugs and todos |
+| [.claude/docs/capacity.md](.claude/docs/capacity.md) | hardware budget per VM/node — read before placing any new service |
 | [.claude/docs/roadmap.md](.claude/docs/roadmap.md) | planned extensions (event-driven Salt etc.) — delete an item when it ships |
 | `formulas/<name>/README.md` | what that formula manages, its pillar, its manual steps |
 
@@ -75,7 +76,9 @@ pillar/     per-minion data (git_pillar)
    that may self-repair right now (gitfs event → reactor). More: [operations.md](.claude/docs/operations.md); render/sync
    problems: `/salt-render-debug`.
 
-4. After a roadmap item ships or a new formula/minion lands: run the `roadmap-curator` agent in
+4. Roadmap autonomously: `/roadmap-autopilot` — stacked `autopilot/*` PRs, never merged or
+   applied by Claude; the user fills secrets and merges at the end.
+5. After a roadmap item ships or a new formula/minion lands: run the `roadmap-curator` agent in
    the background to prune `roadmap.md` and add fitting ideas.
 
 Keep this file short: rules and pointers only. New detail goes into the matching
