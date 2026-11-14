@@ -11,7 +11,7 @@
 # Log: journalctl -t salt-minion-watchdog
 set -uo pipefail
 
-log() { logger -t salt-minion-watchdog "$*"; echo "$*"; }
+log() { logger -t salt-minion-watchdog "$*"; }
 
 wait_idle() {
     local deadline=$((SECONDS + {{ wd.idle_seconds }}))
