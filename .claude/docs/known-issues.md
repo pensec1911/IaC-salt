@@ -103,8 +103,10 @@ Remove an entry once fixed (the fix lives in git history).
   gluetun's PF hook `signal: killed`), log shows a gap and then "System wake-up event detected".
   Comes back by itself when the move is done; roughly minutes per tens of GB at the NAS's
   ~110 MB/s. Inherent to the local-disk-then-move design (arrstack README). Options if it
-  bothers: accept it. Now on qBittorrent 5.3 (2026-11-14) — unverified whether 5.x moves
-  off the main thread; re-check on the next big move and drop this entry if the WebUI stays up.
+  bothers: accept it. Still the case on qBittorrent 5.3 (2026-11-15, one 6.7 GB movie): main
+  thread in D state, WebUI timed out until the NFS writeback had drained, then back by itself.
+  Check: `ps -eo pid,stat,comm | grep qbittorrent` (D) and `grep Writeback: /proc/meminfo`
+  on arrstack.
 - **Proton NAT-PMP renewals fail intermittently** (`recvfrom: connection refused` to
   `10.2.0.1:5351`, several times an hour on 2026-10-20). gluetun retries and gets the same port
   back within seconds, so qBittorrent keeps its listen port — noise, not an outage.
