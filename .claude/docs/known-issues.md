@@ -44,6 +44,18 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Smaller items
 
+- **Healthchecks logs `Control server error: [Errno 30] Read-only file system: '/opt/healthchecks/'`**
+  at every start (jellyfin, since 2026-11-15). gunicorn's control server wants to put a socket in
+  the working dir, which the read-only root forbids. Harmless (workers, sendalerts, sendreports
+  run), only noise. Fix: a tmpfs for that path in `formulas/healthchecks` (podman spec) or turn
+  the control server off via gunicorn config/env — check which the v5 image supports.
+
+- **TrueNAS sends no ZFS pool / disk temperature data yet** (2026-11-15): the Graphite exporter is
+  set up and CPU/net/NFS/disk-I/O series arrive on monitoring :9108, but no `zfs_pool` /
+  `disk_temperature`, so `TruenasPoolStateMissing` fires. Step 2 in
+  `formulas/infra-exporters/README.md` (companion `netdata.conf` on TrueNAS) is still to do, and
+  must be redone after every TrueNAS update.
+
 - **pve03's onboard NIC hangs under load** (Intel I219-LM, `e1000e`: `Detected Hardware Unit
   Hang`, then link down; 4× on 2026-11-14, ~10k hang messages; pve01/02 have the same NIC
   and 0 hangs). The node goes red in Proxmox and arrstack/forgejo/omada drop off the network.
