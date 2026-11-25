@@ -10,8 +10,9 @@ and the Headscale policy.
 - Repo key (`/usr/share/keyrings/tailscale-archive-keyring.gpg`, fetched once), apt source,
   package `tailscale`, service `tailscaled`.
 - **Joining** (`up.sls`), only when `login_server` and a resolved `auth_key` are in pillar:
-  writes the key to `/etc/tailscale/authkey` (0600), runs `tailscale up` with the pillar's
-  flags, deletes the key file. Skipped while `tailscale status` says `Running`, so it runs
+  writes the key to `/etc/tailscale/authkey` (0600), runs `tailscale up --reset` with the
+  pillar's flags (`--reset`: a failed earlier attempt leaves its prefs behind, which `up` would
+  otherwise keep), deletes the key file. Skipped while `tailscale status` says `Running`, so it runs
   once. Without a key: package + daemon only, a clean highstate.
 
 State that Salt can't rebuild: `/var/lib/tailscale` (node key; backed up). Lost or rebuilt

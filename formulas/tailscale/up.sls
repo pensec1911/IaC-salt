@@ -23,7 +23,7 @@ tailscale-authkey:
 tailscale-up:
   cmd.run:
     - name: >-
-        tailscale up
+        tailscale up --reset
         --login-server={{ tailscale.login_server }}
         --auth-key=file:{{ tailscale.authkey_file }}
         --hostname={{ tailscale.hostname }}
