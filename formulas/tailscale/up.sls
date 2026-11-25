@@ -28,7 +28,9 @@ tailscale-up:
         --auth-key=file:{{ tailscale.authkey_file }}
         --hostname={{ tailscale.hostname }}
         --advertise-routes={{ tailscale.advertise_routes | join(',') }}
+{%- if tailscale.advertise_tags %}
         --advertise-tags={{ tailscale.advertise_tags | join(',') }}
+{%- endif %}
         --accept-dns={{ 'true' if tailscale.accept_dns else 'false' }}
         --snat-subnet-routes={{ 'true' if tailscale.snat_subnet_routes else 'false' }}
         --timeout=60s

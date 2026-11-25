@@ -7,7 +7,9 @@
    clean highstate either way (README "Joining").
 
    The login runs once (`tailscale up`, skipped while the backend is
-   Running); the key file is deleted afterwards. Changing advertise_* later
+   Running); the key file is deleted afterwards. advertise_tags only for
+   untagged keys: Headscale >= 0.28 takes a tagged key's tags and rejects
+   any --advertise-tags on such a registration. Changing advertise_* later
    needs a manual `tailscale up --reset …` (README). #}
 {%- set defaults = {
     'repo_url': 'https://pkgs.tailscale.com/stable/debian',

@@ -22,6 +22,12 @@ gateway → new pre-auth key (formulas/headscale README) and remove the old node
 `pillar/tailscale.sls`; keys in `map.jinja`. `auth_key` from OpenBao `headscale/<minion>`
 (created on the Headscale side, 1 h, tagged).
 
+## Tags
+
+With a tagged pre-auth key (`headscale preauthkeys create --tags tag:gateway`) the node gets the
+key's tags. Leave `advertise_tags` empty then: Headscale >= 0.28 rejects a key registration that
+also sends `--advertise-tags` ("requested tags [...] are invalid or not permitted").
+
 ## Changing flags later
 
 `tailscale up` only runs at the first login. For new `advertise_routes`/`advertise_tags` etc.,
