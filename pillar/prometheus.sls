@@ -53,6 +53,21 @@ prometheus:
         module: http_up
         exporter: {{ monitoring_ip }}:9115
         homepage: True
+      # No web UI, so not on homepage: Headscale's public health endpoint
+      # (cert expiry via CertificateExpiringSoon).
+      static_configs:
+        - targets:
+            - https://hs.ilpaa.xyz/health
+          labels:
+            instance: headscale
+            group: Infrastructure
+    # formulas/headscale on cloud-edge, through the WireGuard tunnel.
+    - job_name: headscale
+      static_configs:
+        - targets:
+            - 10.99.0.1:9090
+          labels:
+            instance: cloud-edge
 {%- if pve %}
     # prometheus-pve-exporter (formulas/infra-exporters): one scrape per
     # node via ?target=. cluster=1 on every node, so the cluster view

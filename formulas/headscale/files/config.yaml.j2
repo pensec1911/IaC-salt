@@ -1,0 +1,76 @@
+{%- from "headscale/map.jinja" import headscale with context -%}
+# Managed by Salt (formulas/headscale). Keys: upstream config-example.yaml
+# of the pinned tag. Paths are inside the container.
+server_url: {{ headscale.server_url | json }}
+listen_addr: 0.0.0.0:8443
+metrics_listen_addr: 0.0.0.0:9090
+grpc_listen_addr: 127.0.0.1:50443
+grpc_allow_insecure: false
+
+noise:
+  private_key_path: /var/lib/headscale/noise_private.key
+
+prefixes:
+  v4: 100.64.0.0/10
+  v6: fd7a:115c:a1e0::/48
+  allocation: sequential
+
+# Own DERP relay only: no fallback to Tailscale's public relays.
+derp:
+  server:
+    enabled: true
+    region_id: {{ headscale.derp_region_id }}
+    region_code: headscale
+    region_name: Headscale Embedded DERP
+    verify_clients: true
+    stun_listen_addr: 0.0.0.0:3478
+    private_key_path: /var/lib/headscale/derp_server_private.key
+    automatically_add_embedded_derp_region: true
+  urls: []
+  paths: []
+  auto_update_enabled: false
+
+disable_check_updates: true
+
+# Tagged nodes (gateway) never expire, whatever this says.
+node:
+  expiry: {{ headscale.node_expiry | json }}
+
+database:
+  type: sqlite
+  sqlite:
+    path: /var/lib/headscale/db.sqlite
+    write_ahead_log: true
+
+# TLS-ALPN-01 runs on the TLS listener itself (published as :443), so port
+# 80 stays closed.
+acme_url: https://acme-v02.api.letsencrypt.org/directory
+acme_email: {{ headscale.acme_email | json }}
+tls_letsencrypt_hostname: {{ headscale.server_url | replace('https://', '') | replace('http://', '') | json }}
+tls_letsencrypt_cache_dir: /var/lib/headscale/cache
+tls_letsencrypt_challenge_type: TLS-ALPN-01
+
+log:
+  level: {{ headscale.log_level }}
+  format: text
+
+policy:
+  mode: file
+  path: /etc/headscale/policy.hujson
+
+dns:
+  magic_dns: true
+  base_domain: {{ headscale.base_domain | json }}
+  override_local_dns: true
+  nameservers:
+    global: {{ headscale.nameservers | json }}
+    split: {}
+  search_domains: []
+  extra_records_path: /etc/headscale/extra-records.json
+
+# /var/run is a root-owned tmpfs in the read-only container.
+unix_socket: /var/lib/headscale/headscale.sock
+unix_socket_permission: "0770"
+
+logtail:
+  enabled: false

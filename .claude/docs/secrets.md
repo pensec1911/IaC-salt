@@ -51,6 +51,11 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `fritzbox/exporter` | `password` | `pillar/infra-exporters.sls` + `pillar/prometheus.sls` — FRITZ!Box user `prometheus` (only "FRITZ!Box Einstellungen"), max. 32 chars. Exporter, scrape job and rules only exist while it resolves. |
 | `tofu-state/postgres` | `password` | `pillar/tofu-state.sls` — DB user `tofu` of the Tofu state postgres; also in IaC-opentofu's local `backend.hcl` and the `PG_CONN_STR` Actions secret (formulas/tofu-state README). |
 | `tofu-state/encryption` | `passphrase` | Not read by pillar — OpenTofu state encryption key (local `terraform.tfvars` + `STATE_PASSPHRASE` Actions secret). Lost = state unreadable; keep a copy outside the homelab. |
+| `restic/cloud-edge` | `password` | `pillar/backup.sls` — restic repo password of cloud-edge only (OCI, outside the house; the others share `restic/repo`). Copy in the password manager. |
+| `headscale/gateway` | `auth_key` | `pillar/tailscale.sls` — single-use tagged Headscale pre-auth key for gateway's first login (formulas/headscale README "Manual steps"); stale after use, harmless. |
+| `wireguard/cloud-edge`, `wireguard/gateway` | `private_key`, `public_key` | Not read by pillar — WireGuard tunnel keys, rendered into cloud-init by IaC-opentofu (AppRole `tofu`, never CI). |
+| `oci/api`, `oci/plan` | `tenancy_ocid`, `user_ocid`, `fingerprint`, `private_key`, `region`, `compartment_ocid` | Not read by pillar — OCI API keys of the users `opentofu` (apply) and `tofu-plan` (CI, read-only) for IaC-opentofu `oci/`. |
+| `porkbun/api` | `api_key`, `secret_api_key` | Caddy's DNS-01 for `*.home.ilpaa.xyz` (step 5, formulas/caddy). |
 | `ntfy/admin` | `password`, `password_hash` (bcrypt) | `pillar/ntfy.sls` reads only `password_hash` (ntfy `admin`, declaratively provisioned); `password` is the phone/web login (formulas/ntfy README "OpenBao") |
 | `ntfy/healthchecks` | `password_hash` (bcrypt), `token` (`tk_…`) | `pillar/ntfy.sls` — ntfy user `healthchecks`, only declared while `token` resolves; the token is also entered in the Healthchecks ntfy integration (UI, formulas/healthchecks README) |
 | `healthchecks/app` | `secret_key` | `pillar/healthchecks.sls` — Django `SECRET_KEY` |

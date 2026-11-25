@@ -24,7 +24,7 @@ users:
    02:00 + 10 min delay + 45 min timeout; restore test Sun 04:00 + 30 min +
    60 min; drift check hourly + 5 min splay + up to 15 min run. #}
 {%- set all_minions = ['salt-master', 'homepage', 'monitoring', 'arrstack', 'jellyfin', 'forgejo', 'gateway', 'edge', 'cloud-edge'] %}
-{%- set backup_minions = ['arrstack', 'jellyfin', 'monitoring', 'forgejo'] %}
+{%- set backup_minions = ['arrstack', 'jellyfin', 'monitoring', 'forgejo', 'gateway', 'cloud-edge'] %}
 {%- if features.wazuh %}
 {%-   do all_minions.append('wazuh') %}
 {%-   do backup_minions.append('wazuh') %}

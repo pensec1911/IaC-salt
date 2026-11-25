@@ -141,6 +141,9 @@ base:
     - patchmon-agent
     - healthchecks-ping
     - salt-minion
+    - nfs-mount
+    - tailscale
+    - backup
 
   # Caddy + Authentik (Zero-Trust/SSO), Container-Host.
   'edge':
@@ -174,6 +177,9 @@ base:
     - podman
     - cadvisor
     - alloy
+    - nfs-mount
+    - headscale
+    - backup
 
   # Targeting is by minion ID, which matches the Tofu VM `name` in
   # IaC-opentofu/vms/<name>/main.tf (set as hostname via cloud-init).
