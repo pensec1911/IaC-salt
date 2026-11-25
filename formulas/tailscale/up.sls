@@ -16,7 +16,7 @@ tailscale-authkey:
     - mode: '0600'
     - makedirs: True
     - show_changes: False
-    - unless: {{ running }}
+    - unless: {{ running | json }}
     - require:
       - service: tailscale-service
 
@@ -32,7 +32,7 @@ tailscale-up:
         --accept-dns={{ 'true' if tailscale.accept_dns else 'false' }}
         --snat-subnet-routes={{ 'true' if tailscale.snat_subnet_routes else 'false' }}
         --timeout=60s
-    - unless: {{ running }}
+    - unless: {{ running | json }}
     - require:
       - file: tailscale-authkey
 
