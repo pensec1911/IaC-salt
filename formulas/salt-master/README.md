@@ -14,6 +14,26 @@ repo (`pensec1911/IaC-salt`) since that's what a fresh master actually needs to 
 against. Override via `salt-master:lookup` pillar (see `pillar.example.sls`) if the repo is ever
 renamed or forked.
 
+## Accepting minion keys
+
+`auto_accept` is off (`salt-master:lookup:auto_accept`, default `False`). A new minion's key
+waits under "Unaccepted Keys" until it is accepted by hand — with auto-accept, anything that
+reaches 4505/4506 (the LAN, and cloud-edge through the WireGuard tunnel) could register under a
+new minion ID and be served the `'*'` pillar (login password hash, ping key, PatchMon token).
+
+After each Tofu provision (or a rebuilt VM, whose new key replaces the old one):
+
+```sh
+sudo salt-key -L                 # the new ID is under "Unaccepted Keys"
+sudo salt-key -f <id>            # fingerprint on the master ...
+ssh debian@<ip> sudo salt-call --local key.finger   # ... must match the minion's
+sudo salt-key -a <id>
+```
+
+A rebuilt VM keeps its minion ID but has a new key: delete the old one first
+(`salt-key -d <id>`), then accept. The minion retries every 10 s; once accepted it fires its
+start event and the start reactor below applies the highstate.
+
 ## Reactor: highstate on minion start
 
 `reactor.conf` maps `salt/minion/*/start` to `reactor/minion-start.sls`, which runs a full

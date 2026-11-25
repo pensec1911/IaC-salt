@@ -1,0 +1,5 @@
+{%- from "salt-master/map.jinja" import salt_master with context %}
+# Managed by Salt (formulas/salt-master, salt-master:lookup:auto_accept).
+# False: a new minion's key waits under "Unaccepted Keys" until it is
+# accepted by hand (`salt-key -a <id>`, README "Accepting minion keys").
+auto_accept: {{ salt_master.auto_accept | lower }}
