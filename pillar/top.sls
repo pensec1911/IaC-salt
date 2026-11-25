@@ -10,7 +10,7 @@ base:
     - salt-minion-version
     - healthchecks-ping
 
-  'homepage,monitoring,salt-master,forgejo':
+  'homepage,monitoring,salt-master,forgejo,gateway,edge,cloud-edge':
     - match: list
     - salt-minion-enforce
 
@@ -60,3 +60,6 @@ base:
     - netbox
     - patchmon
     - tofu-state
+
+  'cloud-edge':
+    - cloud-edge

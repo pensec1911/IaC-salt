@@ -25,10 +25,16 @@ After each Tofu provision (or a rebuilt VM, whose new key replaces the old one):
 
 ```sh
 sudo salt-key -L                 # the new ID is under "Unaccepted Keys"
-sudo salt-key -f <id>            # fingerprint on the master ...
-ssh debian@<ip> sudo salt-call --local key.finger   # ... must match the minion's
+# Hash of the key body on the master ...
+sudo grep -v -- ----- /etc/salt/pki/master/minions_pre/<id> | tr -d '\n' | sha256sum
+# ... must match the minion's (cloud-edge: ssh debian@10.99.0.1 through the tunnel)
+ssh debian@<ip> "sudo grep -v -- ----- /etc/salt/pki/minion/minion.pub | tr -d '\n' | sha256sum"
 sudo salt-key -a <id>
 ```
+
+Don't compare `salt-key -f <id>` with `salt-call --local key.finger`: both hash the whole PEM
+file, and the master stores the key with different line breaks than the minion, so the two
+never match even for the same key (seen on gateway/edge/cloud-edge, 2026-11-25).
 
 A rebuilt VM keeps its minion ID but has a new key: delete the old one first
 (`salt-key -d <id>`), then accept. The minion retries every 10 s; once accepted it fires its

@@ -128,6 +128,53 @@ base:
     - tofu-state
     - backup
 
+  # Verwaltungstunnel zu cloud-edge (WireGuard + nftables aus Tofu-cloud-init),
+  # spaeter Tailscale-Subnet-Router. Keine Container, wie salt-master.
+  'gateway':
+    - users
+    - ntp
+{%- if wazuh %}
+    - wazuh-agent
+{%- endif %}
+    - node-exporter
+    - unattended-upgrades
+    - patchmon-agent
+    - healthchecks-ping
+    - salt-minion
+
+  # Caddy + Authentik (Zero-Trust/SSO), Container-Host.
+  'edge':
+    - users
+    - ntp
+{%- if wazuh %}
+    - wazuh-agent
+{%- endif %}
+    - node-exporter
+    - unattended-upgrades
+    - patchmon-agent
+    - healthchecks-ping
+    - salt-minion
+    - podman
+    - cadvisor
+    - alloy
+
+  # OCI A1 (arm64), Headscale. Erreicht das LAN nur durch den WireGuard-Tunnel
+  # ueber gateway (Freigaben dort); Mine/Scrapes ueber wg0 (pillar/cloud-edge.sls).
+  'cloud-edge':
+    - users
+    - ntp
+{%- if wazuh %}
+    - wazuh-agent
+{%- endif %}
+    - node-exporter
+    - unattended-upgrades
+    - patchmon-agent
+    - healthchecks-ping
+    - salt-minion
+    - podman
+    - cadvisor
+    - alloy
+
   # Targeting is by minion ID, which matches the Tofu VM `name` in
   # IaC-opentofu/vms/<name>/main.tf (set as hostname via cloud-init).
   # Formula names below resolve into ../formulas/<name>/ (gitfs merges
