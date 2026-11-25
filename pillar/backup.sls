@@ -72,6 +72,16 @@
         'excludes': [],
         'stop_containers': ['grafana'],
     },
+    'cloud-edge': {
+        'paths': ['/opt/headscale/data'],
+        'excludes': [],
+        'stop_containers': ['headscale'],
+    },
+    'gateway': {
+        'paths': ['/var/lib/tailscale'],
+        'excludes': [],
+        'stop_containers': [],
+    },
     'wazuh': {
         'paths': [
             '/var/ossec/etc',
@@ -86,11 +96,15 @@
         'stop_containers': [],
     },
 } %}
+{#- cloud-edge sits outside the house (OCI): its repo gets its own password,
+   so a compromised cloud-edge can't open the other minions' repos (same
+   NAS export). #}
+{%- set password_path = {'cloud-edge': 'restic/cloud-edge'}.get(grains['id'], 'restic/repo') %}
 {%- set this = per_minion.get(grains['id'], {'paths': [], 'excludes': [], 'stop_containers': [], 'dumps': []}) %}
 
 backup:
   lookup:
-    password: {{ salt['sdb.get']('sdb://osvault/homelab/data/restic/repo?password') | yaml_encode }}
+    password: {{ salt['sdb.get']('sdb://osvault/homelab/data/' ~ password_path ~ '?password') | yaml_encode }}
     paths: {{ this.paths | json }}
     excludes: {{ this.excludes | json }}
     stop_containers: {{ this.stop_containers | json }}

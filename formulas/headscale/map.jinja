@@ -1,0 +1,52 @@
+{#- Headscale (self-hosted Tailscale control server) with its embedded DERP
+   relay, one container (formulas/podman). Pinned tag; Renovate bumps it.
+
+   uid/gid: the container runs as this system account (Podman User=, mapped
+   1:1), so data_dir stays owned by it on the host. The matching
+   formulas/users account entry (pillar) must use the same numbers.
+
+   Listens on 8443 inside (non-root, no CAP_NET_BIND_SERVICE), published on
+   https_port. TLS comes from Let's Encrypt via TLS-ALPN-01 on that same
+   port — nothing on :80. stun_port: the DERP relay's STUN (udp).
+
+   metrics_host_ip: where the /metrics port is published. Default loopback;
+   pillar sets the address Prometheus reaches (on cloud-edge the wg0 IP).
+
+   server_url / base_domain: required (config.sls fails without them).
+   base_domain is the MagicDNS suffix and must not be server_url's domain.
+   acme_email: optional — empty = Let's Encrypt account without contact.
+
+   policy: the tailnet policy as a dict, rendered to policy.hujson (plain
+   JSON is valid HuJSON). Empty = Headscale's default (allow all), so pillar
+   should always set one.
+   extra_records: list of {name, type, value} DNS records for MagicDNS
+   clients, rendered to extra-records.json — Headscale reloads that file on
+   change, no restart. Config or policy changes restart the container.
+
+   podman: spec overrides for the container (keys: formulas/podman README). #}
+{%- set public_resolvers = ['1.1.1.1', '9.9.9.9'] %}{#- secret-scan: allow (public DNS resolvers) #}
+{%- set defaults = {
+    'image': 'docker.io/headscale/headscale',
+    'tag': '0.29.7',
+    'container_name': 'headscale',
+    'uid': 977,
+    'gid': 977,
+    'base_dir': '/opt/headscale',
+    'config_dir': '/opt/headscale/config',
+    'data_dir': '/opt/headscale/data',
+    'https_port': 443,
+    'stun_port': 3478,
+    'metrics_host_ip': '127.0.0.1',
+    'metrics_port': 9090,
+    'server_url': '',
+    'base_domain': '',
+    'acme_email': '',
+    'nameservers': public_resolvers,
+    'node_expiry': '180d',
+    'derp_region_id': 999,
+    'log_level': 'info',
+    'policy': {},
+    'extra_records': [],
+    'podman': {},
+} %}
+{%- set headscale = salt['pillar.get']('headscale:lookup', default=defaults, merge=True) %}

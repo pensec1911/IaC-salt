@@ -1,0 +1,30 @@
+{#- Tailscale client from Tailscale's own apt repo (Debian doesn't package
+   it), joined to a self-hosted control server (formulas/headscale).
+
+   login_server: the control server URL. auth_key: a Headscale pre-auth key
+   (pillar, OpenBao), only needed for the first login. Empty/unresolved key
+   or no login_server = package + daemon only, no login, no failure — a
+   clean highstate either way (README "Joining").
+
+   The login runs once (`tailscale up`, skipped while the backend is
+   Running); the key file is deleted afterwards. Changing advertise_* later
+   needs a manual `tailscale up --reset …` (README). #}
+{%- set defaults = {
+    'repo_url': 'https://pkgs.tailscale.com/stable/debian',
+    'keyring': '/usr/share/keyrings/tailscale-archive-keyring.gpg',
+    'pkg': 'tailscale',
+    'service': 'tailscaled',
+    'login_server': '',
+    'auth_key': '',
+    'authkey_file': '/etc/tailscale/authkey',
+    'hostname': grains['id'],
+    'advertise_routes': [],
+    'advertise_tags': [],
+    'accept_dns': False,
+    'snat_subnet_routes': True,
+} %}
+{%- set tailscale = salt['pillar.get']('tailscale:lookup', default=defaults, merge=True) %}
+{%- set _k = tailscale.auth_key or '' %}
+{%- do tailscale.update({
+      'join': (_k and tailscale.login_server and not _k.startswith('sdb://')) and true or false,
+    }) %}
