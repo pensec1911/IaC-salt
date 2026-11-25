@@ -55,6 +55,10 @@ salt-master:
     sdb_profile: osvault
     sdb_kv_path: homelab/data
 
+    # Accept every new minion key automatically. Off by default — keys are
+    # accepted by hand (README "Accepting minion keys").
+    auto_accept: False
+
     # Reactor: full state.apply on every salt/minion/<id>/start event (VM
     # fresh from Tofu, reboot, salt-minion restart). False disables it.
     highstate_on_start: True

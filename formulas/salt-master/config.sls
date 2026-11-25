@@ -27,7 +27,8 @@ include:
 
 /etc/salt/master.d/auto_accept.conf:
   file.managed:
-    - source: salt://salt-master/files/auto_accept.conf
+    - source: salt://salt-master/files/auto_accept.conf.j2
+    - template: jinja
     - user: root
     - group: root
     - mode: '0644'

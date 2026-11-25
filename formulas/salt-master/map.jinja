@@ -36,6 +36,14 @@
   the distro package because Salt ships as a onedir bundle — install.sls
   installs it into that bundle via salt-pip instead.
 
+  auto_accept: whether the master accepts every new minion key on its own.
+  Off: anything that reaches 4505/4506 (the LAN, and cloud-edge through
+  the WireGuard tunnel) could otherwise register under a new minion ID and
+  be served the '*' pillar (login password hash, Healthchecks ping key,
+  PatchMon enrolment token). A new minion's key is accepted by hand after
+  each Tofu provision (README "Accepting minion keys") — security-critical
+  bootstrap stays manual (CLAUDE.md).
+
   highstate_on_start: reactor on salt/minion/<id>/start runs a full
   state.apply on that minion — a VM fresh from Tofu or just rebooted
   converges without a manual apply. The reactor SLS is served over gitfs
@@ -108,6 +116,7 @@
     'vault_policies': ['salt-master-read'],
     'sdb_profile': 'osvault',
     'sdb_kv_path': 'homelab/data',
+    'auto_accept': False,
     'highstate_on_start': True,
     'reactor_sls': 'salt://salt-master/reactor/minion-start.sls',
     'mine_consumers': [],

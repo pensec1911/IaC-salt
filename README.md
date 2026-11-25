@@ -56,6 +56,9 @@ GitHub deploy key via `gh` if it's installed and authenticated, otherwise prompt
 hand), then restarts `salt-master` and forces a fetch once you confirm the key's in place. It
 cleans up its own temp dirs, local and remote, and is safe to re-run if it fails partway through.
 
+Minion keys are not auto-accepted: on a rebuilt master, accept each minion with `salt-key -a`
+(formulas/salt-master README "Accepting minion keys").
+
 From here on, `salt/top.sls` and `formulas/salt-master/init.sls` are themselves fetched over
 gitfs — the master manages its own config from the same repo it's pulling.
 

@@ -258,9 +258,9 @@ No order agreed; pick as needed.
 
 ## Deliberately not
 
-- **Key acceptance via reactor** — keys are currently auto-accepted master-wide
-  (`auto_accept: true`, see known-issues.md); if that changes, acceptance goes back to manual
-  (security-critical bootstrap, CLAUDE.md hard rules), not to reactor-driven auto-accept.
+- **Key acceptance via reactor** — keys are accepted by hand since `auto_accept` was turned off
+  (formulas/salt-master README "Accepting minion keys"); security-critical bootstrap stays
+  manual (CLAUDE.md hard rules), not reactor-driven.
 - **diskusage beacon on the NFS mounts** — `DiskAlmostFull` (pillar/prometheus.sls) already
   covers them (`nfs4` isn't excluded), and there's nothing to heal automatically.
 - **inotify beacon → re-apply on config change** — needs pyinotify in the onedir bundle, fires
