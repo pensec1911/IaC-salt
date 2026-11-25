@@ -24,6 +24,7 @@
    change, no restart. Config or policy changes restart the container.
 
    podman: spec overrides for the container (keys: formulas/podman README). #}
+{%- set public_resolvers = ['1.1.1.1', '9.9.9.9'] %}{#- secret-scan: allow (public DNS resolvers) #}
 {%- set defaults = {
     'image': 'docker.io/headscale/headscale',
     'tag': '0.29.7',
@@ -40,7 +41,7 @@
     'server_url': '',
     'base_domain': '',
     'acme_email': '',
-    'nameservers': ['1.1.1.1', '9.9.9.9'],  {#- secret-scan: allow (public DNS resolvers) #}
+    'nameservers': public_resolvers,
     'node_expiry': '180d',
     'derp_region_id': 999,
     'log_level': 'info',
