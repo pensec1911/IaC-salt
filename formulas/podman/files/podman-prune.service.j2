@@ -5,4 +5,4 @@ Description=Remove container images no Quadlet unit or container uses
 
 [Service]
 Type=oneshot
-ExecStart={{ podman.prune.script }} {{ podman.quadlet_dir }}
+ExecStart={{ podman.prune.script }} {{ podman.quadlet_dir }} {{ podman.prune.keep_dir }}

@@ -33,7 +33,8 @@
    removed by hand (README "Migration from Docker").
 
    prune: weekly timer (prune.sls) removing images no Quadlet unit names in
-   Image= and no container uses. Sunday morning, after the backup/restore
+   Image= and no container uses; images a formula starts with `podman run`
+   (recyclarr) go as one ref per line into a file in keep_dir. Sunday morning, after the backup/restore
    window (02:00–06:00), so stopped-for-backup units are back.
 
    container: defaults for every container — hardening on (NoNewPrivileges,
@@ -64,6 +65,7 @@
     'apparmor_parser': '/usr/sbin/apparmor_parser',
     'prune': {
         'script': '/usr/local/sbin/podman-prune',
+        'keep_dir': '/etc/containers/prune-keep.d',
         'on_calendar': 'Sun *-*-* 07:00',
         'randomized_delay': '1h',
     },

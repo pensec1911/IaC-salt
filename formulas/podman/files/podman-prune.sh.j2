@@ -8,13 +8,18 @@
 set -euo pipefail
 {% raw %}
 quadlet_dir="$1"
-dry_run=${2:-}   # --dry-run: only list
+keep_dir="$2"    # one image ref per line, for images started outside Quadlet
+dry_run=${3:-}   # --dry-run: only list
 
 declare -A keep_ref keep_id
 for f in "$quadlet_dir"/*.container; do
     [ -e "$f" ] || continue
     ref=$(sed -n 's/^Image=//p' "$f" | tail -1)
     [ -n "$ref" ] && keep_ref["$ref"]=1
+done
+for f in "$keep_dir"/*; do
+    [ -f "$f" ] || continue
+    while read -r ref; do [ -n "$ref" ] && keep_ref["$ref"]=1; done < "$f"
 done
 while read -r id; do
     [ -n "$id" ] && keep_id["${id#sha256:}"]=1

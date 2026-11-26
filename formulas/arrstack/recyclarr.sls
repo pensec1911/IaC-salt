@@ -14,6 +14,18 @@ recyclarr-image:
       - sls: podman
 
 {#- No secrets in here — api_key is !env_var, filled by the sync script. #}
+{#- Started with `podman run`, not Quadlet: tell podman's weekly prune to
+   keep the image (formulas/podman prune.sls keep_dir). #}
+recyclarr-prune-keep:
+  file.managed:
+    - name: /etc/containers/prune-keep.d/recyclarr
+    - contents: {{ (rc.image ~ ':' ~ rc.tag) | yaml_encode }}
+    - user: root
+    - group: root
+    - mode: '0644'
+    - require:
+      - file: podman-prune-keep-dir
+
 recyclarr-config:
   file.managed:
     - name: {{ arrstack.config_base }}/recyclarr/recyclarr.yml

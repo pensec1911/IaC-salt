@@ -131,7 +131,9 @@ everything).
 - Old images: `podman-prune.timer` (Sunday ~07:00) removes every image that no Quadlet unit
   names in `Image=` and no container (running or stopped) uses — not a blind
   `podman image prune -a`, which would take the image of a unit stopped for a backup and
-  caddy's locally built one. By hand: `systemctl start podman-prune.service`,
+  caddy's locally built one. An image a formula starts with `podman run` (recyclarr) goes
+  into a file under `/etc/containers/prune-keep.d/` (one ref per line). By hand:
+  `systemctl start podman-prune.service`,
   `journalctl -u podman-prune`.
 
 ## Pillar
