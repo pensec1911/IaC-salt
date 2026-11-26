@@ -16,8 +16,8 @@ into the LAN (`formulas/tailscale`).
   (STUN), `/metrics` on `metrics_host_ip:9090` (on cloud-edge the wg0 address, scraped by
   Prometheus through the tunnel).
 
-Config or policy change → container restart (clients reconnect within seconds).
-`extra_records` → no restart.
+Config, policy or `extra_records` change → container restart (clients reconnect within seconds).
+Headscale's own hot reload of the records file doesn't survive Salt replacing it (config.sls).
 
 ## Pillar
 

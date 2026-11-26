@@ -30,4 +30,5 @@ include:
              require=[{'user': 'user-headscale'}, {'file': 'headscale-data-dir'},
                       {'file': 'headscale-config.yaml'}, {'file': 'headscale-policy'},
                       {'file': 'headscale-extra-records'}],
-             watch=[{'file': 'headscale-config.yaml'}, {'file': 'headscale-policy'}]) }}
+             watch=[{'file': 'headscale-config.yaml'}, {'file': 'headscale-policy'},
+                    {'file': 'headscale-extra-records'}]) }}

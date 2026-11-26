@@ -70,7 +70,11 @@ headscale-policy:
     - require:
       - file: headscale-config-dir
 
-{#- Hot-reloaded by Headscale (dns.extra_records_path), so no restart. #}
+{#- Headscale watches this file (dns.extra_records_path), but Salt replaces
+   it (new inode, group/mode set after the rename): the watcher hits
+   "permission denied" on the fresh file and gives up for good
+   (2026-11-26). So a change restarts the container instead (container.sls
+   watch) — clients reconnect within seconds. #}
 headscale-extra-records:
   file.managed:
     - name: {{ headscale.config_dir }}/extra-records.json

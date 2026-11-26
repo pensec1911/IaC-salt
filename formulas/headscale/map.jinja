@@ -24,8 +24,8 @@
    (longest routing domain wins over the other links' `~.`), so a public
    wildcard can't answer for it first.
    extra_records: list of {name, type, value} DNS records for MagicDNS
-   clients, rendered to extra-records.json — Headscale reloads that file on
-   change, no restart. Config or policy changes restart the container.
+   clients, rendered to extra-records.json. Config, policy or record changes
+   restart the container (the hot reload breaks on Salt's file replace).
 
    podman: spec overrides for the container (keys: formulas/podman README). #}
 {%- set public_resolvers = ['1.1.1.1', '9.9.9.9'] %}{#- secret-scan: allow (public DNS resolvers) #}
