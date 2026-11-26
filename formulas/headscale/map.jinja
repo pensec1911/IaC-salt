@@ -19,6 +19,10 @@
    policy: the tailnet policy as a dict, rendered to policy.hujson (plain
    JSON is valid HuJSON). Empty = Headscale's default (allow all), so pillar
    should always set one.
+   search_domains: pushed to clients as search domains. systemd-resolved
+   also routes them: a name below one goes only to the tailnet resolver
+   (longest routing domain wins over the other links' `~.`), so a public
+   wildcard can't answer for it first.
    extra_records: list of {name, type, value} DNS records for MagicDNS
    clients, rendered to extra-records.json — Headscale reloads that file on
    change, no restart. Config or policy changes restart the container.
@@ -46,6 +50,7 @@
     'derp_region_id': 999,
     'log_level': 'info',
     'policy': {},
+    'search_domains': [],
     'extra_records': [],
     'podman': {},
 } %}

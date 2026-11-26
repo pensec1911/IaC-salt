@@ -37,6 +37,10 @@ headscale:
         - action: accept
           src: ["group:admin"]
           dst: ["192.168.178.0/24:*"]
+    # The edge zone as search domain: clients (systemd-resolved on the
+    # laptop) then ask only the tailnet for *.home.<domain> instead of racing
+    # it against the LAN/public resolver, where Porkbun's wildcard answers.
+    search_domains: [{{ edge.domain }}]
     # <name>.home.<domain> -> edge (formulas/caddy), one A record per route
     # (no wildcards in extra_records). Hot-reloaded, no restart.
     extra_records:

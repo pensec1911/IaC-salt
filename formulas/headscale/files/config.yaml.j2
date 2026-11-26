@@ -65,7 +65,7 @@ dns:
   nameservers:
     global: {{ headscale.nameservers | json }}
     split: {}
-  search_domains: []
+  search_domains: {{ headscale.search_domains | json }}
   extra_records_path: /etc/headscale/extra-records.json
 
 # /var/run is a root-owned tmpfs in the read-only container.
