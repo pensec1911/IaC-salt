@@ -8,3 +8,7 @@ RUN xcaddy build --with github.com/caddy-dns/porkbun@${PORKBUN_VERSION}
 
 FROM docker.io/library/caddy:${CADDY_VERSION}
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+# The builder's xcaddy wrapper sets cap_net_bind_service on the binary; with
+# NoNewPrivileges and all capabilities dropped the kernel refuses to exec a
+# file with capabilities it can't grant (EPERM). Caddy listens on 8443/8080.
+RUN setcap -r /usr/bin/caddy

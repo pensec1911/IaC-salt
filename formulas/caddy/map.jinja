@@ -6,7 +6,8 @@
    that tag is missing; bumping either version rebuilds and restarts.
    image/tag: the upstream base (Renovate bumps it via the map.jinja regex);
    the builder stage uses <tag>-builder. porkbun_version: Go module version
-   (Renovate, go datasource).
+   (Renovate, go datasource). build_revision: bump by hand when
+   files/Containerfile changes, so the tag changes and the image rebuilds.
 
    uid/gid: the container runs as this system account (Podman User=, mapped
    1:1), so data_dir (certificates, ACME account) stays owned by it. The
@@ -38,6 +39,7 @@
     'image': 'docker.io/library/caddy',
     'tag': '2.11.9',
     'porkbun_version': 'v0.3.1',
+    'build_revision': 2,
     'built_image': 'localhost/caddy-porkbun',
     'container_name': 'caddy',
     'network': 'edge',
@@ -61,4 +63,4 @@
     'podman': {},
 } %}
 {%- set caddy = salt['pillar.get']('caddy:lookup', default=defaults, merge=True) %}
-{%- do caddy.update({'ref_tag': caddy.tag ~ '-porkbun' ~ caddy.porkbun_version | replace('v', '', 1)}) %}
+{%- do caddy.update({'ref_tag': caddy.tag ~ '-porkbun' ~ caddy.porkbun_version | replace('v', '', 1) ~ '-r' ~ caddy.build_revision}) %}

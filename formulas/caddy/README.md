@@ -8,7 +8,7 @@ zero-trust plan on, Authentik sits in front of the routes with `auth: forward`.
 
 ## What it manages
 
-- `caddy.image`: builds `localhost/caddy-porkbun:<caddy>-porkbun<plugin>` on the minion from
+- `caddy.image`: builds `localhost/caddy-porkbun:<caddy>-porkbun<plugin>-r<build_revision>` on the minion from
   `files/Containerfile` (stock image + `xcaddy build --with github.com/caddy-dns/porkbun`).
   Only when that tag is missing, so the first apply and every version bump take ~2 min longer.
   No registry is involved, so there's no chicken-and-egg problem with a registry behind this
