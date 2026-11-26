@@ -19,7 +19,7 @@ exports, VPN.
 | `forgejo` | .29 | users, ntp, wazuh-agent, node-exporter, unattended-upgrades, patchmon-agent, healthchecks-ping, salt-minion, nfs-mount, podman, cadvisor, alloy, forgejo, forgejo-runner, netbox, patchmon, tofu-state, backup | Forgejo web :3000, git SSH :2222; Actions runner (no port, jobs in its own dind), Renovate hourly (`homelab/renovate`); NetBox :8000, PatchMon :3001 (their postgres + valkey internal only); Tofu state postgres :5432 (LAN, `formulas/tofu-state`) |
 | `wazuh` | .27 | users, ntp, node-exporter, unattended-upgrades, patchmon-agent, healthchecks-ping, salt-minion, wazuh, nfs-mount, backup | dashboard :443, indexer :9200, API :55000, agents :1514 / enrollment :1515 |
 | `gateway` | .31 | users, ntp, node-exporter, unattended-upgrades, patchmon-agent, healthchecks-ping, salt-minion, nfs-mount, tailscale, backup | WireGuard wg0 10.99.0.2 → cloud-edge (keys + nftables from IaC-opentofu cloud-init, not Salt); FRITZ!Box routes 10.99.0.0/24 here. Forward rules = the only list of what cloud-edge may reach in the LAN (IaC-opentofu `vms/gateway`). Tailscale subnet router tailnet → LAN (`tag:gateway`, SNAT). No containers. |
-| `edge` | .30 | users, ntp, node-exporter, unattended-upgrades, patchmon-agent, healthchecks-ping, salt-minion, podman, cadvisor, alloy | Caddy + Authentik (planned) |
+| `edge` | .30 | users, ntp, hosts, node-exporter, unattended-upgrades, patchmon-agent, healthchecks-ping, salt-minion, nfs-mount, podman, cadvisor, alloy, caddy, backup | Caddy :443 (`https://<name>.home.ilpaa.xyz`, wildcard LE cert via Porkbun DNS-01, routes in `pillar/edge-routes.jinja`), :80 → https, metrics :9180. Names resolve via `/etc/hosts` on LAN minions (`formulas/hosts`) and Headscale MagicDNS for tailnet clients. Authentik planned (step 6). |
 | `cloud-edge` | 10.99.0.1 (wg0) | users, ntp, node-exporter, unattended-upgrades, patchmon-agent, healthchecks-ping, salt-minion, podman, cadvisor, alloy, nfs-mount, headscale, backup | Headscale `https://hs.ilpaa.xyz` :443 + DERP (STUN :3478/udp), metrics 10.99.0.1:9090. OCI A1.Flex arm64 (IaC-opentofu `oci/`), reserved public IP behind `hs.ilpaa.xyz` (Tofu output `public_ip`); only 443/tcp, 3478/udp, 51820/udp open (NSG). LAN only through the tunnel; SSH `debian@10.99.0.1` from the LAN. NTP from Oracle (169.254.169.254). |
 
 Every minion: node_exporter :9100; patchmon-agent (no port, outbound WebSocket to PatchMon on
@@ -27,7 +27,7 @@ forgejo — only once enrolled, formulas/patchmon-agent README). Container hosts
 cAdvisor :8088. All scraped by Prometheus on monitoring — targets from the Salt Mine (`node_exporter`, `cadvisor` entries), not listed in `pillar/prometheus.sls`. Every homepage item with a status dot is also HTTP-probed via blackbox_exporter (`ProbeFailed`).
 Container hosts also run Alloy (no port), shipping the journal (container logs included, `job="container"`) to Loki on monitoring
 (Grafana → Explore, datasource `Loki`).
-arrstack, jellyfin, monitoring, wazuh, forgejo, gateway and cloud-edge (own repo password) back up nightly (~02:00 Berlin) to the NAS via restic
+arrstack, jellyfin, monitoring, wazuh, forgejo, gateway, edge and cloud-edge (own repo password) back up nightly (~02:00 Berlin) to the NAS via restic
 (`formulas/backup`, `BackupFailed` / `BackupStale`), with a weekly restore test (Sunday ~04:00,
 `RestoreTestFailed` / `RestoreTestStale`).
 Every minion patches itself daily from Debian main + Debian-Security via unattended-upgrades

@@ -1,0 +1,47 @@
+{#- The names Caddy on edge serves (formulas/caddy): https://<name>.<edge.domain>
+   -> upstream. One wildcard certificate (*.home.<domain>, DNS-01 at
+   Porkbun), nothing public — the names resolve only inside the house and
+   the tailnet. Import pattern as features.jinja:
+
+     {%- from 'edge-routes.jinja' import edge, routes, urls %}
+
+   Consumers (a new route needs no change in any of them):
+     pillar/caddy.sls       the Caddyfile
+     pillar/hosts.sls       /etc/hosts on the LAN minions (formulas/hosts)
+     pillar/headscale.sls   MagicDNS records for tailnet clients
+     pillar/homepage.sls    hrefs (urls.<name>) — and so the blackbox name probes
+     pillar/prometheus.sls  blackbox probes of the upstreams themselves
+
+   auth: what guards the route once Authentik runs (step 6 of the zero-trust
+   plan) — 'forward' = Caddy forward_auth, 'oidc' = the app logs in against
+   Authentik itself, 'none' = the app's own auth. Until then informational.
+
+   Not here: HTTPS-only appliances with their own certs (Proxmox, TrueNAS,
+   OpenBao, FRITZ!Box, Wazuh) — reached directly (admin list in the
+   Headscale policy). #}
+{%- set edge = {'ip': '192.168.178.30', 'domain': 'home.ilpaa.xyz'} %}
+{%- set routes = [
+    {'name': 'homepage',     'upstream': 'http://192.168.178.23:3000', 'auth': 'forward'},
+    {'name': 'jellyfin',     'upstream': 'http://192.168.178.24:8096', 'auth': 'none'},
+    {'name': 'seerr',        'upstream': 'http://192.168.178.22:5055', 'auth': 'oidc'},
+    {'name': 'sonarr',       'upstream': 'http://192.168.178.22:8989', 'auth': 'forward'},
+    {'name': 'radarr',       'upstream': 'http://192.168.178.22:7878', 'auth': 'forward'},
+    {'name': 'prowlarr',     'upstream': 'http://192.168.178.22:9696', 'auth': 'forward'},
+    {'name': 'bazarr',       'upstream': 'http://192.168.178.22:6767', 'auth': 'forward'},
+    {'name': 'qbittorrent',  'upstream': 'http://192.168.178.22:8080', 'auth': 'forward'},
+    {'name': 'slskd',        'upstream': 'http://192.168.178.22:5030', 'auth': 'forward'},
+    {'name': 'grafana',      'upstream': 'http://192.168.178.25:3000', 'auth': 'oidc'},
+    {'name': 'prometheus',   'upstream': 'http://192.168.178.25:9090', 'auth': 'forward'},
+    {'name': 'alertmanager', 'upstream': 'http://192.168.178.25:9093', 'auth': 'forward'},
+    {'name': 'ntfy',         'upstream': 'http://192.168.178.24:8090', 'auth': 'forward'},
+    {'name': 'healthchecks', 'upstream': 'http://192.168.178.24:8000', 'auth': 'forward'},
+    {'name': 'patchmon',     'upstream': 'http://192.168.178.29:3001', 'auth': 'forward'},
+    {'name': 'cyberchef',    'upstream': 'http://192.168.178.25:8081', 'auth': 'forward'},
+    {'name': 'it-tools',     'upstream': 'http://192.168.178.25:8082', 'auth': 'forward'},
+    {'name': 'git',          'upstream': 'http://192.168.178.29:3000', 'auth': 'oidc'},
+    {'name': 'netbox',       'upstream': 'http://192.168.178.29:8000', 'auth': 'oidc'},
+] %}
+{%- set urls = {} %}
+{%- for r in routes %}
+{%-   do urls.update({r.name: 'https://' ~ r.name ~ '.' ~ edge.domain}) %}
+{%- endfor %}

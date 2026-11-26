@@ -4,6 +4,7 @@ base:
   'salt-master':
     - users
     - ntp
+    - hosts
 {%- if wazuh %}
     - wazuh-agent
 {%- endif %}
@@ -18,6 +19,7 @@ base:
   'homepage':
     - users
     - ntp
+    - hosts
 {%- if wazuh %}
     - wazuh-agent
 {%- endif %}
@@ -34,6 +36,7 @@ base:
   'monitoring':
     - users
     - ntp
+    - hosts
 {%- if wazuh %}
     - wazuh-agent
 {%- endif %}
@@ -58,6 +61,7 @@ base:
   'arrstack':
     - users
     - ntp
+    - hosts
 {%- if wazuh %}
     - wazuh-agent
 {%- endif %}
@@ -77,6 +81,7 @@ base:
   'wazuh':
     - users
     - ntp
+    - hosts
     - node-exporter
     - unattended-upgrades
     - patchmon-agent
@@ -89,6 +94,7 @@ base:
   'jellyfin':
     - users
     - ntp
+    - hosts
 {%- if wazuh %}
     - wazuh-agent
 {%- endif %}
@@ -109,6 +115,7 @@ base:
   'forgejo':
     - users
     - ntp
+    - hosts
 {%- if wazuh %}
     - wazuh-agent
 {%- endif %}
@@ -133,6 +140,7 @@ base:
   'gateway':
     - users
     - ntp
+    - hosts
 {%- if wazuh %}
     - wazuh-agent
 {%- endif %}
@@ -149,6 +157,7 @@ base:
   'edge':
     - users
     - ntp
+    - hosts
 {%- if wazuh %}
     - wazuh-agent
 {%- endif %}
@@ -157,9 +166,12 @@ base:
     - patchmon-agent
     - healthchecks-ping
     - salt-minion
+    - nfs-mount
     - podman
     - cadvisor
     - alloy
+    - caddy
+    - backup
 
   # OCI A1 (arm64), Headscale. Erreicht das LAN nur durch den WireGuard-Tunnel
   # ueber gateway (Freigaben dort); Mine/Scrapes ueber wg0 (pillar/cloud-edge.sls).

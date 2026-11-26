@@ -20,6 +20,14 @@
       "depNameTemplate": "salt-common",
       "datasourceTemplate": "deb",
       "registryUrlTemplate": "https://packages.broadcom.com/artifactory/saltproject-deb?suite=stable&components=main&binaryArch=amd64"
+    },
+    {
+      "customType": "regex",
+      "description": "caddy-dns/porkbun plugin built into the Caddy image on edge (formulas/caddy porkbun_version)",
+      "managerFilePatterns": ["/^formulas/caddy/map\\.jinja$/"],
+      "matchStrings": ["'porkbun_version':\\s*'(?<currentValue>v[^']+)'"],
+      "depNameTemplate": "github.com/caddy-dns/porkbun",
+      "datasourceTemplate": "go"
     }
   ],
   "packageRules": [

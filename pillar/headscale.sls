@@ -2,6 +2,7 @@
    hand at Porkbun) -> 443/tcp + 3478/udp; metrics only on wg0 for
    Prometheus through the tunnel. #}
 {%- set domain = 'ilpaa.xyz' %}
+{%- from 'edge-routes.jinja' import edge, routes %}
 users:
   accounts:
     # Pinned uid/gid — the container runs as it (Podman User=, mapped 1:1).
@@ -36,8 +37,12 @@ headscale:
         - action: accept
           src: ["group:admin"]
           dst: ["192.168.178.0/24:*"]
-    # <name>.home.<domain> -> edge, filled once Caddy runs (step 5).
-    extra_records: []
+    # <name>.home.<domain> -> edge (formulas/caddy), one A record per route
+    # (no wildcards in extra_records). Hot-reloaded, no restart.
+    extra_records:
+{%- for r in routes %}
+      - {name: {{ r.name }}.{{ edge.domain }}, type: A, value: {{ edge.ip }}}
+{%- endfor %}
     # The metrics port is published on the wg0 address — wg0 has to be up
     # before the container binds it.
     podman:

@@ -1,0 +1,8 @@
+{#- /etc/hosts entries for names the LAN has no DNS for (the FRITZ!Box
+   doesn't serve them). entries: [{ip, names}] — one host.present per entry;
+   other lines in /etc/hosts stay as they are. Podman containers inherit the
+   host's /etc/hosts, so apps resolve the names too. #}
+{%- set defaults = {
+    'entries': [],
+} %}
+{%- set hosts = salt['pillar.get']('hosts:lookup', default=defaults, merge=True) %}

@@ -1,0 +1,64 @@
+{#- Caddy reverse proxy with the caddy-dns/porkbun plugin, one container
+   (formulas/podman). The stock image has no DNS plugins, so the image is
+   built on the minion itself (files/Containerfile, xcaddy) and tagged
+   localhost/<built_image>:<tag>-porkbun<porkbun_version> — no registry, so
+   no chicken-and-egg with a registry behind this very Caddy. Built only when
+   that tag is missing; bumping either version rebuilds and restarts.
+   image/tag: the upstream base (Renovate bumps it via the map.jinja regex);
+   the builder stage uses <tag>-builder. porkbun_version: Go module version
+   (Renovate, go datasource).
+
+   uid/gid: the container runs as this system account (Podman User=, mapped
+   1:1), so data_dir (certificates, ACME account) stays owned by it. The
+   matching formulas/users account entry (pillar) must use the same numbers.
+   Listens on 8443/8080 inside (non-root, no CAP_NET_BIND_SERVICE),
+   published on https_port/http_port; :80 only redirects to https. Caddy's
+   own redirect would carry the inner port, so it's off and an explicit
+   http:// site redirects instead.
+
+   domain: the wildcard zone (*.<domain>, one certificate via DNS-01).
+   routes: [{name, upstream, auth}] -> https://<name>.<domain> proxied to
+   upstream; anything else under the wildcard gets a 404.
+   forward_auth: upstream of an auth server (Authentik's embedded outpost,
+   http://authentik-server:9000). Empty = off; when set, routes with
+   auth: forward go through it first.
+   acme_email: optional ACME account contact.
+   resolvers: DNS servers Caddy asks to see its TXT record propagate (the
+   challenge check), public ones so the LAN resolver's cache doesn't matter.
+   metrics_port: Prometheus /metrics, plain HTTP, published on the host.
+
+   porkbun_api_key / porkbun_secret_api_key: required, pillar fills them  secret-scan: allow (doc text)
+   from OpenBao (porkbun/api); config.sls fails without them.
+
+   network: the Podman network Caddy shares with the apps it fronts on the
+   same host (Authentik, step 6).
+   podman: spec overrides for the container (keys: formulas/podman README). #}
+{%- set public_resolvers = ['1.1.1.1', '9.9.9.9'] %}{#- secret-scan: allow (public DNS resolvers) #}
+{%- set defaults = {
+    'image': 'docker.io/library/caddy',
+    'tag': '2.11.9',
+    'porkbun_version': 'v0.3.1',
+    'built_image': 'localhost/caddy-porkbun',
+    'container_name': 'caddy',
+    'network': 'edge',
+    'uid': 978,
+    'gid': 978,
+    'base_dir': '/opt/caddy',
+    'build_dir': '/opt/caddy/build',
+    'config_dir': '/opt/caddy/config',
+    'data_dir': '/opt/caddy/data',
+    'state_dir': '/opt/caddy/state',
+    'https_port': 443,
+    'http_port': 80,
+    'metrics_port': 9180,
+    'domain': '',
+    'routes': [],
+    'forward_auth': '',
+    'acme_email': '',
+    'resolvers': public_resolvers,
+    'porkbun_api_key': '',
+    'porkbun_secret_api_key': '',
+    'podman': {},
+} %}
+{%- set caddy = salt['pillar.get']('caddy:lookup', default=defaults, merge=True) %}
+{%- do caddy.update({'ref_tag': caddy.tag ~ '-porkbun' ~ caddy.porkbun_version | replace('v', '', 1)}) %}

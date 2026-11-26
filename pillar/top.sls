@@ -18,9 +18,14 @@ base:
     - match: list
     - salt-minion-enforce-window
 
-  'arrstack,jellyfin,monitoring,wazuh,forgejo,gateway,cloud-edge':
+  'arrstack,jellyfin,monitoring,wazuh,forgejo,gateway,edge,cloud-edge':
     - match: list
     - backup
+
+  # LAN minions: the edge route names in /etc/hosts (formulas/hosts).
+  'salt-master,homepage,monitoring,arrstack,wazuh,jellyfin,forgejo,gateway,edge':
+    - match: list
+    - hosts
 
   'salt-master':
     - salt-master
@@ -67,3 +72,6 @@ base:
 
   'gateway':
     - tailscale
+
+  'edge':
+    - caddy

@@ -1,0 +1,10 @@
+# Caddy with the Porkbun DNS provider (DNS-01 for the wildcard certificate).
+# Built on the minion by formulas/caddy (image.sls); versions come in as
+# build args from map.jinja, so this file never changes on a bump.
+ARG CADDY_VERSION
+FROM docker.io/library/caddy:${CADDY_VERSION}-builder AS builder
+ARG PORKBUN_VERSION
+RUN xcaddy build --with github.com/caddy-dns/porkbun@${PORKBUN_VERSION}
+
+FROM docker.io/library/caddy:${CADDY_VERSION}
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy

@@ -3,6 +3,7 @@
    `mine:` jobs into one target per minion, `instance` = minion name). Only
    monitoring's own address is still listed here, for Alertmanager. #}
 {%- set monitoring_ip = '192.168.178.25' %}
+{%- from 'edge-routes.jinja' import edge, routes %}
 {#- Watchdog only while Alertmanager has somewhere to send it (the
    Healthchecks ping key, same guard as pillar/alertmanager.sls) — otherwise
    it would just sit firing in the UI. #}
@@ -61,6 +62,28 @@ prometheus:
           labels:
             instance: headscale
             group: Infrastructure
+    # The apps behind Caddy, probed on their upstream directly: with the
+    # name probes above (homepage hrefs = https://<name>.home.<domain>),
+    # a failure tells Caddy/certificate/DNS (name only) from the app (both).
+    - job_name: blackbox-upstream
+      probe:
+        module: http_up
+        exporter: {{ monitoring_ip }}:9115
+      static_configs:
+{%- for r in routes %}
+        - targets:
+            - {{ r.upstream }}
+          labels:
+            instance: {{ r.name }}
+            group: upstream
+{%- endfor %}
+    # formulas/caddy on edge (metrics: requests, upstream health, certs).
+    - job_name: caddy
+      static_configs:
+        - targets:
+            - {{ edge.ip }}:9180
+          labels:
+            instance: edge
     # formulas/headscale on cloud-edge, through the WireGuard tunnel.
     - job_name: headscale
       static_configs:
@@ -157,7 +180,7 @@ prometheus:
           annotations:
             summary: {% raw %}"Scrape job {{ $labels.job }} has no targets — Salt Mine empty? Apply the exporter minions, then monitoring"{% endraw %}
         - alert: ProbeFailed
-          expr: probe_success{job="blackbox"} == 0
+          expr: probe_success{job=~"blackbox|blackbox-upstream"} == 0
           for: 5m
           labels:
             severity: warning

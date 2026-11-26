@@ -1,0 +1,56 @@
+{%- from "caddy/map.jinja" import caddy with context -%}
+# Managed by Salt (formulas/caddy) — do not edit.
+{
+	http_port 8080
+	https_port 8443
+	# The redirect would point at :8443 (the inner port) — see the http:// site.
+	auto_https disable_redirects
+	admin localhost:2019
+{%- if caddy.acme_email %}
+	email {{ caddy.acme_email }}
+{%- endif %}
+	# Let's Encrypt only, DNS-01 at Porkbun ({$…} = env, at config load).
+	cert_issuer acme {
+		dns porkbun {
+			api_key {$PORKBUN_API_KEY}
+			api_secret_key {$PORKBUN_API_SECRET_KEY}
+		}
+		resolvers {{ caddy.resolvers | join(' ') }}
+	}
+	metrics
+}
+
+http://*.{{ caddy.domain }} {
+	redir https://{host}{uri} permanent
+}
+
+*.{{ caddy.domain }} {
+{%- if caddy.forward_auth %}
+	# Authentik's outpost endpoints, on every name (forward_auth redirects there).
+	handle /outpost.goauthentik.io/* {
+		reverse_proxy {{ caddy.forward_auth }}
+	}
+{%- endif %}
+{%- for r in caddy.routes %}
+
+	@{{ r.name }} host {{ r.name }}.{{ caddy.domain }}
+	handle @{{ r.name }} {
+{%- if caddy.forward_auth and r.get('auth') == 'forward' %}
+		forward_auth {{ caddy.forward_auth }} {
+			uri /outpost.goauthentik.io/auth/caddy
+			copy_headers X-Authentik-Username X-Authentik-Groups X-Authentik-Entitlements X-Authentik-Email X-Authentik-Name X-Authentik-Uid X-Authentik-Jwt X-Authentik-Meta-Jwks X-Authentik-Meta-Outpost X-Authentik-Meta-Provider X-Authentik-Meta-App X-Authentik-Meta-Version
+			trusted_proxies private_ranges
+		}
+{%- endif %}
+		reverse_proxy {{ r.upstream }}
+	}
+{%- endfor %}
+
+	handle {
+		respond "No such service" 404
+	}
+}
+
+http://:{{ caddy.metrics_port }} {
+	metrics /metrics
+}

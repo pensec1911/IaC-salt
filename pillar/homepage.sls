@@ -1,7 +1,11 @@
 {%- from 'features.jinja' import features %}
+{#- Apps behind Caddy on edge link to their https name (urls.<name>, the
+   status dot and blackbox probe follow href); appliances with their own
+   HTTPS (Proxmox, TrueNAS, OpenBao, FRITZ!Box, Wazuh) stay on the IP. #}
+{%- from 'edge-routes.jinja' import edge, urls %}
 homepage:
   lookup:
-    allowed_hosts: "192.168.178.23:3000,homepage:3000,localhost:3000,127.0.0.1:3000"
+    allowed_hosts: "homepage.{{ edge.domain }},192.168.178.23:3000,homepage:3000,localhost:3000,127.0.0.1:3000"
 
   settings:
     title: Homelab
@@ -14,11 +18,11 @@ homepage:
     - name: Media
       items:
         - name: Jellyfin
-          href: http://192.168.178.24:8096
+          href: {{ urls['jellyfin'] }}
           icon: jellyfin.png
           description: Media server
         - name: Seerr
-          href: http://192.168.178.22:5055
+          href: {{ urls['seerr'] }}
           icon: seerr.png
           description: Requests
 
@@ -27,60 +31,60 @@ homepage:
     - name: Arr
       items:
         - name: Sonarr
-          href: http://192.168.178.22:8989
+          href: {{ urls['sonarr'] }}
           icon: sonarr.png
           description: Series
         - name: Radarr
-          href: http://192.168.178.22:7878
+          href: {{ urls['radarr'] }}
           icon: radarr.png
           description: Movies
         - name: Prowlarr
-          href: http://192.168.178.22:9696
+          href: {{ urls['prowlarr'] }}
           icon: prowlarr.png
           description: Indexers
         - name: Bazarr
-          href: http://192.168.178.22:6767
+          href: {{ urls['bazarr'] }}
           icon: bazarr.png
           description: Subtitles
 
     - name: Downloads
       items:
         - name: qBittorrent
-          href: http://192.168.178.22:8080
+          href: {{ urls['qbittorrent'] }}
           icon: qbittorrent.png
           description: Torrents (via Proton VPN)
         - name: slskd
-          href: http://192.168.178.22:5030
+          href: {{ urls['slskd'] }}
           icon: slskd.png
           description: Soulseek (via Proton VPN)
 
     - name: Monitoring
       items:
         - name: Grafana
-          href: http://192.168.178.25:3000
+          href: {{ urls['grafana'] }}
           icon: grafana.png
           description: Dashboards
         - name: Prometheus
-          href: http://192.168.178.25:9090
+          href: {{ urls['prometheus'] }}
           icon: prometheus.png
           description: Metrics
           widget:
             type: prometheus
             url: http://192.168.178.25:9090
         - name: Alertmanager
-          href: http://192.168.178.25:9093
+          href: {{ urls['alertmanager'] }}
           icon: alertmanager.png
           description: Alerts
         - name: ntfy
-          href: http://192.168.178.24:8090
+          href: {{ urls['ntfy'] }}
           icon: ntfy.png
           description: Alert push notifications
         - name: Healthchecks
-          href: http://192.168.178.24:8000
+          href: {{ urls['healthchecks'] }}
           icon: healthchecks.png
           description: Job heartbeats (dead-man's switch)
         - name: PatchMon
-          href: http://192.168.178.29:3001
+          href: {{ urls['patchmon'] }}
           icon: patchmon.png
           description: Patches per host
 {%- if features.wazuh %}
@@ -94,11 +98,11 @@ homepage:
     - name: Tools
       items:
         - name: CyberChef
-          href: http://192.168.178.25:8081
+          href: {{ urls['cyberchef'] }}
           icon: sh-cyberchef.png
           description: Encode, decode, crypto, data analysis
         - name: IT-Tools
-          href: http://192.168.178.25:8082
+          href: {{ urls['it-tools'] }}
           icon: it-tools.png
           description: JWT, certs, hashes, regex, cron, subnets
 
@@ -108,7 +112,7 @@ homepage:
         - name: pve01
           href: https://192.168.178.11:8006
           icon: proxmox.png
-          description: homepage, wazuh
+          description: homepage, gateway, edge, openbao (32 GB)
         - name: pve02
           href: https://192.168.178.12:8006
           icon: proxmox.png
@@ -116,7 +120,7 @@ homepage:
         - name: pve03
           href: https://192.168.178.13:8006
           icon: proxmox.png
-          description: arrstack, forgejo, openbao
+          description: arrstack, forgejo
 
     - name: Infrastructure
       items:
@@ -125,11 +129,11 @@ homepage:
           icon: truenas-scale.png
           description: NAS — media share
         - name: Forgejo
-          href: http://192.168.178.29:3000
+          href: {{ urls['git'] }}
           icon: forgejo.png
           description: Git — deploy source
         - name: NetBox
-          href: http://192.168.178.29:8000
+          href: {{ urls['netbox'] }}
           icon: netbox.png
           description: IPAM / inventory
         - name: OpenBao

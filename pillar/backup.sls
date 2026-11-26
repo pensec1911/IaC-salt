@@ -77,6 +77,11 @@
         'excludes': [],
         'stop_containers': ['headscale'],
     },
+    'edge': {
+        'paths': ['/opt/caddy/data'],
+        'excludes': [],
+        'stop_containers': [],
+    },
     'gateway': {
         'paths': ['/var/lib/tailscale'],
         'excludes': [],
