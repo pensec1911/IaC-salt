@@ -32,6 +32,17 @@
   ],
   "packageRules": [
     {
+      "description": "LSIO qBittorrent: tags 20.x/14.x are ancient pre-5.x releases from an older tag scheme, not upgrades",
+      "matchDepNames": ["lscr.io/linuxserver/qbittorrent"],
+      "allowedVersions": "<14.0.0"
+    },
+    {
+      "description": "PatchMon's Postgres stays on 17 (patch/minor only): a major needs a dump/restore of its data dir, not a tag bump",
+      "matchDepNames": ["docker.io/library/postgres"],
+      "matchFileNames": ["formulas/patchmon/map.jinja"],
+      "allowedVersions": "<18.0.0"
+    },
+    {
       "description": "Salt: stay on the 3008 LTS line (Tofu's bootstrap pin is 3008.*); a new major is a manual decision",
       "matchDepNames": ["salt-common"],
       "matchDatasources": ["deb"],
