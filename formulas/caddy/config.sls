@@ -8,6 +8,11 @@
 {%-   if not caddy[key] or caddy[key].startswith('sdb://') %}{% do bad.append(key) %}{% endif %}
 {%- endfor %}
 {%- if not caddy.domain %}{% do bad.append('domain') %}{% endif %}
+{#- Fail closed: a route that wants forward auth without an auth server
+   would be served open. #}
+{%- if not caddy.forward_auth and caddy.routes | selectattr('auth', 'equalto', 'forward') | list %}
+{%-   do bad.append('forward_auth (routes with auth: forward)') %}
+{%- endif %}
 
 caddy-config-valid:
 {%- if bad %}

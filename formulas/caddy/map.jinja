@@ -23,8 +23,9 @@
    tls_insecure: an https upstream with a self-signed certificate (Proxmox,
    TrueNAS, OpenBao) — encrypted, but not verified.
    forward_auth: upstream of an auth server (Authentik's embedded outpost,
-   http://authentik-server:9000). Empty = off; when set, routes with
-   auth: forward go through it first.
+   http://authentik-server:9000); routes with auth: forward go through it
+   first. Empty while any route has auth: forward = config.sls fails
+   (never serve those routes open).
    acme_email: optional ACME account contact.
    resolvers: DNS servers Caddy asks to see its TXT record propagate (the
    challenge check), public ones so the LAN resolver's cache doesn't matter.

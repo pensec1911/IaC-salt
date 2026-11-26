@@ -20,7 +20,8 @@
    OIDC, and forward auth would lock out everyone but the admins.
 
    push: ntfy's API for the phone app, which can't do forward auth — ntfy's
-   own token auth; same upstream as ntfy, separate name.
+   own token auth (auth-default-access deny-all, formulas/ntfy: anonymous
+   gets nothing); same upstream as ntfy, separate name.
 
    local: True = the upstream is a container on edge itself (by name on the
    shared Podman network) — not probed from monitoring, only via its name.

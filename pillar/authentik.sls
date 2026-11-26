@@ -8,22 +8,21 @@ authentik:
     secret_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/authentik/app?secret_key') | yaml_encode }}
     pg_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/authentik/app?pg_password') | yaml_encode }}
     # Apps that log in against Authentik themselves (OIDC). client_id = slug;
-    # each needs its secret below (OpenBao authentik/oidc-<slug>) and the
-    # same secret in the app's own pillar.
+    # each needs its secret (OpenBao authentik/oidc-<slug>), the same secret
+    # in the app's own pillar. One list for both, so they can't drift.
+{%- set oidc_apps = [
+    {'slug': 'grafana', 'name': 'Grafana', 'route': 'grafana', 'callback': '/login/generic_oauth'},
+    {'slug': 'forgejo', 'name': 'Forgejo', 'route': 'git', 'callback': '/user/oauth2/authentik/callback'},
+    {'slug': 'netbox', 'name': 'NetBox', 'route': 'netbox', 'callback': '/oauth/complete/oidc/'},
+] %}
     oidc_apps:
-      - slug: grafana
-        name: Grafana
-        launch_url: {{ urls['grafana'] }}
-        redirect_uris: ['{{ urls['grafana'] }}/login/generic_oauth']
-      - slug: forgejo
-        name: Forgejo
-        launch_url: {{ urls['git'] }}
-        redirect_uris: ['{{ urls['git'] }}/user/oauth2/authentik/callback']
-      - slug: netbox
-        name: NetBox
-        launch_url: {{ urls['netbox'] }}
-        redirect_uris: ['{{ urls['netbox'] }}/oauth/complete/oidc/']
+{%- for a in oidc_apps %}
+      - slug: {{ a.slug }}
+        name: {{ a.name }}
+        launch_url: {{ urls[a.route] }}
+        redirect_uris: ['{{ urls[a.route] ~ a.callback }}']
+{%- endfor %}
     oidc_secrets:
-{%- for slug in ['grafana', 'forgejo', 'netbox'] %}
-      {{ slug }}: {{ salt['sdb.get']('sdb://osvault/homelab/data/authentik/oidc-' ~ slug ~ '?client_secret') | yaml_encode }}
+{%- for a in oidc_apps %}
+      {{ a.slug }}: {{ salt['sdb.get']('sdb://osvault/homelab/data/authentik/oidc-' ~ a.slug ~ '?client_secret') | yaml_encode }}
 {%- endfor %}

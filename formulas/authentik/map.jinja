@@ -18,7 +18,7 @@
    oidc_secrets: {<APP>: client secret} -> env HOMELAB_OIDC_<APP>_SECRET in  secret-scan: allow (doc text)
    the worker's secret env file, for OAuth2 provider blueprints (!Env).
 
-   Blueprints (files/blueprints/*.yaml.j2) are rendered to blueprints_dir
+   Blueprints (files/blueprints/*.yaml, Jinja) are rendered to blueprints_dir
    and mounted read-only on /blueprints/homelab in the worker, which applies
    them on change and hourly. Parameters:
      domain        zone of the apps (<name>.<domain>) and of the forward
@@ -34,6 +34,8 @@
 
    dump_dir: where formulas/backup's pre-run pg_dump goes; pillar/backup.sls
    repeats it and postgres_container_name.
+   postgres_podman read_only False: postgres needs a writable root
+   (/run/postgresql socket dir, initdb) — same as netbox/tofu-state.
    podman / worker_podman / postgres_podman: spec overrides (keys:
    formulas/podman README). #}
 {%- set defaults = {
