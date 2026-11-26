@@ -16,6 +16,9 @@
    plan) — 'forward' = Caddy forward_auth, 'oidc' = the app logs in against
    Authentik itself, 'none' = the app's own auth. Until then informational.
 
+   seerr: own login (Jellyfin accounts, also for non-admins); v3.5.2 has no
+   OIDC, and forward auth would lock out everyone but the admins.
+
    push: ntfy's API for the phone app, which can't do forward auth — ntfy's
    own token auth; same upstream as ntfy, separate name.
 
@@ -29,7 +32,7 @@
 {%- set routes = [
     {'name': 'homepage',     'upstream': 'http://192.168.178.23:3000', 'auth': 'forward'},
     {'name': 'jellyfin',     'upstream': 'http://192.168.178.24:8096', 'auth': 'none'},
-    {'name': 'seerr',        'upstream': 'http://192.168.178.22:5055', 'auth': 'oidc'},
+    {'name': 'seerr',        'upstream': 'http://192.168.178.22:5055', 'auth': 'none'},
     {'name': 'sonarr',       'upstream': 'http://192.168.178.22:8989', 'auth': 'forward'},
     {'name': 'radarr',       'upstream': 'http://192.168.178.22:7878', 'auth': 'forward'},
     {'name': 'prowlarr',     'upstream': 'http://192.168.178.22:9696', 'auth': 'forward'},

@@ -13,6 +13,9 @@
 {%- for app, value in authentik.oidc_secrets | dictsort %}
 {%-   if not value or value.startswith('sdb://') %}{% do bad.append('oidc_secrets:' ~ app) %}{% endif %}{#- secret-scan: allow (key name) #}
 {%- endfor %}
+{%- for app in authentik.oidc_apps %}
+{%-   if app.slug not in authentik.oidc_secrets %}{% do bad.append('oidc_secrets:' ~ app.slug) %}{% endif %}{#- secret-scan: allow (key name) #}
+{%- endfor %}
 {%- for key in ['domain', 'external_host'] %}
 {%-   if not authentik[key] %}{% do bad.append(key) %}{% endif %}
 {%- endfor %}

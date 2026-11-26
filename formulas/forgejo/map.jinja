@@ -21,6 +21,10 @@
    the other half). scope: an org or user name, '' = instance-wide. The
    secret is 40 hex chars from OpenBao; re-registered only when it changes
    (a sha256 of it is kept next to the data). 
+   oauth_sources: name -> {key, secret, discovery_url, scopes, group_claim,
+   admin_group, skip_local_2fa, provider} — OAuth2/OIDC login sources
+   (oauth.sls), created once, never updated. The callback URL is
+   <ROOT_URL>user/oauth2/<name>/callback.
    podman: spec overrides. read_only off on purpose: Forgejo is the deploy
    source (gitfs) — if it broke on a read-only root, no push could fix it.
    Try it with a manual apply some day (known-issues.md). #}
@@ -37,6 +41,7 @@
     'ca_dir': '/opt/forgejo/ca',
     'extra_ca_certs': {},
     'runners': {},
+    'oauth_sources': {},
     'podman': {'read_only': False},
     'podman_bin': '/usr/bin/podman',
     'app_ini': {

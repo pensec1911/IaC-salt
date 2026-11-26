@@ -16,6 +16,9 @@
    up.
 
    labels: runner.labels — what `runs-on:` in a workflow can ask for.
+   job_options: extra `docker run` options for every job container
+   (config.yml container.options), e.g. --add-host for names dind's DNS
+   doesn't know.
    podman / dind_podman: spec overrides for the two containers (keys:
    formulas/podman README). #}
 {%- set defaults = {
@@ -36,6 +39,7 @@
     'secret': '',
     'capacity': 1,
     'labels': ['docker:docker://node:22-bookworm'],
+    'job_options': '',
     'podman': {},
     'dind_podman': {},
 } %}

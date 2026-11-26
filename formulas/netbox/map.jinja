@@ -31,6 +31,12 @@
    podman / postgres_podman / valkey_podman: spec overrides (keys:
    formulas/podman README).
 
+   extra_config: Python source written to config_dir/homelab.py and bound
+   to /etc/netbox/config/homelab.py — netbox-docker loads every *.py there
+   after configuration.py (settings env can't express, e.g. SSO).
+   extra_secrets: name -> value, written to secrets_dir like the three above  secret-scan: allow (doc text)
+   and bound to /run/secrets/<name> (extra_config reads them from there).
+
    dump_dir: where formulas/backup's pre-run pg_dump goes. pillar/backup.sls
    `dumps` repeats this path and postgres_container_name — change both
    together. Listed here only so the dir exists with the right mode. #}
@@ -52,6 +58,9 @@
     'postgres_dir': '/opt/netbox/postgres',
     'valkey_dir': '/opt/netbox/valkey',
     'secrets_dir': '/opt/netbox/secrets',
+    'config_dir': '/opt/netbox/config',
+    'extra_config': '',
+    'extra_secrets': {},
     'dump_dir': '/opt/netbox/dump',
     'media_uid': 999,
     'media_gid': 0,

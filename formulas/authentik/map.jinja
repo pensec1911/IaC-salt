@@ -28,6 +28,10 @@
                    — the built-in superuser group by default, so akadmin and
                    whoever is added there by hand get in.
 
+   oidc_apps: [{slug, name, redirect_uris, launch_url}] -> one OAuth2
+   provider + application each (files/blueprints/50-oidc.yaml), client_id =
+   slug, secret = oidc_secrets[slug] (required for every listed app).  secret-scan: allow (doc text)
+
    dump_dir: where formulas/backup's pre-run pg_dump goes; pillar/backup.sls
    repeats it and postgres_container_name.
    podman / worker_podman / postgres_podman: spec overrides (keys:
@@ -55,6 +59,7 @@
     'secret_key': '',
     'pg_password': '',
     'oidc_secrets': {},
+    'oidc_apps': [],
     'domain': '',
     'external_host': '',
     'admin_group': 'authentik Admins',

@@ -8,6 +8,10 @@
    under /var/log/grafana, which the read-only root can't take; the journal
    has the console log anyway.
 
+   env: merged key by key with pillar (GF_<SECTION>_<KEY> settings, e.g.
+   generic OAuth). secret_env: same for secrets (OAuth client secret) —
+   they go into the 0600 secret env file, not the unit.
+
    podman: spec overrides for the container (keys: formulas/podman README). #}
 {%- set defaults = {
     'image': 'docker.io/grafana/grafana-oss',
@@ -24,6 +28,7 @@
     'uid': 472,
     'gid': 472,
     'env': {'GF_LOG_MODE': 'console'},
+    'secret_env': {},
     'podman': {},
 } %}
 {%- set grafana = salt['pillar.get']('grafana:lookup', default=defaults, merge=True) %}

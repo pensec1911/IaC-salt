@@ -25,6 +25,7 @@ include:
     'secret_env': {'GF_SECURITY_ADMIN_USER': grafana.admin_user},
 } %}
 {%- do spec.secret_env.update({'GF_SECURITY_ADMIN_PASSWORD': grafana.admin_password}) %}{#- secret-scan: allow (variable, not a value) #}
+{%- do spec.secret_env.update(grafana.secret_env) %}
 {%- do spec.update(grafana.podman) %}
 {%- set files = [{'file': 'grafana-datasources'}, {'file': 'grafana-dashboard-provider'}] %}
 {{ container('grafana-container', spec,

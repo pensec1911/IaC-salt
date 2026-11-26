@@ -63,12 +63,15 @@ include:
     'MEDIA_ROOT': '/opt/netbox/netbox/media',
 } %}
 {%- do env.update(netbox.config) %}
-{%- set volumes = [netbox.media_dir ~ ':/opt/netbox/netbox/media:U'] %}
-{%- for name in netbox.secret_names %}
+{%- set volumes = [netbox.media_dir ~ ':/opt/netbox/netbox/media:U',
+                   netbox.config_dir ~ '/homelab.py:/etc/netbox/config/homelab.py:ro'] %}
+{%- set secret_names = netbox.secret_names + (netbox.extra_secrets | list) %}
+{%- for name in secret_names %}
 {%-   do volumes.append(netbox.secrets_dir ~ '/' ~ name ~ ':/run/secrets/' ~ name ~ ':ro') %}
 {%- endfor %}
 {%- set secrets = [] %}
-{%- for name in netbox.secret_names %}{% do secrets.append({'file': 'netbox-secret-' ~ name}) %}{% endfor %}
+{%- for name in secret_names %}{% do secrets.append({'file': 'netbox-secret-' ~ name}) %}{% endfor %}
+{%- do secrets.append({'file': 'netbox-extra-config'}) %}
 {%- set backends = [netbox.postgres_container_name ~ '.service', netbox.valkey_container_name ~ '.service'] %}
 {%- set web = {
     'name': netbox.container_name,

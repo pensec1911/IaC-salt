@@ -24,6 +24,7 @@ container:
   valid_volumes: []
   # "-" = no docker socket mounted into job containers.
   docker_host: "-"
+  options: {{ runner.job_options | json }}
 
 server:
   connections:

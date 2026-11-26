@@ -1,6 +1,28 @@
+{%- from 'edge-routes.jinja' import urls %}
+{%- set oidc = urls['auth'] ~ '/application/o' %}
 grafana:
   lookup:
     admin_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/grafana/admin?password') | yaml_encode }}
+    # Login via Authentik (OIDC provider "grafana", formulas/authentik). Only
+    # Authentik's admin group may log in there, so every login is Grafana
+    # Admin. The local admin stays for emergencies:
+    # https://grafana.<domain>/login?disableAutoLogin=true (or the IP).
+    env:
+      GF_SERVER_ROOT_URL: "{{ urls['grafana'] }}/"
+      GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
+      GF_AUTH_GENERIC_OAUTH_NAME: Authentik
+      GF_AUTH_GENERIC_OAUTH_CLIENT_ID: grafana
+      GF_AUTH_GENERIC_OAUTH_SCOPES: openid profile email
+      GF_AUTH_GENERIC_OAUTH_AUTH_URL: "{{ oidc }}/authorize/"
+      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "{{ oidc }}/token/"
+      GF_AUTH_GENERIC_OAUTH_API_URL: "{{ oidc }}/userinfo/"
+      GF_AUTH_GENERIC_OAUTH_USE_PKCE: "true"
+      GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "true"
+      GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "'Admin'"
+      GF_AUTH_SIGNOUT_REDIRECT_URL: "{{ oidc }}/grafana/end-session/"
+      GF_AUTH_OAUTH_AUTO_LOGIN: "true"
+    secret_env:
+      GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: {{ salt['sdb.get']('sdb://osvault/homelab/data/authentik/oidc-grafana?client_secret') | yaml_encode }}
 
   # Fixed uids so dashboards/links can reference them. Grafana runs in its
   # own container, so the host IP rather than localhost.

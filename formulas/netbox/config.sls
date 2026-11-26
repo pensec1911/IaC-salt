@@ -8,6 +8,7 @@
 {%- do secrets.update({'secret_key': netbox.secret_key}) %}
 {%- do secrets.update({'db_password': netbox.db_password}) %}{#- secret-scan: allow (variable, not a value) #}
 {%- do secrets.update({'api_token_pepper_1': netbox.api_token_pepper}) %}
+{%- do secrets.update(netbox.extra_secrets) %}
 {%- set bad = [] %}
 {%- for name, value in secrets | dictsort %}
 {%-   if not value or value.startswith('sdb://') %}{% do bad.append(name) %}{% endif %}
@@ -73,3 +74,27 @@ netbox-secret-{{ name }}:
       - file: netbox-secrets-dir
       - test: netbox-secrets-valid
 {%- endfor %}
+
+{#- Extra settings (map.jinja extra_config): root-owned, world-readable (no
+   secrets — those are files in secrets_dir), bound read-only. Empty =
+   an empty module. #}
+netbox-config-dir:
+  file.directory:
+    - name: {{ netbox.config_dir }}
+    - user: root
+    - group: root
+    - mode: '0755'
+    - require:
+      - file: netbox-base-dir
+
+netbox-extra-config:
+  file.managed:
+    - name: {{ netbox.config_dir }}/homelab.py
+    - contents: |
+        # Managed by Salt (formulas/netbox extra_config) — do not edit.
+        {{ netbox.extra_config | indent(8) }}
+    - user: root
+    - group: root
+    - mode: '0644'
+    - require:
+      - file: netbox-config-dir

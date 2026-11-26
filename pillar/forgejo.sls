@@ -1,6 +1,7 @@
 {#- Offline runner registration: the same 40-hex secret on both sides
    (forgejo:lookup:runners + forgejo-runner:lookup:secret). #}
 {%- set runner_secret = salt['sdb.get']('sdb://osvault/homelab/data/forgejo/runner?secret') %}
+{%- from 'edge-routes.jinja' import edge, urls %}
 users:
   accounts:
     # Pinned uid/gid — the rootless container runs as it via a docker
@@ -26,14 +27,30 @@ forgejo:
     uid: 972
     gid: 972
     app_ini:
+      # Web under its name behind Caddy (links, clone URLs over https, OAuth
+      # callback). SSH stays on the IP: gitfs (pillar/salt-master.sls) and
+      # every local remote use ssh://git@192.168.178.29:2222. The IP:3000
+      # still answers (webhooks, runner registration, emergency access).
       server:
-        DOMAIN: 192.168.178.29
+        DOMAIN: git.{{ edge.domain }}
         SSH_DOMAIN: 192.168.178.29
-        ROOT_URL: http://192.168.178.29:3000/
+        ROOT_URL: {{ urls['git'] }}/
       # Push webhooks to salt-api on the master (formulas/salt-master) —
       # Forgejo only delivers to private IPs that are listed.
       webhook:
         ALLOWED_HOST_LIST: 192.168.178.28
+    # Login via Authentik (OIDC provider "forgejo", formulas/authentik). An
+    # existing local account is linked on the first OAuth login (sign in
+    # with its password once); members of Authentik's admin group are
+    # Forgejo admins. Registration stays off.
+    oauth_sources:
+      authentik:
+        key: forgejo
+        secret: {{ salt['sdb.get']('sdb://osvault/homelab/data/authentik/oidc-forgejo?client_secret') | yaml_encode }}
+        discovery_url: {{ urls['auth'] }}/application/o/forgejo/.well-known/openid-configuration
+        group_claim: groups
+        admin_group: authentik Admins
+        skip_local_2fa: true
     # Scope homelab: the runner only takes jobs from the org's repos.
     runners:
       forgejo:
@@ -64,3 +81,6 @@ forgejo-runner:
     gid: 973
     instance_url: http://192.168.178.29:3000/
     secret: {{ runner_secret | yaml_encode }}
+    # Job containers (inside dind) checkout from ROOT_URL = git.<edge domain>;
+    # dind's DNS is public, where Porkbun's wildcard answers — pin it to edge.
+    job_options: "--add-host=git.{{ edge.domain }}:{{ edge.ip }}"
