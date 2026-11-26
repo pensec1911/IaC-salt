@@ -54,3 +54,12 @@ credentials) are unreadable — restore it, don't re-run the wizard against the 
 - TLS — plain HTTP in the LAN like the other UIs.
 - Git over SSH on 2222 only starts once the wizard has run (install mode serves just the
   wizard page).
+
+## SSO (OAuth sources)
+
+`forgejo:lookup:oauth_sources` (oauth.sls) creates login sources once via
+`forgejo admin auth add-oauth`; an existing source of that name is never touched (change it in
+Site Administration → Authentication Sources). Creating one fetches the discovery URL, so the
+provider has to exist first (Authentik's blueprint) — the first run may fail, the next succeeds.
+`pillar/forgejo.sls` adds `authentik`: on the first login Forgejo offers to link the Authentik
+identity to an existing local account (sign in with its password once). Registration stays off.

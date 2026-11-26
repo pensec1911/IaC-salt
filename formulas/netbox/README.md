@@ -110,3 +110,17 @@ dump/restore into a fresh `postgres_dir`, so do it by hand.
 - Content (sites, prefixes, VMs, IPs) — written by `IaC-opentofu`, in the DB.
 - Superuser and API tokens — manual, above.
 - TLS — plain HTTP in the LAN like the other UIs.
+
+## SSO (OIDC)
+
+`extra_config` + `extra_secrets` (map.jinja) carry settings env can't express. `pillar/netbox.sls`
+uses them for "Log in with Authentik" (social-auth OIDC, provider `netbox` in formulas/authentik).
+The first SSO login creates a new, unprivileged user (Authentik's username). Make it superuser
+once, as an existing admin in the UI (Admin → Users) or:
+
+```sh
+sudo podman exec -it netbox /opt/netbox/venv/bin/python /opt/netbox/netbox/manage.py shell \
+  -c "from users.models import User; u=User.objects.get(username='akadmin'); u.is_superuser=u.is_staff=True; u.save()"
+```
+
+The local login form stays as the emergency path.

@@ -48,3 +48,9 @@ Grafana only applies `GF_SECURITY_ADMIN_PASSWORD` the first time the container s
 empty database — changing the pillar value later does not rotate an already-provisioned admin
 password. If it drifts, reset it via `podman exec grafana grafana-cli admin reset-admin-password
 <new>` rather than expecting a pillar change + `state.apply` to fix it.
+
+## SSO
+
+`pillar/grafana.sls` turns on generic OAuth against Authentik (provider `grafana`) with auto
+login; every Authentik user who gets through is Grafana Admin (only the admin group can). The
+local admin: `/login?disableAutoLogin=true`.
