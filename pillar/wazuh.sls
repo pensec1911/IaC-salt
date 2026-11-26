@@ -4,8 +4,9 @@ wazuh:
     # must match.
     node_ip: "192.168.178.27"
     # Flip to true only after the manual bootstrap (security init +
-    # passwords) — see formulas/wazuh/README.md "Bootstrap".
-    bootstrapped: true
+    # passwords) — see formulas/wazuh/README.md "Bootstrap". false again for
+    # the rebuilt VM (2026-11-26): new certs, fresh indexer.
+    bootstrapped: false
 
     indexer:
       # Indexer "admin" user — Filebeat and the manager authenticate with it,

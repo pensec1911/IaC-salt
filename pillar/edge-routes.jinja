@@ -31,8 +31,11 @@
    verifying. Their APIs (Tofu, bao CLI) keep using the IP, which the
    Headscale policy allows for those ports.
 
-   Not here: FRITZ!Box (DNS-rebind protection rejects foreign Host names)
-   and Wazuh (off) — reached directly. #}
+   wazuh: only while the feature is on (pillar/features.jinja).
+
+   Not here: FRITZ!Box (DNS-rebind protection rejects foreign Host names) —
+   reached directly. #}
+{%- from 'features.jinja' import features %}
 {%- set edge = {'ip': '192.168.178.30', 'domain': 'home.ilpaa.xyz'} %}
 {%- set routes = [
     {'name': 'homepage',     'upstream': 'http://192.168.178.23:3000', 'auth': 'forward'},
@@ -62,6 +65,9 @@
     {'name': 'openbao',      'upstream': 'https://192.168.178.20:8200', 'auth': 'forward', 'tls_insecure': True},
     {'name': 'auth',         'upstream': 'http://authentik-server:9000', 'auth': 'none', 'local': True},
 ] %}
+{%- if features.wazuh %}
+{%-   do routes.append({'name': 'wazuh', 'upstream': 'https://192.168.178.27', 'auth': 'forward', 'tls_insecure': True}) %}
+{%- endif %}
 {%- set urls = {} %}
 {%- for r in routes %}
 {%-   do urls.update({r.name: 'https://' ~ r.name ~ '.' ~ edge.domain}) %}

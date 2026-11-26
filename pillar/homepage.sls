@@ -1,7 +1,7 @@
 {%- from 'features.jinja' import features %}
 {#- Everything behind Caddy on edge links to its https name (urls.<name>;
-   the status dot and blackbox probe follow href). FRITZ!Box and Wazuh stay
-   on the IP (pillar/edge-routes.jinja). #}
+   the status dot and blackbox probe follow href). FRITZ!Box stays on the
+   IP (pillar/edge-routes.jinja). #}
 {%- from 'edge-routes.jinja' import edge, urls %}
 homepage:
   lookup:
@@ -89,7 +89,7 @@ homepage:
           description: Patches per host
 {%- if features.wazuh %}
         - name: Wazuh
-          href: https://192.168.178.27
+          href: {{ urls['wazuh'] }}
           icon: wazuh.png
           description: SIEM / XDR
 {%- endif %}

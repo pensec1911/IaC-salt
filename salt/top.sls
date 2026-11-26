@@ -179,9 +179,8 @@ base:
   'cloud-edge':
     - users
     - ntp
-{%- if wazuh %}
-    - wazuh-agent
-{%- endif %}
+    # No wazuh-agent: gateway doesn't forward 1514/1515 from the tunnel
+    # (IaC-opentofu vms/gateway nftables; changing it means -replace).
     - node-exporter
     - unattended-upgrades
     - patchmon-agent
