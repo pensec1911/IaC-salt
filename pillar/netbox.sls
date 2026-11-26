@@ -21,7 +21,8 @@ netbox:
     extra_secrets:
       oidc_client_secret: {{ salt['sdb.get']('sdb://osvault/homelab/data/authentik/oidc-netbox?client_secret') | yaml_encode }}
     extra_config: |
-      SOCIAL_AUTH_OIDC_OIDC_ENDPOINT = '{{ oidc }}/'
+      # Without trailing slash: social-core appends /.well-known/... itself.
+      SOCIAL_AUTH_OIDC_OIDC_ENDPOINT = '{{ oidc }}'
       SOCIAL_AUTH_OIDC_KEY = 'netbox'
       with open('/run/secrets/oidc_client_secret') as _f:
           SOCIAL_AUTH_OIDC_SECRET = _f.read().strip()  # secret-scan: allow (read from the secret file)
