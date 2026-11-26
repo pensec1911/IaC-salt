@@ -16,6 +16,11 @@ entries:
       name: homelab-oidc-{{ app.slug }}
     attrs:
       client_type: confidential
+      # Empty by default for providers not created in the UI (2026.8) — the
+      # authorize endpoint then rejects every login ("Invalid grant_type").
+      grant_types:
+        - authorization_code
+        - refresh_token
       client_id: {{ app.slug }}
       client_secret: !Env HOMELAB_OIDC_{{ app.slug | upper }}_SECRET  # secret-scan: allow (env reference)
       redirect_uris:
