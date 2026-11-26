@@ -51,7 +51,9 @@ logs are stored by Forgejo (backed up with it).
 
 ## Cache cleanup
 
-`forgejo-runner-dind-prune.timer` (daily ~06:30, `prune.sls`) runs `docker system prune -af
---filter until=24h` inside dind: job images and stopped job containers pile up otherwise (11 GB
-after one busy day filled forgejo's root disk, 2026-11-26). A running job is never touched. By
-hand: `systemctl start forgejo-runner-dind-prune.service`.
+`forgejo-runner-dind-prune.timer` (every 6h, `prune.sls`) first removes job containers running
+longer than 3h — a runner restart (upgrade, config change) leaves its running jobs behind in
+dind, where no timeout ever stops them (2 × 2 GB on 2026-11-26) — then runs `docker system prune
+-af --filter until=24h` (job images, stopped containers). Jobs younger than 3h are never
+touched; keep `max_job_seconds` above every workflow's `timeout-minutes`. By hand:
+`systemctl start forgejo-runner-dind-prune.service`, `journalctl -u forgejo-runner-dind-prune`.

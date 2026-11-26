@@ -1,0 +1,25 @@
+{%- from "forgejo-runner/map.jinja" import runner with context -%}
+#!/bin/bash
+# Managed by Salt (formulas/forgejo-runner prune.sls) — do not edit.
+# 1. Job containers running longer than any workflow timeout are orphans: a
+#    restart of the runner (upgrade, config change) leaves its running jobs
+#    behind in dind, unknown to the runner, so their timeout never fires
+#    (2026-11-26: 2 × 2 GB, hours old). Removed.
+# 2. docker system prune for what is older than `keep` (job images, stopped
+#    job containers, networks). A running job's container/image is in use.
+set -euo pipefail
+D=({{ runner.podman_bin }} exec -e DOCKER_HOST=tcp://127.0.0.1:{{ runner.dind_port }} {{ runner.dind_container_name }} docker)
+max_age={{ runner.dind_prune.max_job_seconds }}
+now=$(date +%s)
+{%- raw %}
+for id in $("${D[@]}" ps -q --filter name=FORGEJO-ACTIONS-TASK-); do
+    started=$("${D[@]}" inspect -f '{{.State.StartedAt}}' "$id")
+    age=$(( now - $(date -d "$started" +%s) ))
+    if [ "$age" -gt "$max_age" ]; then
+        name=$("${D[@]}" inspect -f '{{.Name}}' "$id")
+        "${D[@]}" rm -f "$id" >/dev/null
+        echo "removed orphaned job container ${name#/} (running ${age}s)"
+    fi
+done
+{%- endraw %}
+"${D[@]}" system prune -af --filter until={{ runner.dind_prune.keep }}

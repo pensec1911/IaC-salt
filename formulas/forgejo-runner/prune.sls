@@ -5,7 +5,17 @@ include:
 
 {#- Every CI job leaves its image and a stopped container in dind
    (dind_dir); 11 GB after a busy day filled forgejo's root disk
-   (2026-11-26). Daily prune of everything older than dind_prune.keep. #}
+   (2026-11-26), and a runner restart orphans running job containers.
+   Every 6h: orphans out, then everything older than dind_prune.keep. #}
+forgejo-runner-dind-prune-script:
+  file.managed:
+    - name: {{ runner.dind_prune.script }}
+    - source: salt://forgejo-runner/files/dind-prune.sh.j2
+    - template: jinja
+    - user: root
+    - group: root
+    - mode: '0755'
+
 {%- for kind in ['service', 'timer'] %}
 
 forgejo-runner-dind-prune-{{ kind }}:
@@ -30,4 +40,5 @@ forgejo-runner-dind-prune-timer-running:
     - name: forgejo-runner-dind-prune.timer
     - enable: True
     - require:
+      - file: forgejo-runner-dind-prune-script
       - cmd: forgejo-runner-dind-prune-daemon-reload

@@ -1,7 +1,7 @@
 {%- from "forgejo-runner/map.jinja" import runner with context -%}
 # Managed by Salt (formulas/forgejo-runner) — do not edit.
 [Unit]
-Description=Daily cleanup of the runner's dind cache
+Description=Cleanup of the runner's dind cache (orphaned jobs, old images)
 
 [Timer]
 OnCalendar={{ runner.dind_prune.on_calendar }}

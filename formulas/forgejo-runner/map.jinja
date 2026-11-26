@@ -19,8 +19,10 @@
    job_options: extra `docker run` options for every job container
    (config.yml container.options), e.g. --add-host for names dind's DNS
    doesn't know.
-   dind_prune: daily `docker system prune -af` inside dind for what is
-   older than `keep` (job images, stopped job containers) — prune.sls.
+   dind_prune: every 6h (prune.sls) — removes job containers running longer
+   than max_job_seconds (orphans of a runner restart; keep it above every
+   workflow's timeout-minutes, trivy.yml has 90), then `docker system prune
+   -af` for what is older than `keep`.
    podman / dind_podman: spec overrides for the two containers (keys:
    formulas/podman README). #}
 {%- set defaults = {
@@ -36,7 +38,12 @@
     'data_dir': '/opt/forgejo-runner/data',
     'dind_dir': '/opt/forgejo-runner/dind',
     'dind_port': 2375,
-    'dind_prune': {'on_calendar': '*-*-* 06:30', 'keep': '24h'},
+    'dind_prune': {
+        'script': '/usr/local/sbin/forgejo-runner-dind-prune',
+        'on_calendar': '*-*-* 00/6:30',
+        'keep': '24h',
+        'max_job_seconds': 10800,
+    },
     'podman_bin': '/usr/bin/podman',
     'instance_url': '',
     'connection_name': 'forgejo',
