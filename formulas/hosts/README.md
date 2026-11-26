@@ -13,10 +13,10 @@ and moves a name to the configured IP; other lines are left alone. A name remove
 stays in the file until removed by hand.
 
 **Containers copy `/etc/hosts` when they start**: a running container doesn't see a new name
-until it restarts (`systemctl restart <name>`). The formula doesn't restart them itself (that
-would bounce every database on every route change). After adding a route, restart at least
-`blackbox-exporter` on monitoring and whatever app has to call the new name; containers that Salt
-restarts for other reasons pick it up anyway.
+until it restarts. The formula restarts only the units in `restart_units` when an entry changes
+(`systemctl try-restart`; `pillar/hosts.sls`: blackbox-exporter on monitoring, homepage on
+homepage) — not everything, that would bounce every database on every route change. Any other
+container that has to call a new name: restart it by hand (`systemctl restart <name>`).
 
 ## Pillar
 

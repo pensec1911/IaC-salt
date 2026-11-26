@@ -1,8 +1,11 @@
 {#- /etc/hosts entries for names the LAN has no DNS for (the FRITZ!Box
    doesn't serve them). entries: [{ip, names}] — one host.present per entry;
    other lines in /etc/hosts stay as they are. Podman containers inherit the
-   host's /etc/hosts, so apps resolve the names too. #}
+   host's /etc/hosts, so apps resolve the names too — but only from their
+   next start on. restart_units: units (containers) restarted when an entry
+   changes, for the ones that must see new names right away. #}
 {%- set defaults = {
     'entries': [],
+    'restart_units': [],
 } %}
 {%- set hosts = salt['pillar.get']('hosts:lookup', default=defaults, merge=True) %}

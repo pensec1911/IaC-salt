@@ -34,6 +34,17 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Smaller items
 
+- **Old images fill the disks — nothing prunes them** (2026-11-26: forgejo's 30 GB root hit
+  100 % right after a round of image bumps; netbox- and patchmon-postgres PANICked on a checkpoint
+  write and recovered by themselves, tofu-state and Forgejo were not hit). Every tag bump leaves
+  the old image behind, and the runner's dind keeps job images and stopped job containers
+  (`/opt/forgejo-runner`, 11 GB). Cleared by hand: `podman image prune -a -f` on forgejo, and
+  `podman exec -e DOCKER_HOST=tcp://127.0.0.1:2375 forgejo-runner-dind docker system prune -af`
+  → 55 %. Fix to build: a weekly prune timer in `formulas/podman` that keeps the images of all
+  Quadlet units (not a blind `prune -a`: caddy's locally built image has no registry to come back
+  from if pruned while caddy is stopped) and a dind prune in `formulas/forgejo-runner`.
+  `DiskAlmostFull` (< 10 %) fired too late to help — consider < 20 % on forgejo.
+
 - **NFS mounts missing after a cold start of the whole lab** (2026-11-26, after all servers were
   off): arrstack and jellyfin booted before TrueNAS served NFS; the mounts timed out
   (`nofail`/`_netdev`), the apps bound to them stayed stopped and nothing retried. The hourly

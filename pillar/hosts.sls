@@ -10,3 +10,7 @@ hosts:
 {%- for r in routes %}
           - {{ r.name }}.{{ edge.domain }}
 {%- endfor %}
+{#- Containers that call the names themselves and must see a new route at
+   once: blackbox (name probes), homepage (status dots). #}
+{%- set restart = {'monitoring': ['blackbox-exporter'], 'homepage': ['homepage']} %}
+    restart_units: {{ restart.get(grains['id'], []) | json }}
