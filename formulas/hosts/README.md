@@ -12,6 +12,12 @@ One `host.present` per `hosts:lookup:entries` item (state ID `hosts-<ip>`). Adds
 and moves a name to the configured IP; other lines are left alone. A name removed from pillar
 stays in the file until removed by hand.
 
+**Containers copy `/etc/hosts` when they start**: a running container doesn't see a new name
+until it restarts (`systemctl restart <name>`). The formula doesn't restart them itself (that
+would bounce every database on every route change). After adding a route, restart at least
+`blackbox-exporter` on monitoring and whatever app has to call the new name; containers that Salt
+restarts for other reasons pick it up anyway.
+
 ## Pillar
 
 `pillar/hosts.sls` builds `entries` from `pillar/edge-routes.jinja`. See `pillar.example.sls`.

@@ -34,6 +34,19 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Smaller items
 
+- **NFS mounts missing after a cold start of the whole lab** (2026-11-26, after all servers were
+  off): arrstack and jellyfin booted before TrueNAS served NFS; the mounts timed out
+  (`nofail`/`_netdev`), the apps bound to them stayed stopped and nothing retried. The hourly
+  drift check of self-repair minions would mount them; arrstack/jellyfin only repair in the
+  night window. Fix by hand: `mount -a -t nfs4` + `state.apply`. Idea: an automount
+  (`x-systemd.automount`) or a mount retry timer in `formulas/nfs-mount`.
+
+- **Porkbun answers every unknown `*.ilpaa.xyz` name with its parking page** (wildcard record at
+  Porkbun). A host without the `formulas/hosts` entries or MagicDNS resolves
+  `<name>.home.ilpaa.xyz` there instead of to edge and fails TLS (seen in blackbox before its
+  restart). Harmless, but confusing; delete the wildcard/parking record at Porkbun if it isn't
+  used.
+
 - **Healthchecks logs `Control server error: [Errno 30] Read-only file system: '/opt/healthchecks/'`**
   at every start (jellyfin, since 2026-11-15). gunicorn's control server wants to put a socket in
   the working dir, which the read-only root forbids. Harmless (workers, sendalerts, sendreports

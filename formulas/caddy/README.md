@@ -33,7 +33,8 @@ See `pillar.example.sls` and the comment block in `map.jinja`. Required: `domain
 
 One line in `pillar/edge-routes.jinja`. Caddyfile, `/etc/hosts` on the LAN minions, the Headscale
 DNS records, the upstream probe and (via `urls.<name>` in `pillar/homepage.sls`) the homepage
-link all follow from it. Then apply `edge`, `cloud-edge` and the minions that use the name.
+link all follow from it. Then apply `edge`, `cloud-edge` and the LAN minions, and restart
+`blackbox-exporter` on monitoring (containers only read `/etc/hosts` at start, `formulas/hosts`).
 
 ## Cold start / no internet
 
