@@ -7,14 +7,14 @@
    through gateway. Every web UI goes through Caddy on edge (*.home names,
    Authentik in front); direct IP:port only for non-HTTP admin access and
    the clients that use IPs (Tofu: Proxmox API, OpenBao, tofu-state,
-   NetBox API). Everything else is denied — also at home, since the laptop
+   NetBox API; Prometheus/Alertmanager API for /homelab-status). Everything else is denied — also at home, since the laptop
    routes the LAN through the tailnet. Confirmed by the user 2026-11-26. #}
 {%- set admin_access = [
     (edge.ip,          '80,443'),
     ('192.168.178.22', '22'),
     ('192.168.178.23', '22'),
     ('192.168.178.24', '22'),
-    ('192.168.178.25', '22'),
+    ('192.168.178.25', '22,9090,9093'),
     ('192.168.178.28', '22'),
     ('192.168.178.29', '22,2222,5432,8000'),
     ('192.168.178.30', '22'),
