@@ -32,6 +32,10 @@
    repo, unused; the packages and /var/lib/docker stay on the VM until
    removed by hand (README "Migration from Docker").
 
+   prune: weekly timer (prune.sls) removing images no Quadlet unit names in
+   Image= and no container uses. Sunday morning, after the backup/restore
+   window (02:00–06:00), so stopped-for-backup units are back.
+
    container: defaults for every container — hardening on (NoNewPrivileges,
    all capabilities dropped, read-only root with tmpfs for /tmp, /run,
    /var/tmp), own user namespace from the subid range. A formula opts out
@@ -58,6 +62,11 @@
     'docker_units': ['docker.socket', 'docker.service', 'containerd.service'],
     'apparmor_disable': ['crun'],
     'apparmor_parser': '/usr/sbin/apparmor_parser',
+    'prune': {
+        'script': '/usr/local/sbin/podman-prune',
+        'on_calendar': 'Sun *-*-* 07:00',
+        'randomized_delay': '1h',
+    },
     'container': {
         'image': '',
         'tag': '',

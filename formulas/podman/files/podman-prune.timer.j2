@@ -1,0 +1,12 @@
+{%- from "podman/map.jinja" import podman with context -%}
+# Managed by Salt (formulas/podman) — do not edit.
+[Unit]
+Description=Weekly cleanup of unused container images
+
+[Timer]
+OnCalendar={{ podman.prune.on_calendar }}
+RandomizedDelaySec={{ podman.prune.randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

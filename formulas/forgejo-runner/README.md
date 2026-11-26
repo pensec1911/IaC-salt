@@ -48,3 +48,10 @@ See `pillar.example.sls`. Real values live in `pillar/forgejo.sls`.
 
 None needed: config and token come from Salt/OpenBao, `dind_dir` is only an image cache, and job
 logs are stored by Forgejo (backed up with it).
+
+## Cache cleanup
+
+`forgejo-runner-dind-prune.timer` (daily ~06:30, `prune.sls`) runs `docker system prune -af
+--filter until=24h` inside dind: job images and stopped job containers pile up otherwise (11 GB
+after one busy day filled forgejo's root disk, 2026-11-26). A running job is never touched. By
+hand: `systemctl start forgejo-runner-dind-prune.service`.

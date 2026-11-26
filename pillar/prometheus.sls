@@ -193,6 +193,17 @@ prometheus:
             severity: warning
           annotations:
             summary: {% raw %}"{{ $labels.instance }} ({{ $labels.group }}) doesn't answer — {{ $labels.url }}"{% endraw %}
+        {#- The fixed 10 % fired too late on forgejo (2026-11-26: image bumps +
+           CI cache, 55 % -> 100 % within hours). Trend over 6h, root only. #}
+        - alert: DiskFillingUp
+          expr: >-
+            predict_linear(node_filesystem_avail_bytes{mountpoint="/"}[6h], 24 * 3600) < 0
+            and node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"} < 0.30
+          for: 30m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"/ on {{ $labels.instance }} fills up within 24h at the current rate — podman-prune / dind prune, journalctl"{% endraw %}
         - alert: DiskAlmostFull
           expr: >-
             node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}

@@ -1,0 +1,12 @@
+{%- from "forgejo-runner/map.jinja" import runner with context -%}
+# Managed by Salt (formulas/forgejo-runner) — do not edit.
+[Unit]
+Description=Prune job images and stopped job containers in the runner's dind
+Requisite={{ runner.dind_container_name }}.service
+After={{ runner.dind_container_name }}.service
+
+[Service]
+Type=oneshot
+# Only what is older than the filter: a running job's container and image
+# are in use and never removed.
+ExecStart={{ runner.podman_bin }} exec -e DOCKER_HOST=tcp://127.0.0.1:{{ runner.dind_port }} {{ runner.dind_container_name }} docker system prune -af --filter until={{ runner.dind_prune.keep }}

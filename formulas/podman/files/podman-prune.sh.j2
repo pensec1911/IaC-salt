@@ -1,0 +1,40 @@
+{%- from "podman/map.jinja" import podman with context -%}
+#!/bin/bash
+# Managed by Salt (formulas/podman prune.sls) — do not edit.
+# Removes images that no Quadlet unit names (Image=) and no container —
+# running or stopped — uses. A blind `podman image prune -a` would also take
+# the image of a unit that is just stopped (backup, restart), and a locally
+# built one (caddy) can't be pulled back.
+set -euo pipefail
+{% raw %}
+quadlet_dir="$1"
+dry_run=${2:-}   # --dry-run: only list
+
+declare -A keep_ref keep_id
+for f in "$quadlet_dir"/*.container; do
+    [ -e "$f" ] || continue
+    ref=$(sed -n 's/^Image=//p' "$f" | tail -1)
+    [ -n "$ref" ] && keep_ref["$ref"]=1
+done
+while read -r id; do
+    [ -n "$id" ] && keep_id["${id#sha256:}"]=1
+done < <(podman ps -a --no-trunc --format '{{.ImageID}}')
+
+removed=0 kept=0
+while read -r id ref; do
+    id=${id#sha256:}
+    if [ -n "${keep_ref[$ref]:-}" ] || [ -n "${keep_id[$id]:-}" ]; then
+        kept=$((kept + 1)); continue
+    fi
+    # By name: only drops this tag if the image has another one we keep.
+    target=$ref; [ "$ref" = "<none>:<none>" ] && target=$id
+    if [ "$dry_run" = "--dry-run" ]; then
+        echo "would remove $ref ($id)"; removed=$((removed + 1))
+    elif podman rmi "$target" >/dev/null 2>&1; then
+        echo "removed $ref ($id)"; removed=$((removed + 1))
+    else
+        echo "could not remove $ref ($id)" >&2
+    fi
+done < <(podman images --no-trunc --format '{{.ID}} {{.Repository}}:{{.Tag}}')
+{% endraw %}
+echo "podman-prune: removed $removed, kept $kept image(s)"

@@ -20,6 +20,8 @@ Replaced `formulas/docker` (2026-11). That formula stays in the repo, but no min
   `docker.service` and `containerd.service`, then removes Docker's leftover iptables tables (its
   `FORWARD` policy `DROP` blocks all forwarded traffic of netavark's bridge — containers would
   have no egress). No-op without Docker. See "Migration from Docker".
+- `podman.prune` — `/usr/local/sbin/podman-prune` + `podman-prune.timer` (weekly), see
+  "Day to day".
 - `macros.jinja` — `container(id, spec, require=[], watch=[])` and `network(id, name)`.
 
 ## The container macro
@@ -126,7 +128,11 @@ everything).
   `Restart=always` at once).
 - The generated unit: `systemctl cat <name>`; generator errors: `journalctl -b | grep quadlet`,
   or `/usr/libexec/podman/quadlet -dryrun`.
-- Old images pile up after tag bumps: `podman image prune -a` (nothing does it automatically yet).
+- Old images: `podman-prune.timer` (Sunday ~07:00) removes every image that no Quadlet unit
+  names in `Image=` and no container (running or stopped) uses — not a blind
+  `podman image prune -a`, which would take the image of a unit stopped for a backup and
+  caddy's locally built one. By hand: `systemctl start podman-prune.service`,
+  `journalctl -u podman-prune`.
 
 ## Pillar
 
