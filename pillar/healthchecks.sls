@@ -1,4 +1,5 @@
 {%- from 'features.jinja' import features %}
+{%- from 'edge-routes.jinja' import edge %}
 users:
   accounts:
     # Pinned uid/gid — the container runs as it (Podman User=, mapped 1:1).
@@ -34,6 +35,12 @@ healthchecks:
     uid: 975
     gid: 975
     site_root: "http://192.168.178.24:8000"
+    # Also behind Caddy (https://healthchecks.<edge domain>); keep the two
+    # defaults. Caddy sets X-Forwarded-Proto, so Django knows the request
+    # was https and the browser's https Origin passes the CSRF check.
+    allowed_hosts: [localhost, 127.0.0.1, healthchecks.{{ edge.domain }}]
+    env:
+      SECURE_PROXY_SSL_HEADER: "HTTP_X_FORWARDED_PROTO,https"
     secret_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/healthchecks/app?secret_key') | yaml_encode }}
     # Optional: created in the UI after the first login (README).
     api_key: {{ (salt['sdb.get']('sdb://osvault/homelab/data/healthchecks/project?api_key') or '') | yaml_encode }}
