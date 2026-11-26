@@ -11,8 +11,7 @@ Three Proxmox nodes, no shared storage: `pve01` **32 GB** RAM (upgraded 2026-11-
 its `tests/fleet.tftest.hcl` blocks more VM RAM on a node than it has (unmanaged VMs from
 `netbox.tf` included).
 
-Allocated today (2026-11-26): pve01 7 GB (homepage 1, gateway 1, edge 4, openbao 1 — wazuh's
-8 GB counts only once it's back), pve02 12 GB (jellyfin, monitoring, salt-master 4 each),
+Allocated today (2026-11-26): pve01 15 GB (homepage 1, gateway 1, edge 4, openbao 1, wazuh 8), pve02 12 GB (jellyfin, monitoring, salt-master 4 each),
 pve03 10 GB (forgejo 6, arrstack 4). pve01 is the node with room for a new VM or a resize.
 Allocation and placement are Tofu's (`IaC-opentofu/vms/<name>/main.tf`); NetBox mirrors them.
 

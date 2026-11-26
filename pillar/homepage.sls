@@ -112,7 +112,7 @@ homepage:
         - name: pve01
           href: {{ urls['pve01'] }}
           icon: proxmox.png
-          description: homepage, gateway, edge, openbao (32 GB)
+          description: homepage, gateway, edge, wazuh, openbao (32 GB)
         - name: pve02
           href: {{ urls['pve02'] }}
           icon: proxmox.png

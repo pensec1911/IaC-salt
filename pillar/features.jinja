@@ -4,11 +4,11 @@
    salt/top.sls reads (the state top can't import from the pillar tree).
 
    wazuh: manager VM (formulas/wazuh, minion `wazuh`, .27) + wazuh-agent on
-   every minion + its homepage tile. Off since 2026-11-11 to free 8 GB on
-   pve01; the VM is commented out in IaC-opentofu vms.tf. To bring it back:
-   set True here, uncomment the VM there and `tofu apply`, then follow
-   formulas/wazuh/README.md "Bootstrap". Turning it off does not uninstall
-   the agents — see formulas/wazuh-agent/README.md "Disabled". #}
+   every minion except cloud-edge (salt/top.sls) + its route/homepage tile.
+   Off 2026-11-11 (8 GB on pve01), back on 2026-11-26 after pve01 got 32 GB
+   (VM rebuilt, README "Bootstrap"). To turn it off: False here, comment the
+   VM out in IaC-opentofu vms.tf (+ firewall.tf); turning it off does not
+   uninstall the agents — see formulas/wazuh-agent/README.md "Disabled". #}
 {%- set features = {
-    'wazuh': False,
+    'wazuh': True,
 } %}
