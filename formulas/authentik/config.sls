@@ -68,7 +68,9 @@ authentik-secrets-dir:
 authentik-secret-{{ name }}:
   file.managed:
     - name: {{ authentik.secrets_dir }}/{{ name }}
-    - contents: {{ value | yaml_encode }}
+    {#- trim: `bao kv put x=-` stores stdin's trailing newline; postgres
+       strips it from POSTGRES_PASSWORD_FILE, Authentik's file:// may not. #}
+    - contents: {{ value | trim | yaml_encode }}
     - user: root
     - group: root
     - mode: '0444'
