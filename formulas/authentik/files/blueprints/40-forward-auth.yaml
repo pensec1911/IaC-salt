@@ -1,0 +1,48 @@
+{%- from "authentik/map.jinja" import authentik with context %}
+# Managed by Salt (formulas/authentik) — do not edit.
+# Forward auth for every https://<name>.{{ authentik.domain }} behind Caddy
+# (routes with auth: forward): one proxy provider in forward_domain mode,
+# cookie on the whole zone, served by the embedded outpost (Caddy calls
+# authentik-server:9000/outpost.goauthentik.io/auth/caddy). Only members of
+# "{{ authentik.admin_group }}" get through.
+version: 1
+metadata:
+  name: homelab - forward auth for the edge routes
+entries:
+  - model: authentik_providers_proxy.proxyprovider
+    id: provider
+    identifiers:
+      name: homelab-forward-auth
+    attrs:
+      mode: forward_domain
+      external_host: {{ authentik.external_host }}
+      cookie_domain: {{ authentik.domain }}
+      access_token_validity: hours=24
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+  - model: authentik_core.application
+    id: app
+    identifiers:
+      slug: homelab-forward-auth
+    attrs:
+      name: Homelab (forward auth)
+      provider: !KeyOf provider
+      meta_launch_url: blank://blank
+      policy_engine_mode: any
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf app
+      order: 0
+    attrs:
+      group: !Find [authentik_core.group, [name, {{ authentik.admin_group }}]]
+  - model: authentik_outposts.outpost
+    identifiers:
+      managed: goauthentik.io/outposts/embedded
+    attrs:
+      # Where the outpost sends browsers to log in (otherwise it guesses
+      # from the request, which behind forward auth is the app's host).
+      config:
+        authentik_host: {{ authentik.external_host }}
+        authentik_host_browser: {{ authentik.external_host }}
+      providers:
+        - !KeyOf provider

@@ -16,6 +16,12 @@
    plan) — 'forward' = Caddy forward_auth, 'oidc' = the app logs in against
    Authentik itself, 'none' = the app's own auth. Until then informational.
 
+   push: ntfy's API for the phone app, which can't do forward auth — ntfy's
+   own token auth; same upstream as ntfy, separate name.
+
+   local: True = the upstream is a container on edge itself (by name on the
+   shared Podman network) — not probed from monitoring, only via its name.
+
    Not here: HTTPS-only appliances with their own certs (Proxmox, TrueNAS,
    OpenBao, FRITZ!Box, Wazuh) — reached directly (admin list in the
    Headscale policy). #}
@@ -34,12 +40,14 @@
     {'name': 'prometheus',   'upstream': 'http://192.168.178.25:9090', 'auth': 'forward'},
     {'name': 'alertmanager', 'upstream': 'http://192.168.178.25:9093', 'auth': 'forward'},
     {'name': 'ntfy',         'upstream': 'http://192.168.178.24:8090', 'auth': 'forward'},
+    {'name': 'push',         'upstream': 'http://192.168.178.24:8090', 'auth': 'none'},
     {'name': 'healthchecks', 'upstream': 'http://192.168.178.24:8000', 'auth': 'forward'},
     {'name': 'patchmon',     'upstream': 'http://192.168.178.29:3001', 'auth': 'forward'},
     {'name': 'cyberchef',    'upstream': 'http://192.168.178.25:8081', 'auth': 'forward'},
     {'name': 'it-tools',     'upstream': 'http://192.168.178.25:8082', 'auth': 'forward'},
     {'name': 'git',          'upstream': 'http://192.168.178.29:3000', 'auth': 'oidc'},
     {'name': 'netbox',       'upstream': 'http://192.168.178.29:8000', 'auth': 'oidc'},
+    {'name': 'auth',         'upstream': 'http://authentik-server:9000', 'auth': 'none', 'local': True},
 ] %}
 {%- set urls = {} %}
 {%- for r in routes %}

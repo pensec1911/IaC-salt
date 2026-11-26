@@ -75,3 +75,4 @@ base:
 
   'edge':
     - caddy
+    - authentik

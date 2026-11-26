@@ -171,6 +171,7 @@ base:
     - cadvisor
     - alloy
     - caddy
+    - authentik
     - backup
 
   # OCI A1 (arm64), Headscale. Erreicht das LAN nur durch den WireGuard-Tunnel

@@ -1,0 +1,20 @@
+{%- from "authentik/map.jinja" import authentik with context %}
+# Managed by Salt (formulas/authentik) — do not edit.
+# Login = the default authentication flow (identification -> password ->
+# MFA -> login), with the MFA step made mandatory and passkey-only: a user
+# without a passkey has to register one right after the password (WebAuthn
+# setup), every later login asks for it. The default blueprint manages this
+# stage without attrs, so these stick.
+version: 1
+metadata:
+  name: homelab - passkey required at login
+entries:
+  - model: authentik_stages_authenticator_validate.authenticatorvalidatestage
+    identifiers:
+      name: default-authentication-mfa-validation
+    attrs:
+      device_classes:
+        - webauthn
+      not_configured_action: configure
+      configuration_stages:
+        - !Find [authentik_stages_authenticator_webauthn.authenticatorwebauthnstage, [name, default-authenticator-webauthn-setup]]

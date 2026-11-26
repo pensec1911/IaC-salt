@@ -1,0 +1,65 @@
+{#- Authentik (identity provider: login with password + passkey, forward auth
+   for Caddy, OIDC for apps). Three containers, upstream compose layout:
+   authentik-server (web/API on 9000, metrics on 9300), authentik-worker
+   (background tasks, blueprints) and postgres. No Redis since 2025.10.
+   All join the Podman network `network`, which formulas/caddy creates — so
+   Caddy reaches http://authentik-server:9000 by name, nothing is published
+   but metrics.
+
+   Server and worker run as the image's own user (uid 1000 inside) in one
+   user namespace (the worker joins the server's): data_dir (/data, media)
+   and certs_dir (/certs) are handed to that mapping by :U, Salt only
+   creates them — same pattern as netbox. postgres: image user 70:70, :U.
+
+   Secrets (OpenBao via pillar): secret_key (`openssl rand 60 | base64 -w 0`)
+   and pg_password. Written as files to secrets_dir (0700 dir, 0444 files)
+   and bound into /run/secrets; Authentik reads them via file:// in its env,
+   postgres via POSTGRES_PASSWORD_FILE — never in env or `podman inspect`.
+   oidc_secrets: {<APP>: client secret} -> env HOMELAB_OIDC_<APP>_SECRET in  secret-scan: allow (doc text)
+   the worker's secret env file, for OAuth2 provider blueprints (!Env).
+
+   Blueprints (files/blueprints/*.yaml.j2) are rendered to blueprints_dir
+   and mounted read-only on /blueprints/homelab in the worker, which applies
+   them on change and hourly. Parameters:
+     domain        zone of the apps (<name>.<domain>) and of the forward
+                   auth cookie
+     external_host Authentik's own URL (https://auth.<domain>)
+     admin_group   group allowed through forward auth (and to the OIDC apps)
+                   — the built-in superuser group by default, so akadmin and
+                   whoever is added there by hand get in.
+
+   dump_dir: where formulas/backup's pre-run pg_dump goes; pillar/backup.sls
+   repeats it and postgres_container_name.
+   podman / worker_podman / postgres_podman: spec overrides (keys:
+   formulas/podman README). #}
+{%- set defaults = {
+    'image': 'ghcr.io/goauthentik/server',
+    'tag': '2026.8.7',
+    'postgres_image': 'docker.io/library/postgres',
+    'postgres_tag': '18.7-alpine',
+    'container_name': 'authentik-server',
+    'worker_container_name': 'authentik-worker',
+    'postgres_container_name': 'authentik-postgres',
+    'network': 'edge',
+    'metrics_port': 9300,
+    'base_dir': '/opt/authentik',
+    'data_dir': '/opt/authentik/data',
+    'certs_dir': '/opt/authentik/certs',
+    'postgres_dir': '/opt/authentik/postgres',
+    'secrets_dir': '/opt/authentik/secrets',
+    'blueprints_dir': '/opt/authentik/blueprints',
+    'dump_dir': '/opt/authentik/dump',
+    'postgres_user': '70:70',
+    'db_name': 'authentik',
+    'db_user': 'authentik',
+    'secret_key': '',
+    'pg_password': '',
+    'oidc_secrets': {},
+    'domain': '',
+    'external_host': '',
+    'admin_group': 'authentik Admins',
+    'podman': {},
+    'worker_podman': {},
+    'postgres_podman': {'read_only': False},
+} %}
+{%- set authentik = salt['pillar.get']('authentik:lookup', default=defaults, merge=True) %}

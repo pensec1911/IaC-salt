@@ -56,6 +56,7 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `wireguard/cloud-edge`, `wireguard/gateway` | `private_key`, `public_key` | Not read by pillar — WireGuard tunnel keys, rendered into cloud-init by IaC-opentofu (AppRole `tofu`, never CI). |
 | `oci/api`, `oci/plan` | `tenancy_ocid`, `user_ocid`, `fingerprint`, `private_key`, `region`, `compartment_ocid` | Not read by pillar — OCI API keys of the users `opentofu` (apply) and `tofu-plan` (CI, read-only) for IaC-opentofu `oci/`. |
 | `porkbun/api` | `api_key`, `secret_api_key` | Caddy's DNS-01 for `*.home.ilpaa.xyz` (step 5, formulas/caddy). |
+| `authentik/app` | `secret_key`, `pg_password` | formulas/authentik on edge; its presence also turns on Caddy's forward auth (`pillar/caddy.sls`). |
 | `ntfy/admin` | `password`, `password_hash` (bcrypt) | `pillar/ntfy.sls` reads only `password_hash` (ntfy `admin`, declaratively provisioned); `password` is the phone/web login (formulas/ntfy README "OpenBao") |
 | `ntfy/healthchecks` | `password_hash` (bcrypt), `token` (`tk_…`) | `pillar/ntfy.sls` — ntfy user `healthchecks`, only declared while `token` resolves; the token is also entered in the Healthchecks ntfy integration (UI, formulas/healthchecks README) |
 | `healthchecks/app` | `secret_key` | `pillar/healthchecks.sls` — Django `SECRET_KEY` |

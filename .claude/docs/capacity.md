@@ -66,3 +66,4 @@ Delete a row once the service is merged and its real usage shows in the 7-day pe
 | 04 Infra metrics (pve-, fritz-, graphite-exporter) | monitoring | 130 MB (two Python exporters ~50 MB each, graphite_exporter ~30 MB) | ~0.3 GB (images 50 + 25 + 10 MB compressed; no data) | #28 |
 | edge 04 Headscale + DERP | cloud-edge (OCI, 6 GB, outside the PVE budget) | ~100 MB | ~0.2 GB (image ~70 MB; SQLite < 10 MB) | — |
 | edge 05 Caddy (reverse proxy, wildcard cert) | edge | ~50 MB | ~0.1 GB (built image ~50 MB; builder image removed after the build; certs < 1 MB) | — |
+| edge 06 Authentik (server, worker, postgres) | edge | ~1.5 GB (server ~700 MB, worker ~600 MB, postgres ~200 MB; edge used 0.7 of 3.9 GB before) | ~1.6 GB (image 1.33 GB unpacked + postgres 18 ~0.1 GB; edge 12.5 GB free) | — |

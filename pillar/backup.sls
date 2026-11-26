@@ -78,9 +78,19 @@
         'stop_containers': ['headscale'],
     },
     'edge': {
-        'paths': ['/opt/caddy/data'],
-        'excludes': [],
+        'paths': ['/opt/caddy/data', '/opt/authentik'],
+        'excludes': [
+            '/opt/authentik/postgres',
+            '/opt/authentik/secrets',
+            '/opt/authentik/blueprints',
+        ],
         'stop_containers': [],
+        'dumps': [
+            {'container': 'authentik-postgres',
+             'command': ['pg_dump', '-U', 'authentik', '-Fc', 'authentik'],
+             'file': '/opt/authentik/dump/authentik.pgdump',
+             'format': 'pg_custom'},
+        ],
     },
     'gateway': {
         'paths': ['/var/lib/tailscale'],

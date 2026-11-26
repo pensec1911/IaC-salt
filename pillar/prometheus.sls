@@ -70,7 +70,7 @@ prometheus:
         module: http_up
         exporter: {{ monitoring_ip }}:9115
       static_configs:
-{%- for r in routes %}
+{%- for r in routes if not r.get('local') %}
         - targets:
             - {{ r.upstream }}
           labels:
@@ -82,6 +82,13 @@ prometheus:
       static_configs:
         - targets:
             - {{ edge.ip }}:9180
+          labels:
+            instance: edge
+    # formulas/authentik on edge (server metrics: requests, flows, tasks).
+    - job_name: authentik
+      static_configs:
+        - targets:
+            - {{ edge.ip }}:9300
           labels:
             instance: edge
     # formulas/headscale on cloud-edge, through the WireGuard tunnel.

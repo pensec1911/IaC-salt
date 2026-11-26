@@ -136,6 +136,10 @@ homepage:
           href: {{ urls['netbox'] }}
           icon: netbox.png
           description: IPAM / inventory
+        - name: Authentik
+          href: {{ urls['auth'] }}
+          icon: authentik.png
+          description: Login (passkey) + forward auth for the apps
         - name: OpenBao
           href: https://192.168.178.20:8200/ui/
           icon: openbao.png
