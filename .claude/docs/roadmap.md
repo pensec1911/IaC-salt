@@ -15,55 +15,32 @@ _Nothing agreed yet — pick from "Later"._
 
 No order agreed; pick as needed.
 
-### Reverse proxy + local DNS (names and TLS instead of IP:port)
+### Blackbox probe from outside ("home is offline")
 
-- **Why**: every UI is `http://192.168.178.x:port` — plain HTTP, credentials in clear text on
-  the LAN, browser password managers confused by shared IPs. Names also make later moves
-  (service to another VM) invisible to users and homepage.
-- **Sketch**: `formulas/caddy` (or Traefik) on one host, routes from pillar
-  (`name → upstream`), TLS from an internal CA (Caddy's `tls internal`, or a step-ca/OpenBao
-  PKI intermediate). Local DNS via AdGuard Home (bonus: network-wide ad/tracker blocking) with
-  a wildcard `*.home.<domain>` → proxy; FRITZ!Box hands it out as DNS server. Homepage
-  `href`s and blackbox probes switch to the names; `CertificateExpiringSoon` covers the certs.
-- **Open**: real domain + DNS-01 (Let's Encrypt, no CA to trust) vs. internal CA (root must be
-  installed on every client — manual, documented); AdGuard as single point of failure for DNS
-  (second instance or FRITZ!Box fallback); which services keep direct ports (Jellyfin TV apps,
-  salt-api, Wazuh agents). Root CA key is security-critical bootstrap → stays manual.
-- **To decide when it's built** — proxy and CA:
-  - *Caddy*: proxy + built-in CA in one (`tls internal`, can also serve ACME to other hosts);
-    simplest, config is one Caddyfile from pillar. Leaning this way.
-  - *Traefik*: container-label routing, built-in forward-auth middleware; needs a CA/ACME source.
-  - *nginx*: proxy only, no CA and no automatic certs — would need step-ca or OpenBao PKI.
-  - CA: Caddy's internal CA / *step-ca* (separate ACME CA, also SSH certificates) /
-    *OpenBao PKI* (already running, but makes OpenBao a dependency of every TLS renewal) /
-    real domain + Let's Encrypt DNS-01 (no root to distribute, needs a public domain + DNS API).
+- **Why**: every probe runs on monitoring, inside the house. If the FRITZ!Box, the uplink or
+  power is gone, nothing alerts — Alertmanager and ntfy are down too. cloud-edge (OCI) sits
+  outside and already has a public IP.
+- **Sketch**: a blackbox exporter + tiny Prometheus or a healthchecks-style cron on cloud-edge
+  that checks the WireGuard handshake age / `hs.<domain>` reachability of the home side and
+  pushes to an external notifier (ntfy.sh topic, e-mail) — not to anything at home.
+- **Open**: which notifier works when home is down; avoid flapping on DSL reconnects.
 
-### Single sign-on (OIDC, passkeys)
+### Local DNS for clients without Tailscale (AdGuard Home / Unbound)
 
-- **Why**: every UI has its own local login and password. One IdP with passkeys/2FA is the
-  biggest security gain per GB of RAM: Grafana, Forgejo, Proxmox, OpenBao, Seerr and Jellyfin
-  (SSO plugin) all speak OIDC; the rest (*arr, qBittorrent, Prometheus) can sit behind
-  forward-auth on the reverse proxy.
-- **Sketch**: Pocket ID (passkey-only, tiny) or Authelia (forward-auth + OIDC, config-as-code
-  friendly) in its own formula; OIDC clients declared in pillar, client secrets in OpenBao
-  via `sdb.get`. Needs the reverse proxy item first (OIDC wants stable HTTPS URLs).
-- **Open**: Pocket ID vs. Authelia vs. Authentik (heaviest, most features); break-glass local
-  admin per service stays; IdP down = locked out → backup + its own probe; OpenBao/Proxmox
-  OIDC setup is security-critical → manual, documented.
+- **Why**: the `*.home.ilpaa.xyz` names only resolve on Salt minions (`/etc/hosts`) and tailnet
+  devices (MagicDNS). A TV, a guest laptop or a phone without Tailscale gets Porkbun's parking
+  page. A LAN resolver with the route list as local records fixes that (plus ad blocking).
+- **Sketch**: AdGuard Home (or Unbound) on edge or a small VM, records generated from
+  `pillar/edge-routes.jinja`, FRITZ!Box hands it out via DHCP. Needs a firewall rule (53) and
+  a capacity check.
+- **Open**: what happens when it's down (FRITZ!Box as fallback resolver?).
 
-### Zero-trust remote access (Headscale + Headplane, or alternative)
+### Headplane (web UI for Headscale)
 
-- **Why**: remote access currently goes through `tailscale-router` (Tofu VM) on Tailscale's
-  cloud control plane. A self-hosted coordinator keeps keys, device list and ACLs at home
-  and lets access be per-device/per-service instead of "on the LAN = trusted".
-- **Sketch**: `formulas/headscale` with Headplane as web UI; ACL policy file from pillar;
-  OIDC login via the SSO item; existing tailscale clients re-pointed with `--login-server`.
-  Subnet router stays the `tailscale-router` VM. Homepage tile + backup (SQLite → `stop_containers`).
-- **Open**: Headscale vs. NetBird (own control plane + relay, SSO-native) vs. Teleport
-  (identity-aware SSH/web proxy with session recording); control server must be reachable
-  from outside (FRITZ!Box port forward vs. small VPS) — network exposure is decided in the
-  Tofu/OPNsense repos, not here; ACLs are firewall-like policy → keep them out of formulas, only
-  as pillar data; DERP: own relay or Tailscale's public ones.
+- **Why**: nodes, keys and routes are managed via `podman exec headscale headscale …` on
+  cloud-edge today. Optional comfort, not needed for one admin.
+- **Open**: behind Caddy + Authentik (OIDC) on edge talking to Headscale's API through the
+  tunnel, or on cloud-edge itself (public — no).
 
 ### Zot registry (pull-through cache for pinned images)
 
@@ -133,7 +110,8 @@ No order agreed; pick as needed.
 - **Sketch**: a timer on one minion (e.g. forgejo or monitoring, both mount the NAS) runs
   `restic copy` from each NAS repo to an S3/B2/Hetzner-style target, with credentials and the
   repo password via `sdb.get` from OpenBao. Pillar-driven in `formulas/backup`; weekly, after
-  the restore test.
+  the restore test. OCI's free tier (Object Storage 20 GB / block volume on cloud-edge) is an
+  option now that cloud-edge exists.
 - **Open**: which provider; whether copying only forgejo, wazuh keys and the *arr/jellyfin
   configs (not media) is enough; how the offsite repo password is kept outside OpenBao itself
   (losing OpenBao loses the key to the copy). OpenBao isn't backed up at all yet

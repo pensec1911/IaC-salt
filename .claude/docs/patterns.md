@@ -121,8 +121,9 @@ Removed when the UI goes away.
   Prowlarr, Bazarr), `Downloads` (qBittorrent, slskd), `Monitoring` (Grafana, Prometheus,
   Alertmanager, Wazuh), `Proxmox` (nodes), `Tools` (CyberChef, IT-Tools — browser toolboxes), `Infrastructure` (NAS, OpenBao, router, other
   appliances). A new group only if none fits.
-- **href**: `http(s)://<IP>:<port>` from `inventory.md` / the formula's `map.jinja` — the URL a
-  browser on the LAN uses (arrstack apps: the port gluetun publishes on the host).
+- **href**: the app's name, `{{ urls['<name>'] }}` from `pillar/edge-routes.jinja` — so add
+  the route first ("Edge routes" below). IP:port only for what isn't routed (FRITZ!Box,
+  Wazuh); app ports aren't reachable from browsers any more (Proxmox firewall).
 - **icon**: a name from [dashboard-icons](https://github.com/homarr-labs/dashboard-icons) —
   check it exists (`curl -I https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/<name>.png`).
 - **description**: a few words on what it's for.
@@ -132,6 +133,25 @@ Removed when the UI goes away.
   (node_exporter, cAdvisor), APIs.
 - A new VM on a Proxmox node: update that node's `description` in the `Proxmox` group too.
 - The host isn't reachable / the port is unknown: ask, don't guess the port.
+
+## Edge routes
+
+Every web UI is reached as `https://<name>.home.ilpaa.xyz` through Caddy on edge. One entry in
+`pillar/edge-routes.jinja` (`routes`) drives the Caddyfile, `/etc/hosts` on the LAN minions,
+Headscale's DNS records, `urls.<name>` for homepage and the `blackbox-upstream` probe.
+
+- **upstream**: `http://<IP>:<port>` of the app (arrstack apps: the port gluetun publishes);
+  `https://…` + `tls_insecure: True` for appliances with self-signed certs; a container name +
+  `local: True` for something on edge's own Podman network (not probed from monitoring).
+- **auth**: `forward` (Authentik login in front — the default for admin UIs), `oidc` (the app
+  logs in against Authentik itself: provider in `pillar/authentik.sls` `oidc_apps` + secret
+  `authentik/oidc-<app>`), `none` (own login only: media apps for other users, APIs).
+- **Firewall** (other repo!): the app's port must accept edge (.30) and monitoring (.25) in
+  IaC-opentofu `firewall.tf` (`fw_rules.<vm>`), else Caddy and the probes hit a DROP. Port
+  that other minions call (pings, pushes, agents): from `fw_minions`.
+- **Apply**: edge (Caddyfile), cloud-edge (DNS), the LAN minions (`/etc/hosts`; blackbox and
+  homepage restart themselves). The app may need its own URL setting (ROOT_URL, allowed hosts,
+  CSRF origins — see grafana, forgejo, healthchecks, netbox, patchmon pillars).
 
 ## Backup entries
 
@@ -157,6 +177,7 @@ Every service with state Salt can't rebuild (app config, databases, keys/certs) 
 ## Network topology
 
 Everything Salt manages sits on one flat network (192.168.178.0/24) for now. VLAN-aware design
-happens in the OpenTofu/OPNsense repos. **Don't add VLAN-, subnet- or firewall-aware logic to
+happens in the OpenTofu/OPNsense repos; so does filtering (Proxmox firewall, IaC-opentofu
+`firewall.tf`) — the Headscale ACL is the one access list in this repo, as pillar data. **Don't add VLAN-, subnet- or firewall-aware logic to
 formulas or pillar.** If segmentation arrives, expect it as pillar data (an interface/IP override
 per minion), not as something formulas special-case.

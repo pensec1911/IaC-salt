@@ -32,6 +32,33 @@ Remove an entry once fixed (the fix lives in git history).
   service beacon). Dropping it rewrites the master's reactor config (master restart) — do it
   with a planned master apply.
 
+## Zero-trust / edge — accepted risks and emergency access (2026-11-26)
+
+- **Authentik is the single point of login** for every `auth: forward` route and the OIDC apps.
+  Down → those names answer with errors. Emergency: the apps on their IP:port from a host the
+  Proxmox firewall lets through (edge, monitoring — e.g. an SSH tunnel), local logins (Grafana
+  `/login?disableAutoLogin=true`, NetBox form, Forgejo password), or switch a VM's firewall off
+  in the Proxmox UI (VM → Firewall → Options). Lost passkey:
+  `sudo podman exec -it authentik-worker ak create_recovery_key 10 <user>` on edge.
+  akadmin = break-glass account, daily user `paul`.
+- **App logins kept on purpose** (decided 2026-11-26): the *arr apps and qBittorrent still ask
+  for their own password behind forward auth — a second layer if a VM firewall gets switched
+  off. Not "External" auth.
+- **Caddy → Proxmox/TrueNAS/OpenBao TLS isn't verified** (`tls_insecure`, self-signed certs).
+  Pinning their CAs (pve-root-ca etc.) would close it.
+- **Caddy cold start** (plan F13): its image is built on edge (formulas/caddy). Gone + build
+  fails (no internet, Docker Hub down) → no proxy; apps still answer on their IPs from edge/
+  monitoring.
+- **WireGuard/Tailscale keys** (plan F9): the gateway snippet on the PVE host
+  (`/var/lib/vz/snippets`), OCI instance metadata (IMDS, readable by any local process on
+  cloud-edge) and the encrypted Tofu state hold the WG private keys.
+- **cloud-edge can delete its own restic repo** on the NAS (rw NFS through the tunnel; own repo
+  password, but the export is shared). Append-only rest-server (roadmap) would close it.
+- **Seerr has no OIDC** (v3.5.2): own login (Jellyfin accounts), no forward auth (non-admin users).
+- **NetBox Tofu provider 6.0 not merged**: a rewrite (renamed resources, state re-imports,
+  NetBox 4.6 only — we run 4.7). Renovate PR stays open until a planned migration.
+- **pve03 `local-lvm` at 92 %** (`PveStorageAlmostFull`, before step 7) — arrstack/forgejo disks.
+
 ## Smaller items
 
 - **Old images fill the disks — nothing prunes them** (2026-11-26: forgejo's 30 GB root hit

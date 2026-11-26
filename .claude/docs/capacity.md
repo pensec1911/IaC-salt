@@ -60,10 +60,6 @@ Delete a row once the service is merged and its real usage shows in the 7-day pe
 
 | Item | Minion | Est. RAM | Est. disk | PR |
 |---|---|---|---|---|
-| 01 ntfy (Alertmanager push) | jellyfin | 50 MB | ~0.1 GB (image 37 MB compressed, data < 50 MB) | #23 |
-| 02 Healthchecks (job dead-man's switch) | jellyfin | 200 MB (2 gunicorn workers + sendalerts/sendreports) | ~0.4 GB (image 107 MB compressed, ~300 MB unpacked; SQLite < 50 MB) | #24 |
-| 03 CyberChef + IT-Tools (browser toolboxes) | monitoring | 40 MB (two static nginx, 2 workers each) | ~0.5 GB (images 121 MB + 23 MB compressed; no data) | #25 |
-| 04 Infra metrics (pve-, fritz-, graphite-exporter) | monitoring | 130 MB (two Python exporters ~50 MB each, graphite_exporter ~30 MB) | ~0.3 GB (images 50 + 25 + 10 MB compressed; no data) | #28 |
-| edge 04 Headscale + DERP | cloud-edge (OCI, 6 GB, outside the PVE budget) | ~100 MB | ~0.2 GB (image ~70 MB; SQLite < 10 MB) | — |
-| edge 05 Caddy (reverse proxy, wildcard cert) | edge | ~50 MB | ~0.1 GB (built image ~50 MB; builder image removed after the build; certs < 1 MB) | — |
-| edge 06 Authentik (server, worker, postgres) | edge | ~1.5 GB (server ~700 MB, worker ~600 MB, postgres ~200 MB; edge used 0.7 of 3.9 GB before) | ~1.6 GB (image 1.33 GB unpacked + postgres 18 ~0.1 GB; edge 12.5 GB free) | — |
+
+_None open._ Measured 2026-11-26: edge 1.75 of 3.9 GB used with Caddy + Authentik (45 %), 12.5 GB
+disk free before the Authentik image; cloud-edge (Headscale) outside the PVE budget.
