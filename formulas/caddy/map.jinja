@@ -18,8 +18,10 @@
    http:// site redirects instead.
 
    domain: the wildcard zone (*.<domain>, one certificate via DNS-01).
-   routes: [{name, upstream, auth}] -> https://<name>.<domain> proxied to
-   upstream; anything else under the wildcard gets a 404.
+   routes: [{name, upstream, auth, tls_insecure}] -> https://<name>.<domain>
+   proxied to upstream; anything else under the wildcard gets a 404.
+   tls_insecure: an https upstream with a self-signed certificate (Proxmox,
+   TrueNAS, OpenBao) — encrypted, but not verified.
    forward_auth: upstream of an auth server (Authentik's embedded outpost,
    http://authentik-server:9000). Empty = off; when set, routes with
    auth: forward go through it first.

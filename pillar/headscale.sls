@@ -3,6 +3,29 @@
    Prometheus through the tunnel. #}
 {%- set domain = 'ilpaa.xyz' %}
 {%- from 'edge-routes.jinja' import edge, routes %}
+{#- What the admin's tailnet devices (laptop, phone) may reach in the LAN
+   through gateway. Every web UI goes through Caddy on edge (*.home names,
+   Authentik in front); direct IP:port only for non-HTTP admin access and
+   the clients that use IPs (Tofu: Proxmox API, OpenBao, tofu-state,
+   NetBox API). Everything else is denied — also at home, since the laptop
+   routes the LAN through the tailnet. Confirmed by the user 2026-11-26. #}
+{%- set admin_access = [
+    (edge.ip,          '80,443'),
+    ('192.168.178.22', '22'),
+    ('192.168.178.23', '22'),
+    ('192.168.178.24', '22'),
+    ('192.168.178.25', '22'),
+    ('192.168.178.28', '22'),
+    ('192.168.178.29', '22,2222,5432,8000'),
+    ('192.168.178.30', '22'),
+    ('192.168.178.31', '22'),
+    ('192.168.178.11', '22,8006'),
+    ('192.168.178.12', '22,8006'),
+    ('192.168.178.13', '22,8006'),
+    ('192.168.178.20', '22,8200'),
+    ('192.168.178.10', '22,80,443'),
+    ('192.168.178.1',  '53,80,443'),
+] %}
 users:
   accounts:
     # Pinned uid/gid — the container runs as it (Podman User=, mapped 1:1).
@@ -21,9 +44,9 @@ headscale:
     # outside the tailnet.
     base_domain: ts.{{ domain }}
     metrics_host_ip: 10.99.0.1
-    # Policy (HuJSON, rendered as JSON). Transitional (step 4 of the
-    # zero-trust plan): the admin's devices reach the whole LAN through
-    # gateway; narrowed to edge + admin ports once Caddy/Authentik stand.
+    # Policy (HuJSON, rendered as JSON). The admin's devices reach only
+    # admin_access above; implicit deny for the rest. The whole subnet is
+    # still advertised (gateway) — the ACL filters, not the route.
     # Tagged nodes (gateway) belong to the tag, not to a user, and never expire.
     policy:
       groups:
@@ -36,7 +59,10 @@ headscale:
       acls:
         - action: accept
           src: ["group:admin"]
-          dst: ["192.168.178.0/24:*"]
+          dst:
+{%- for ip, ports in admin_access %}
+            - "{{ ip }}:{{ ports }}"
+{%- endfor %}
     # The edge zone as search domain: clients (systemd-resolved on the
     # laptop) then ask only the tailnet for *.home.<domain> instead of racing
     # it against the LAN/public resolver, where Porkbun's wildcard answers.

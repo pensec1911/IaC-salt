@@ -42,7 +42,16 @@ http://*.{{ caddy.domain }} {
 			trusted_proxies private_ranges
 		}
 {%- endif %}
+{%- if r.get('tls_insecure') %}
+		# Appliance with its own self-signed certificate: TLS to it, not verified.
+		reverse_proxy {{ r.upstream }} {
+			transport http {
+				tls_insecure_skip_verify
+			}
+		}
+{%- else %}
 		reverse_proxy {{ r.upstream }}
+{%- endif %}
 	}
 {%- endfor %}
 

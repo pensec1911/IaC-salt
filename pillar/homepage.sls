@@ -1,7 +1,7 @@
 {%- from 'features.jinja' import features %}
-{#- Apps behind Caddy on edge link to their https name (urls.<name>, the
-   status dot and blackbox probe follow href); appliances with their own
-   HTTPS (Proxmox, TrueNAS, OpenBao, FRITZ!Box, Wazuh) stay on the IP. #}
+{#- Everything behind Caddy on edge links to its https name (urls.<name>;
+   the status dot and blackbox probe follow href). FRITZ!Box and Wazuh stay
+   on the IP (pillar/edge-routes.jinja). #}
 {%- from 'edge-routes.jinja' import edge, urls %}
 homepage:
   lookup:
@@ -110,22 +110,22 @@ homepage:
     - name: Proxmox
       items:
         - name: pve01
-          href: https://192.168.178.11:8006
+          href: {{ urls['pve01'] }}
           icon: proxmox.png
           description: homepage, gateway, edge, openbao (32 GB)
         - name: pve02
-          href: https://192.168.178.12:8006
+          href: {{ urls['pve02'] }}
           icon: proxmox.png
           description: monitoring, jellyfin, salt-master
         - name: pve03
-          href: https://192.168.178.13:8006
+          href: {{ urls['pve03'] }}
           icon: proxmox.png
           description: arrstack, forgejo
 
     - name: Infrastructure
       items:
         - name: TrueNAS
-          href: https://192.168.178.10
+          href: {{ urls['truenas'] }}
           icon: truenas-scale.png
           description: NAS — media share
         - name: Forgejo
@@ -141,7 +141,7 @@ homepage:
           icon: authentik.png
           description: Login (passkey) + forward auth for the apps
         - name: OpenBao
-          href: https://192.168.178.20:8200/ui/
+          href: {{ urls['openbao'] }}/ui/
           icon: openbao.png
           description: Secrets
         - name: FRITZ!Box

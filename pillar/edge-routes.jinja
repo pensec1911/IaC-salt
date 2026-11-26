@@ -25,9 +25,13 @@
    local: True = the upstream is a container on edge itself (by name on the
    shared Podman network) — not probed from monitoring, only via its name.
 
-   Not here: HTTPS-only appliances with their own certs (Proxmox, TrueNAS,
-   OpenBao, FRITZ!Box, Wazuh) — reached directly (admin list in the
-   Headscale policy). #}
+   tls_insecure: True = the upstream is HTTPS with its own self-signed
+   certificate (Proxmox, TrueNAS, OpenBao): Caddy talks TLS to it without
+   verifying. Their APIs (Tofu, bao CLI) keep using the IP, which the
+   Headscale policy allows for those ports.
+
+   Not here: FRITZ!Box (DNS-rebind protection rejects foreign Host names)
+   and Wazuh (off) — reached directly. #}
 {%- set edge = {'ip': '192.168.178.30', 'domain': 'home.ilpaa.xyz'} %}
 {%- set routes = [
     {'name': 'homepage',     'upstream': 'http://192.168.178.23:3000', 'auth': 'forward'},
@@ -50,6 +54,11 @@
     {'name': 'it-tools',     'upstream': 'http://192.168.178.25:8082', 'auth': 'forward'},
     {'name': 'git',          'upstream': 'http://192.168.178.29:3000', 'auth': 'oidc'},
     {'name': 'netbox',       'upstream': 'http://192.168.178.29:8000', 'auth': 'oidc'},
+    {'name': 'pve01',        'upstream': 'https://192.168.178.11:8006', 'auth': 'forward', 'tls_insecure': True},
+    {'name': 'pve02',        'upstream': 'https://192.168.178.12:8006', 'auth': 'forward', 'tls_insecure': True},
+    {'name': 'pve03',        'upstream': 'https://192.168.178.13:8006', 'auth': 'forward', 'tls_insecure': True},
+    {'name': 'truenas',      'upstream': 'https://192.168.178.10',      'auth': 'forward', 'tls_insecure': True},
+    {'name': 'openbao',      'upstream': 'https://192.168.178.20:8200', 'auth': 'forward', 'tls_insecure': True},
     {'name': 'auth',         'upstream': 'http://authentik-server:9000', 'auth': 'none', 'local': True},
 ] %}
 {%- set urls = {} %}
