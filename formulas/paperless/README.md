@@ -35,9 +35,18 @@ See `pillar.example.sls`. Real values: `pillar/paperless.sls`.
 ## NAS (manual, once — before the first apply)
 
 TrueNAS: child dataset `pool01/documents/paperless`, ACL type POSIX, owner `979:979`, mode
-770; NFS share on exactly that path (a child dataset is its own filesystem — the parent's
-share shows it empty), host `192.168.178.21` only, maproot/mapall empty. Then
+**751**; NFS share on exactly that path, host `192.168.178.21` only, maproot/mapall empty. Then
 `nfs-mount` mounts it at `/mnt/paperless`.
+
+- **Own share for the child dataset**, not one on `documents`: a child dataset is its own
+  filesystem, and through the parent's export the client only sees the empty directory
+  underneath (root:root 755 — 2026-11-27). Check with `cat /etc/exports` on TrueNAS.
+- **751, not 770**: Podman runs as root and `statfs`es the bind sources before the container
+  starts; root is squashed to nobody, so without the "other" x bit the unit fails with
+  `statfs /mnt/paperless/media: permission denied`. x only — nobody can't list it. 979 can
+  set it itself from docs: `setpriv --reuid=979 --regid=979 --clear-groups chmod 751 /mnt/paperless`.
+- Mounted while the NAS was still booting (child dataset not yet mounted there), the client can
+  stick to the empty parent directory: `umount -l /mnt/paperless; mount /mnt/paperless`.
 
 ## OpenBao (manual, once — before the first apply)
 

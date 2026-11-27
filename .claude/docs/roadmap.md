@@ -9,51 +9,9 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 
 ## Next up (agreed order)
 
-Agreed 2026-11-27: Paperless first, Nextcloud second on the same VM.
+Agreed 2026-11-27: Paperless first (shipped 2026-11-27, formulas/paperless on `docs`), then Nextcloud on the same VM.
 
-### 1. Paperless-ngx (documents from the phone, OCR, auto-filing)
-
-- **Why**: bills, contracts and subscription letters are scattered across mail, paper and
-  phone. The only scanner is the phone; Paperless OCRs every upload, sets correspondent,
-  document type and tags itself (matching rules first, its classifier after a few dozen
-  documents) and files it via a storage path — the "it lands in the right folder" part that
-  Nextcloud can't do (its Flow rules don't look at content).
-- **Sketch**:
-  - **VM** (IaC-opentofu, user's call): new `docs` VM on pve01, IP **192.168.178.21** (free in
-    Tofu; check the FRITZ!Box before applying), 2–4 cores, sized **5–6 GB**
-    from the start so Nextcloud (item 2) fits without a resize; pve01 then ~21 of 30 GB.
-    Firewall: app port only from edge (.30) + monitoring (.25). New minion → `backup` in both
-    top files, base formulas like the other container hosts (incl. `nfs-mount`, `podman`,
-    `cadvisor`, `alloy`).
-  - **NAS** (done 2026-11-27): dataset `/mnt/pool01/documents` with NFS share (host .21, no
-    maproot/mapall) and child dataset `documents/paperless`. Child datasets are separate
-    filesystems → without `crossmnt` the client sees `paperless/` empty through the parent
-    share: mount the child via its own share (`/mnt/pool01/documents/paperless`, host .21) —
-    verify on first mount. Owner **979:979** (`paperless` user in the `users` formula, next
-    free 97x UID; container `USERMAP_UID/GID` = 979), mode 770, POSIX ACL type. Holds
-    `media/` (originals + archive) and `consume/`. `require: - mount: nfs-mount-paperless`.
-  - **Local disk**: Postgres, `data/` (search index, classifier), Redis — many small random
-    writes, too slow / lock-unsafe on NFS (inventory: NAS ~1.3 MB/s random).
-  - **`formulas/paperless`** via the podman macro: paperless-ngx, Postgres (shared with
-    Nextcloud later — one DB per app), Redis. `PAPERLESS_CONSUMER_POLLING` (no inotify over
-    NFS). No Gotenberg/Tika yet — only needed for mail bodies/Office files (see Later).
-  - **Secrets** (OpenBao): Paperless secret key, DB password, admin password, OIDC client
-    secret.
-  - **Login**: route `docs` in `pillar/edge-routes.jinja` **without** forward auth — the
-    mobile apps (Paperless Mobile / Swift Paperless) can't pass Authentik's forward-auth page.
-    Web UI via Authentik OIDC (allauth), apps via Paperless account / API token. Reachable on
-    LAN + tailnet only, like everything else.
-  - **Homepage** item, **backup**: nightly Postgres dump (`dumps` feature of
-    `formulas/backup`) + `data/` + config; `media/` is on the NAS (TrueNAS snapshots; the real
-    gap is the parked offsite copy — matters more once tax/contract documents live here).
-- **Manual (README)**: TrueNAS dataset/export; first admin user; Authentik OIDC provider;
-  correspondents, document types, tags, matching rules; custom fields (`amount`, `due date`,
-  `interval`); storage path e.g. `{{ document_type }}/{{ correspondent }}/{{ created_year }}/{{ title }}`;
-  saved views ("Subscriptions", "Expenses <year>"); phone app login.
-- **Open**: Paperless' own `document_exporter` as an extra backup format (easier restore than
-  a DB dump + files); whether amounts get extracted automatically (see Later).
-
-### 2. Nextcloud (files, calendar, contacts across phone profiles)
+### 1. Nextcloud (files, calendar, contacts across phone profiles)
 
 - **Why**: the phone uses several isolated Android user profiles — Android has no way to share
   files between them, so it has to go through a server every profile talks to. Nextcloud app
@@ -64,7 +22,8 @@ Agreed 2026-11-27: Paperless first, Nextcloud second on the same VM.
   - Same `docs` VM, `formulas/nextcloud` via the podman macro: nextcloud (fpm) + web server
     container + cron container; own database on the Paperless Postgres; Redis for file
     locking + cache. ~+2 GB RAM.
-  - User data on the NAS: child dataset `documents/nextcloud` with its own share (not created
+  - User data on the NAS: child dataset `documents/nextcloud` with its own share and mode 751
+    (same lessons as paperless, its README "NAS"; not created
     yet — owner 33:33 for the image's `www-data` or a 97x UID remapped via Podman, decided at
     build time); DB, config, app
     data local. Previews/thumbnails are small writes → keep the preview cache local or limit
