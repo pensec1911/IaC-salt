@@ -1,0 +1,29 @@
+{%- from "backup-offsite/map.jinja" import offsite with context -%}
+{%- from "healthchecks-ping/map.jinja" import hc_ping with context -%}
+# Managed by Salt (formulas/backup-offsite) — do not edit.
+[Unit]
+Description=restic copy of the NAS repos offsite
+Wants=network-online.target
+After=network-online.target
+# Fails (no metrics -> OffsiteCopyStale) instead of running without the share.
+RequiresMountsFor={{ offsite.source_base }}
+
+[Service]
+Type=oneshot
+EnvironmentFile={{ offsite.config_dir }}/env
+ExecStart={{ offsite.python }} {{ offsite.script }}
+TimeoutStartSec={{ offsite.timeout }}
+Nice=10
+IOSchedulingClass=idle
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+# The share: restic copy writes lock files into the source repos. The
+# cache dir comes from CacheDirectory= (writable under ProtectSystem).
+ReadWritePaths={{ offsite.source_base }} {{ offsite.textfile_dir }}
+CacheDirectory={{ offsite.cache_dir | replace('/var/cache/', '') }}
+{%- if hc_ping.enabled %}
+# Dead-man's switch (formulas/healthchecks-ping). "-": never fails the unit.
+ExecStopPost=-{{ hc_ping.script }} {{ offsite.ping_slug }}-{{ grains['id'] }} systemd
+{%- endif %}

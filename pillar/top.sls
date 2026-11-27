@@ -30,6 +30,7 @@ base:
   'salt-master':
     - salt-master
     - openbao-snapshot
+    - backup-offsite
 
   # salt-master_master: the master's own id, which the orchestrate run
   # (formulas/orch) compiles its pillar for.

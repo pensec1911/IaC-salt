@@ -1,0 +1,63 @@
+{#- formulas/backup-offsite — nightly `restic copy` of every restic repo on
+   the NAS share (formulas/backup, <source_base>/<minion>) into one offsite
+   repo per minion at <repository>/<minion> (S3-compatible object storage).
+   Runs on one host that mounts the whole share — salt-master, which
+   resolves every pillar secret anyway, so holding the source passwords
+   there adds no exposure.
+
+   repository: restic repo base, e.g. s3:https://<namespace>.compat.
+   objectstorage.<region>.oraclecloud.com/<bucket> (IaC-opentofu oci output
+   restic_offsite_repository). region: AWS_DEFAULT_REGION for the S3 API.
+   s3_bucket_lookup: OCI's compat API wants path-style requests.
+
+   `password` is the offsite repos' own one (OpenBao restic/offsite) —
+   independent of the source passwords, and kept outside the homelab too
+   (README "Bootstrap"): with the NAS and OpenBao gone it's the only key.
+   access_key_id / secret_access_key: S3 credentials (OCI Customer Secret
+   Key of a user that may only touch this bucket).
+
+   `source_password` opens the NAS repos (OpenBao restic/repo);
+   `source_passwords` holds per-minion overrides (repos with their own password,
+   pillar/backup.sls password_path). Every directory under source_base
+   that holds a restic repo is copied — a new minion goes offsite without a
+   change here. A repo that fails doesn't stop the others.
+
+   New offsite repos are initialised with the source's chunker parameters
+   (--copy-chunker-params), so copies deduplicate like the source.
+
+   keep: forget --keep-<unit> <n> on the offsite repo after each copy, then
+   --prune. Longer than the NAS (12 monthly): the copy is the long memory.
+
+   on_calendar: after every nightly backup (02:00 + ≤10 min, ≤45 min) and
+   before the Sunday restore test (04:00). retry_lock covers an overlap.
+
+   textfile_dir: node-exporter's textfile collector (backup_offsite_*;
+   alerts in pillar/prometheus.sls). ping_slug: Healthchecks check
+   <slug>-<minion id> while formulas/healthchecks-ping has a key. #}
+{%- set defaults = {
+    'repository': '',
+    'region': '',
+    's3_bucket_lookup': 'path',
+    'password': '',
+    'access_key_id': '',
+    'secret_access_key': '',
+    'source_base': '/mnt/backups',
+    'mount_name': 'backups',
+    'source_password': '',
+    'source_passwords': {},
+    'keep': {'daily': 7, 'weekly': 4, 'monthly': 12},
+    'retry_lock': '30m',
+    'config_dir': '/etc/restic-offsite',
+    'cache_dir': '/var/cache/restic-offsite',
+    'restic_bin': '/usr/bin/restic',
+    'python': '/usr/bin/python3',
+    'script': '/usr/local/sbin/restic-offsite',
+    'unit': 'restic-offsite',
+    'on_calendar': '*-*-* 03:15:00 Europe/Berlin',
+    'randomized_delay': '10min',
+    'timeout': '3h',
+    'textfile_dir': '/var/lib/prometheus/node-exporter',
+    'metrics_file': 'backup_offsite.prom',
+    'ping_slug': 'backup-offsite',
+} %}
+{%- set offsite = salt['pillar.get']('backup_offsite:lookup', default=defaults, merge=True) %}

@@ -66,6 +66,13 @@ healthchecks:
         schedule: "30 1 * * *"
         tz: Europe/Berlin
         grace: 3600
+      - slug: backup-offsite-salt-master
+        name: Backup offsite
+        tags: backup salt-master
+        desc: formulas/backup-offsite nightly restic copy of every NAS repo to OCI Object Storage.
+        schedule: "15 3 * * *"
+        tz: Europe/Berlin
+        grace: 3600
 {%- for m in backup_minions %}
       - slug: backup-{{ m }}
         name: Backup {{ m }}

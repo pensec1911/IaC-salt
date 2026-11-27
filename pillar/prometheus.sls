@@ -315,6 +315,31 @@ prometheus:
             severity: warning
           annotations:
             summary: {% raw %}"{{ $labels.instance }} has no OpenBao snapshot for over 36h"{% endraw %}
+        {#- backup_offsite_* from formulas/backup-offsite on salt-master
+           (nightly ~03:15): one series per NAS repo (label repo). A repo
+           that never made it offsite starts at 0, so Stale fires for it.
+           Free tier: 20 GB Object Storage — warn well before. #}
+        - alert: OffsiteCopyFailed
+          expr: backup_offsite_success == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"Offsite copy of repo {{ $labels.repo }} failed — journalctl -u restic-offsite"{% endraw %}
+        - alert: OffsiteCopyStale
+          expr: time() - backup_offsite_last_success_timestamp_seconds > 36 * 3600 or time() - backup_offsite_last_run_timestamp_seconds > 36 * 3600
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"No successful offsite copy for over 36h on {{ $labels.instance }} {{ $labels.repo }}"{% endraw %}
+        - alert: OffsiteNearFreeTier
+          expr: sum(backup_offsite_repo_bytes) > 15e9
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"Offsite repos use {{ $value | humanize1024 }}B of the 20 GB OCI free tier"{% endraw %}
         {#- restore_test_* from formulas/backup (weekly restore test, Sunday
            ~04:00): repo sample readable, latest snapshot restores, SQLite
            files pass integrity_check. Stale after 8 days covers a missed

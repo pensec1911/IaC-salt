@@ -18,6 +18,7 @@ base:
     - orch
     - openbao-snapshot
     - backup
+    - backup-offsite
 
   'homepage':
     - users

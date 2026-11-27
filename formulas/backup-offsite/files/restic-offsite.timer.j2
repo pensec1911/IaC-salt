@@ -1,0 +1,12 @@
+{%- from "backup-offsite/map.jinja" import offsite with context -%}
+# Managed by Salt (formulas/backup-offsite) — do not edit.
+[Unit]
+Description=Nightly restic copy offsite (after the NAS backups)
+
+[Timer]
+OnCalendar={{ offsite.on_calendar }}
+RandomizedDelaySec={{ offsite.randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

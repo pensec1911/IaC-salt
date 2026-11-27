@@ -1,0 +1,177 @@
+{%- from "backup-offsite/map.jinja" import offsite with context -%}
+#!{{ offsite.python }}
+# Managed by Salt (formulas/backup-offsite) — do not edit here.
+#
+# For every restic repo under SOURCE_BASE (formulas/backup, one per minion):
+# init the offsite repo <RESTIC_OFFSITE_BASE>/<name> on first use (with the
+# source's chunker params), `restic copy` the new snapshots, forget --prune,
+# check the structure, measure its size. One failing repo doesn't stop the
+# others. Outcome per repo as node-exporter textfile metrics
+# (backup_offsite_*{repo="<name>"}); last_success carries over on failure.
+# Credentials and the offsite password come from the unit's EnvironmentFile.
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import time
+
+RESTIC = {{ offsite.restic_bin | json }}
+SOURCE_BASE = {{ offsite.source_base | json }}
+SOURCES_DIR = {{ (offsite.config_dir ~ '/sources') | json }}
+KEEP = {{ offsite.keep | json }}
+RETRY_LOCK = {{ offsite.retry_lock | json }}
+OPTIONS = ["-o", "s3.bucket-lookup=" + {{ offsite.s3_bucket_lookup | json }}]
+OUT = os.path.join({{ offsite.textfile_dir | json }}, {{ offsite.metrics_file | json }})
+
+# restic: "repository does not exist" (0.17+).
+EXIT_NO_REPO = 10
+
+
+def log(msg):
+    print(msg, file=sys.stderr, flush=True)
+
+
+def restic(dest, *args, source=None):
+    cmd = [RESTIC, "-r", dest, *OPTIONS, "--retry-lock", RETRY_LOCK, *args]
+    if source is not None:
+        cmd += ["--from-repo", source["repo"], "--from-password-file", source["password_file"]]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.stderr:
+        sys.stderr.write(proc.stderr)
+    return proc
+
+
+def sources():
+    """(name, repo path, password file) of every restic repo on the share."""
+    found = []
+    for name in sorted(os.listdir(SOURCE_BASE)):
+        repo = os.path.join(SOURCE_BASE, name)
+        if not os.path.isfile(os.path.join(repo, "config")):
+            continue
+        pw = os.path.join(SOURCES_DIR, name)
+        if not os.path.exists(pw):
+            pw = os.path.join(SOURCES_DIR, "default")
+        found.append({"name": name, "repo": repo, "password_file": pw})
+    return found
+
+
+def copy_one(base, src):
+    """Size of the offsite repo after a fully successful run, else None."""
+    dest = "{}/{}".format(base, src["name"])
+    probe = restic(dest, "cat", "config")
+    if probe.returncode == EXIT_NO_REPO:
+        log("{}: initialising {}".format(src["name"], dest))
+        if restic(dest, "init", "--copy-chunker-params", source=src).returncode != 0:
+            return None
+    elif probe.returncode != 0:
+        log("{}: offsite repo not readable (exit {})".format(src["name"], probe.returncode))
+        return None
+
+    proc = restic(dest, "copy", source=src)
+    if proc.returncode != 0:
+        log("{}: copy failed (exit {})".format(src["name"], proc.returncode))
+        return None
+    if proc.stdout:
+        log("{}: {}".format(src["name"], proc.stdout.strip().splitlines()[-1]))
+
+    forget = ["forget", "--prune"]
+    for unit, count in KEEP.items():
+        forget += ["--keep-{}".format(unit), str(count)]
+    if restic(dest, *forget).returncode != 0:
+        log("{}: forget --prune failed".format(src["name"]))
+        return None
+    if restic(dest, "check").returncode != 0:
+        log("{}: check failed".format(src["name"]))
+        return None
+
+    stats = restic(dest, "stats", "--mode", "raw-data", "--json")
+    try:
+        return int(json.loads(stats.stdout)["total_size"])
+    except (ValueError, KeyError, TypeError):
+        log("{}: stats unreadable, size unknown".format(src["name"]))
+        return 0
+
+
+def previous():
+    """repo -> last success timestamp from the last metrics file."""
+    prefix = 'backup_offsite_last_success_timestamp_seconds{repo="'
+    out = {}
+    try:
+        with open(OUT) as f:
+            for line in f:
+                if line.startswith(prefix):
+                    name = line[len(prefix):].split('"', 1)[0]
+                    out[name] = int(float(line.split()[-1]))
+    except (OSError, ValueError, IndexError):
+        pass
+    return out
+
+
+def main():
+    started = time.time()
+    base = os.environ.get("RESTIC_OFFSITE_BASE", "")
+    last = previous()
+    results = {}
+    ok_all = True
+
+    # Never mistake a missing share for "no repos to copy".
+    if not base:
+        log("RESTIC_OFFSITE_BASE is not set")
+        ok_all = False
+    elif not os.path.ismount(SOURCE_BASE):
+        log("{} is not mounted".format(SOURCE_BASE))
+        ok_all = False
+    else:
+        srcs = sources()
+        if not srcs:
+            log("no restic repos under {}".format(SOURCE_BASE))
+            ok_all = False
+        for src in srcs:
+            try:
+                size = copy_one(base, src)
+            except OSError as e:
+                log("{}: {}".format(src["name"], e))
+                size = None
+            results[src["name"]] = size
+            if size is None:
+                ok_all = False
+            else:
+                log("{}: ok, offsite repo {} bytes".format(src["name"], size))
+
+    now = int(time.time())
+    lines = []
+
+    def header(name, help_):
+        lines.append("# HELP {} {}".format(name, help_))
+        lines.append("# TYPE {} gauge".format(name))
+
+    header("backup_offsite_success", "1 if the last copy, forget --prune and check of this repo succeeded")
+    for name, size in sorted(results.items()):
+        lines.append('backup_offsite_success{repo="%s"} %d' % (name, size is not None))
+    header("backup_offsite_last_success_timestamp_seconds", "Last fully successful run for this repo (0 = never)")
+    for name, size in sorted(results.items()):
+        ts = now if size is not None else last.get(name, 0)
+        lines.append('backup_offsite_last_success_timestamp_seconds{repo="%s"} %d' % (name, ts))
+    header("backup_offsite_repo_bytes", "Size of the offsite repo (restic stats raw-data) after the last success")
+    for name, size in sorted(results.items()):
+        if size is not None:
+            lines.append('backup_offsite_repo_bytes{repo="%s"} %d' % (name, size))
+    header("backup_offsite_run_success", "1 if every repo succeeded in the last run")
+    lines.append("backup_offsite_run_success {}".format(int(ok_all)))
+    header("backup_offsite_duration_seconds", "Duration of the last run")
+    lines.append("backup_offsite_duration_seconds {:.3f}".format(time.time() - started))
+    header("backup_offsite_last_run_timestamp_seconds", "When the last run finished")
+    lines.append("backup_offsite_last_run_timestamp_seconds {}".format(now))
+
+    # Atomic replace — node-exporter must never read a half-written file.
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(OUT), prefix=".backup_offsite.")
+    with os.fdopen(fd, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, OUT)
+    return 0 if ok_all else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
