@@ -78,13 +78,16 @@ Remove an entry once fixed (the fix lives in git history).
   `formulas/infra-exporters/README.md` (companion `netdata.conf` on TrueNAS) is still to do, and
   must be redone after every TrueNAS update.
 
-- **pve03's onboard NIC hangs under load** (Intel I219-LM, `e1000e`: `Detected Hardware Unit
-  Hang`, then link down; 4× on 2026-11-14, ~10k hang messages; pve01/02 have the same NIC
-  and 0 hangs). The node goes red in Proxmox and arrstack/forgejo/omada drop off the network.
-  Their NFS mounts block processes, which shows as load ~100 in the VMs. Replugging the cable
-  brought it back. Mitigation, set by hand on pve03 (not managed by any repo yet):
+- **Onboard NIC hangs under load on every node** (Intel I219-LM, `e1000e`: `Detected Hardware
+  Unit Hang`, the host keeps running but loses its network). pve03 4× on 2026-11-14 (~10k hang
+  messages); pve02 on 2026-11-27 19:34–21:12 (2935 messages, until the cable was replugged) —
+  salt-master, monitoring and jellyfin unreachable, so no alert left the house (roadmap
+  "Blackbox probe from outside"). VMs on the node drop off the network; NFS mounts block
+  processes, which shows as load ~100 in the VMs. Replugging the cable brings it back.
+  Mitigation, set by hand on all three nodes (not managed by any repo):
   `post-up /usr/sbin/ethtool -K nic0 tso off gso off gro off` under `iface nic0` in
-  `/etc/network/interfaces` (backup `interfaces.bak-2026-11-14`). If hangs continue
+  `/etc/network/interfaces` — pve03 since 2026-11-14, pve01/pve02 since 2026-11-27 (backup
+  `interfaces.bak-<date>`). A reinstalled node needs it again. If hangs continue
   (`journalctl -k | grep "Unit Hang"`), the next steps are a USB/PCIe NIC or
   `pcie_aspm=off`. The minions that hung after it: salt-minion reconnect watchdog.
 
