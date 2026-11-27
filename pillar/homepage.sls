@@ -106,13 +106,21 @@ homepage:
           icon: it-tools.png
           description: JWT, certs, hashes, regex, cron, subnets
 
+    # Documents (docs VM): Paperless now, Nextcloud later (roadmap).
+    - name: Documents
+      items:
+        - name: Paperless
+          href: {{ urls['docs'] }}
+          icon: paperless-ngx.png
+          description: Scanned letters, bills, contracts (OCR)
+
     # Proxmox cluster nodes (managed by IaC-opentofu, not Salt).
     - name: Proxmox
       items:
         - name: pve01
           href: {{ urls['pve01'] }}
           icon: proxmox.png
-          description: homepage, gateway, edge, wazuh, openbao (32 GB)
+          description: homepage, gateway, edge, wazuh, openbao, docs (32 GB)
         - name: pve02
           href: {{ urls['pve02'] }}
           icon: proxmox.png

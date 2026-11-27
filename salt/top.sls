@@ -177,6 +177,26 @@ base:
     - authentik
     - backup
 
+  # Paperless-ngx (later Nextcloud), documents on the NAS share.
+  'docs':
+    - users
+    - ntp
+    - hosts
+{%- if wazuh %}
+    - wazuh-agent
+{%- endif %}
+    - node-exporter
+    - unattended-upgrades
+    - patchmon-agent
+    - healthchecks-ping
+    - salt-minion
+    - nfs-mount
+    - podman
+    - cadvisor
+    - alloy
+    - paperless
+    - backup
+
   # OCI A1 (arm64), Headscale. Erreicht das LAN nur durch den WireGuard-Tunnel
   # ueber gateway (Freigaben dort); Mine/Scrapes ueber wg0 (pillar/cloud-edge.sls).
   'cloud-edge':

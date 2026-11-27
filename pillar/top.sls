@@ -10,7 +10,7 @@ base:
     - salt-minion-version
     - healthchecks-ping
 
-  'homepage,monitoring,salt-master,forgejo,gateway,edge,cloud-edge':
+  'homepage,monitoring,salt-master,forgejo,gateway,edge,cloud-edge,docs':
     - match: list
     - salt-minion-enforce
 
@@ -18,12 +18,12 @@ base:
     - match: list
     - salt-minion-enforce-window
 
-  'arrstack,jellyfin,monitoring,wazuh,forgejo,gateway,edge,cloud-edge,salt-master':
+  'arrstack,jellyfin,monitoring,wazuh,forgejo,gateway,edge,cloud-edge,salt-master,docs':
     - match: list
     - backup
 
   # LAN minions: the edge route names in /etc/hosts (formulas/hosts).
-  'salt-master,homepage,monitoring,arrstack,wazuh,jellyfin,forgejo,gateway,edge':
+  'salt-master,homepage,monitoring,arrstack,wazuh,jellyfin,forgejo,gateway,edge,docs':
     - match: list
     - hosts
 
@@ -77,3 +77,6 @@ base:
   'edge':
     - caddy
     - authentik
+
+  'docs':
+    - paperless

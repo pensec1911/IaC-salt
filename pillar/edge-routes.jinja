@@ -19,6 +19,10 @@
    seerr: own login (Jellyfin accounts, also for non-admins); v3.5.2 has no
    OIDC, and forward auth would lock out everyone but the admins.
 
+   docs: Paperless-ngx. OIDC for the browser; no forward auth in front,
+   because the phone apps (scan + upload) can't pass it — they use the
+   local account / an API token.
+
    push: ntfy's API for the phone app, which can't do forward auth — ntfy's
    own token auth (auth-default-access deny-all, formulas/ntfy: anonymous
    gets nothing); same upstream as ntfy, separate name.
@@ -58,6 +62,7 @@
     {'name': 'it-tools',     'upstream': 'http://192.168.178.25:8082', 'auth': 'forward'},
     {'name': 'git',          'upstream': 'http://192.168.178.29:3000', 'auth': 'oidc'},
     {'name': 'netbox',       'upstream': 'http://192.168.178.29:8000', 'auth': 'oidc'},
+    {'name': 'docs',         'upstream': 'http://192.168.178.21:8000', 'auth': 'oidc'},
     {'name': 'pve01',        'upstream': 'https://192.168.178.11:8006', 'auth': 'forward', 'tls_insecure': True},
     {'name': 'pve02',        'upstream': 'https://192.168.178.12:8006', 'auth': 'forward', 'tls_insecure': True},
     {'name': 'pve03',        'upstream': 'https://192.168.178.13:8006', 'auth': 'forward', 'tls_insecure': True},
