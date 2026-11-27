@@ -9,11 +9,96 @@ Maintained by hand and by the `roadmap-curator` agent (`.claude/agents/`).
 
 ## Next up (agreed order)
 
-_Nothing agreed yet — pick from "Later"._
+Agreed 2026-11-27: Paperless first, Nextcloud second on the same VM.
+
+### 1. Paperless-ngx (documents from the phone, OCR, auto-filing)
+
+- **Why**: bills, contracts and subscription letters are scattered across mail, paper and
+  phone. The only scanner is the phone; Paperless OCRs every upload, sets correspondent,
+  document type and tags itself (matching rules first, its classifier after a few dozen
+  documents) and files it via a storage path — the "it lands in the right folder" part that
+  Nextcloud can't do (its Flow rules don't look at content).
+- **Sketch**:
+  - **VM** (IaC-opentofu, user's call): new `docs` VM on pve01, 2–4 cores, sized **5–6 GB**
+    from the start so Nextcloud (item 2) fits without a resize; pve01 then ~21 of 30 GB.
+    Firewall: app port only from edge (.30) + monitoring (.25). New minion → `backup` in both
+    top files, base formulas like the other container hosts (incl. `nfs-mount`, `podman`,
+    `cadvisor`, `alloy`).
+  - **NAS** (manual, TrueNAS): new dataset + NFS export `/mnt/pool01/documents`, allowed only
+    for the `docs` IP, owner = the container's `USERMAP_UID/GID` (root is squashed). Holds
+    `media/` (originals + archive) and `consume/`. `require: - mount: nfs-mount-documents`.
+  - **Local disk**: Postgres, `data/` (search index, classifier), Redis — many small random
+    writes, too slow / lock-unsafe on NFS (inventory: NAS ~1.3 MB/s random).
+  - **`formulas/paperless`** via the podman macro: paperless-ngx, Postgres (shared with
+    Nextcloud later — one DB per app), Redis. `PAPERLESS_CONSUMER_POLLING` (no inotify over
+    NFS). No Gotenberg/Tika yet — only needed for mail bodies/Office files (see Later).
+  - **Secrets** (OpenBao): Paperless secret key, DB password, admin password, OIDC client
+    secret.
+  - **Login**: route `docs` in `pillar/edge-routes.jinja` **without** forward auth — the
+    mobile apps (Paperless Mobile / Swift Paperless) can't pass Authentik's forward-auth page.
+    Web UI via Authentik OIDC (allauth), apps via Paperless account / API token. Reachable on
+    LAN + tailnet only, like everything else.
+  - **Homepage** item, **backup**: nightly Postgres dump (`dumps` feature of
+    `formulas/backup`) + `data/` + config; `media/` is on the NAS (TrueNAS snapshots; the real
+    gap is the parked offsite copy — matters more once tax/contract documents live here).
+- **Manual (README)**: TrueNAS dataset/export; first admin user; Authentik OIDC provider;
+  correspondents, document types, tags, matching rules; custom fields (`amount`, `due date`,
+  `interval`); storage path e.g. `{{ document_type }}/{{ correspondent }}/{{ created_year }}/{{ title }}`;
+  saved views ("Subscriptions", "Expenses <year>"); phone app login.
+- **Open**: Paperless' own `document_exporter` as an extra backup format (easier restore than
+  a DB dump + files); whether amounts get extracted automatically (see Later).
+
+### 2. Nextcloud (files, calendar, contacts across phone profiles)
+
+- **Why**: the phone uses several isolated Android user profiles — Android has no way to share
+  files between them, so it has to go through a server every profile talks to. Nextcloud app
+  in each profile = same files everywhere (offline folders, photo auto-upload); DAVx5 in each
+  profile = same calendar and contacts; Notes app = same notes. Also general file sync/sharing
+  for laptop and family.
+- **Sketch**:
+  - Same `docs` VM, `formulas/nextcloud` via the podman macro: nextcloud (fpm) + web server
+    container + cron container; own database on the Paperless Postgres; Redis for file
+    locking + cache. ~+2 GB RAM.
+  - User data on the NAS (`documents` dataset or its own dataset/export); DB, config, app
+    data local. Previews/thumbnails are small writes → keep the preview cache local or limit
+    preview generation.
+  - **Login**: route `cloud` **without** forward auth (Nextcloud apps and DAVx5 can't pass it).
+    Web UI via Authentik OIDC (`user_oidc`); apps/DAVx5 via per-profile **app passwords**
+    (revocable one by one). Each phone profile needs its own Tailscale login against Headscale
+    → each is an admin device in `pillar/headscale.sls` `admin_access`.
+  - **Paperless link**: Nextcloud *External storage* — Paperless' `consume/` as a writable
+    "Scan inbox" folder, Paperless' archive read-only (Nextcloud must never write into
+    Paperless' `media/`). Optionally the `integration_paperless` app ("Send to Paperless"
+    file action).
+  - Secrets (admin password, DB password, OIDC client secret) in OpenBao, homepage item,
+    backup: DB dump + `config/` + app data.
+- **Manual (README)**: first install (`occ maintenance:install`), enabling apps (`user_oidc`,
+  `files_external`, Notes, optionally `integration_paperless`), Authentik provider, External
+  storage mounts, app passwords + DAVx5 per profile.
+- **Open**: major upgrades must go one version at a time (`occ upgrade`) → Renovate PRs for
+  Nextcloud are never merged blindly (and `integration_paperless` may lag a major release —
+  disable it or wait); nginx vs. Caddy as the in-VM web server; whether photo auto-upload is
+  wanted (NAS space, preview CPU).
+- **Not solved by it**: clipboard between profiles. Cheapest option is the existing ntfy
+  (`push` route): one topic as clipboard via the share sheet. KDE Connect only syncs phone ↔ PC.
 
 ## Later
 
 No order agreed; pick as needed.
+
+### Paperless mail import + amount extraction
+
+- **Why**: subscriptions and invoices mostly arrive by mail. Paperless has a built-in IMAP
+  fetcher with mail rules (sender/subject/body/attachment filters → tags, correspondent,
+  document type, then mark read/move).
+- **Sketch**: mail account + rules in the Paperless UI (or from pillar via its API);
+  Gotenberg + Tika containers on `docs` (~+700 MB) to store whole mails as PDF. If the mailbox
+  is at Proton: Proton Mail Bridge container (paid plan) for IMAP. IMAP/app password in
+  OpenBao.
+- **Open**: amounts into the `amount` custom field — by hand, a post-consume regex script,
+  or an LLM add-on (paperless-gpt / paperless-ai: more RAM or an external API, and
+  financial documents leaving the house); a monthly subscription total (saved view + API
+  export to Grafana?).
 
 ### Blackbox probe from outside ("home is offline")
 
