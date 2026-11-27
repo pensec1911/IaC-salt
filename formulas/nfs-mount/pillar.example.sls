@@ -8,6 +8,9 @@ nfs-mount:
       - _netdev
       - rw
       - noatime
+    # Minutes a mount keeps trying at boot (NAS still starting); adds nofail,
+    # retry=<n>, x-systemd.mount-timeout=<n+1>min to every mount. 0 = off.
+    boot_wait_minutes: 15
     # systemd units that must wait for (and fail without) every mount below.
     # Units that use a share without declaring it. Not needed for
     # containers: Quadlet adds RequiresMountsFor= for their binds.
@@ -23,3 +26,4 @@ nfs_mounts:
     # fstype: nfs4                    # optional, shown default
     # opts: [_netdev, rw, noatime]    # optional, shown default
     # skip_required_by: true          # optional: not part of required_by
+    # boot_wait_minutes: 15           # optional: overrides the lookup value

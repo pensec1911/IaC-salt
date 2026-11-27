@@ -26,6 +26,24 @@ container that binds a share waits for it at boot and fails instead of running o
 mountpoint. Takes effect on the unit's next start — Salt doesn't restart it.
 A mount entry with `skip_required_by: true` stays out of that drop-in (the backup share).
 
+### Cold start: waiting for the NAS
+
+When the whole lab powers on, the VMs boot faster than TrueNAS serves NFS. Before this was
+handled, systemd killed every mount after its 90 s default (`Mounting timed out`) and the
+containers bound to them failed for good (2026-11-26). So every mount gets, on top of its
+`opts`:
+
+- `nofail`: boot (and `remote-fs.target`, so logins) never waits for the NAS.
+- `retry=15`: `mount.nfs` keeps trying in the foreground for 15 minutes.
+- `x-systemd.mount-timeout=16min`: systemd doesn't kill the mount before that.
+
+Units that need the share wait for it via `RequiresMountsFor=` (Quadlet or `required_by`) and
+start as soon as the NAS answers. If the NAS takes longer than 15 minutes, the mount and those
+units still fail: `mount -a -t nfs4`, then `state.apply`. Window: `nfs-mount:lookup:boot_wait_minutes`
+(default 15) or `boot_wait_minutes` per `nfs_mounts` entry; `0` leaves the options as given.
+Salt treats all three options as invisible, so changing them never remounts a live share; a
+changed fstab gets a `daemon-reload`.
+
 ## Usage
 
 ```yaml

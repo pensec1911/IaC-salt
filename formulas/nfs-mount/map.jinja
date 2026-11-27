@@ -1,6 +1,15 @@
+{#- boot_wait_minutes: how long a mount keeps trying at boot (NAS still
+   starting after a cold start of the whole lab, 2026-11-26: systemd killed
+   the mounts after its 90 s default and the containers bound to them never
+   started). Every mount gets nofail (boot never waits for it — units that
+   need it wait instead, via RequiresMountsFor=), retry=<n> (mount.nfs keeps
+   trying in the foreground) and x-systemd.mount-timeout=<n+1>min (systemd
+   doesn't kill it first). Per mount: `boot_wait_minutes` in its nfs_mounts
+   entry; 0 leaves the options exactly as given. #}
 {%- set defaults = {
     'default_fstype': 'nfs4',
     'default_opts': ['_netdev', 'rw', 'noatime'],
     'required_by': [],
+    'boot_wait_minutes': 15,
 } %}
 {%- set nfs_mount = salt['pillar.get']('nfs-mount:lookup', default=defaults, merge=True) %}
