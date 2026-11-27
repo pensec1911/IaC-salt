@@ -43,6 +43,8 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `salt-api/forgejo` | `hmac` | `pillar/salt-master.sls` — HMAC secret of the Forgejo push webhook to `/hook/git` (set on the webhook in `homelab/IaC-salt`); must be the same on both sides |
 | `github/mirror` | `token` | Not read by pillar — fine-grained GitHub PAT (Contents RW on IaC-salt, IaC-opentofu) for Forgejo's push mirrors; stored encrypted in Forgejo's DB too. On rotation: update both. |
 | `netbox/app` | `secret_key`, `db_password`, `api_token_pepper` | `pillar/netbox.sls` (formulas/netbox README "OpenBao") |
+| `paperless/app` | `secret_key`, `db_password` | `pillar/paperless.sls` (formulas/paperless README "OpenBao") |
+| `paperless/admin` | `username`, `password` | manual — the local superuser (phone apps log in with it), not read by Salt |
 | `netbox/admin` | `username`, `password` | Not read by pillar — NetBox superuser (formulas/netbox README "First run") |
 | `netbox/tofu` | `api_token` | Not read by pillar — v2 token of the NetBox user `opentofu`, read by `IaC-opentofu` (`vault.tf`) to write the inventory. The Tofu AppRole policy needs `read` on it. |
 | `netbox/tofu-plan` | `api_token` | Not read by pillar — read-only (Write off) v2 token of `opentofu`, used by IaC-opentofu's plan/drift jobs in Forgejo Actions (AppRole `tofu-plan`). |
@@ -58,7 +60,7 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `oci/api`, `oci/plan` | `tenancy_ocid`, `user_ocid`, `fingerprint`, `private_key`, `region`, `compartment_ocid` | Not read by pillar — OCI API keys of the users `opentofu` (apply) and `tofu-plan` (CI, read-only) for IaC-opentofu `oci/`. |
 | `porkbun/api` | `api_key`, `secret_api_key` | Caddy's DNS-01 for `*.home.ilpaa.xyz` (step 5, formulas/caddy). |
 | `authentik/app` | `secret_key`, `pg_password` | formulas/authentik on edge; its presence also turns on Caddy's forward auth (`pillar/caddy.sls`). |
-| `authentik/oidc-grafana`, `-forgejo`, `-netbox` | `client_secret` | `pillar/authentik.sls` (provider secret, worker env) + the app's own pillar (`grafana`, `forgejo` oauth source, `netbox` extra_secrets) — same value on both sides. Write without trailing newline (`tr -d '\n'`). `authentik/oidc-seerr` exists but is unused (Seerr has no OIDC). |
+| `authentik/oidc-grafana`, `-forgejo`, `-netbox`, `-paperless` | `client_secret` | `pillar/authentik.sls` (provider secret, worker env) + the app's own pillar (`grafana`, `forgejo` oauth source, `netbox` extra_secrets, `paperless` oidc_client_secret) — same value on both sides. Write without trailing newline (`tr -d '\n'`). `authentik/oidc-seerr` exists but is unused (Seerr has no OIDC). |
 | `ntfy/admin` | `password`, `password_hash` (bcrypt) | `pillar/ntfy.sls` reads only `password_hash` (ntfy `admin`, declaratively provisioned); `password` is the phone/web login (formulas/ntfy README "OpenBao") |
 | `ntfy/healthchecks` | `password_hash` (bcrypt), `token` (`tk_…`) | `pillar/ntfy.sls` — ntfy user `healthchecks`, only declared while `token` resolves; the token is also entered in the Healthchecks ntfy integration (UI, formulas/healthchecks README) |
 | `healthchecks/app` | `secret_key` | `pillar/healthchecks.sls` — Django `SECRET_KEY` |

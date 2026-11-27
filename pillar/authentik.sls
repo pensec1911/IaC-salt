@@ -14,6 +14,7 @@ authentik:
     {'slug': 'grafana', 'name': 'Grafana', 'route': 'grafana', 'callback': '/login/generic_oauth'},
     {'slug': 'forgejo', 'name': 'Forgejo', 'route': 'git', 'callback': '/user/oauth2/authentik/callback'},
     {'slug': 'netbox', 'name': 'NetBox', 'route': 'netbox', 'callback': '/oauth/complete/oidc/'},
+    {'slug': 'paperless', 'name': 'Paperless', 'route': 'docs', 'callback': '/accounts/oidc/authentik/login/callback/'},
 ] %}
     oidc_apps:
 {%- for a in oidc_apps %}

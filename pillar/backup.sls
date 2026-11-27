@@ -94,6 +94,23 @@
              'format': 'pg_custom'},
         ],
     },
+    'docs': {
+        'paths': ['/opt/paperless'],
+        'excludes': [
+            '/opt/paperless/postgres',
+            '/opt/paperless/valkey',
+            '/opt/paperless/secrets',
+            '/opt/paperless/data/log',
+            '/opt/paperless/data/celerybeat-schedule*',
+        ],
+        'stop_containers': [],
+        'dumps': [
+            {'container': 'paperless-postgres',
+             'command': ['pg_dump', '-U', 'paperless', '-Fc', 'paperless'],
+             'file': '/opt/paperless/dump/paperless.pgdump',
+             'format': 'pg_custom'},
+        ],
+    },
     'salt-master': {
         'paths': ['/etc/salt/pki/master', '/etc/salt/pki/api', '/var/backups/openbao'],
         'excludes': [],

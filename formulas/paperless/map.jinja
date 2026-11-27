@@ -1,0 +1,90 @@
+{#- Three containers on a private Podman network (`network`): paperless
+   (web UI, consumer, OCR, task worker — one image, s6-overlay inside),
+   postgres and valkey (Celery broker). Only paperless publishes a port;
+   postgres/valkey are reachable from that network only, valkey without a
+   password (no published port, nothing else on the network) — as netbox.
+
+   uid/gid: the container runs directly as this id (`user:` — upstream's
+   rootless mode: no internal UID remapping, USERMAP_UID/GID ignored),
+   mapped 1:1 into its user namespace (keep_uids). It owns data_dir here
+   and media/consume on the NFS share (root_squash: created as uid via
+   setpriv, never :U). Pinned in pillar/paperless.sls users:accounts too.
+   Not 1000 (the image's own `paperless` user; on the host that range is
+   the per-minion login account).
+
+   media_dir / consume_dir: originals + archive, and the inbox. On the NAS
+   share in practice (pillar); consumer_polling_interval > 0 then, since
+   NFS delivers no inotify events (seconds, 0 = inotify).
+
+   Secrets (OpenBao via pillar) are written as files to secrets_dir and
+   bound one by one into /run/secrets (0444 — the 0700 dir keeps host users
+   out), read through upstream's PAPERLESS_<X>_FILE support — never in env,
+   so not in `podman inspect`. Written without a trailing newline (the
+   image warns, the value would include it). secret_key and db_password
+   are required: the formula fails on a blank or unresolved one.
+
+   oidc: login via an OpenID Connect provider (django-allauth). Empty
+   server_url = off. Otherwise the provider JSON (incl. the client secret
+   oidc_client_secret) becomes a secret file read via
+   PAPERLESS_SOCIALACCOUNT_PROVIDERS_FILE. Callback:
+   <url>/accounts/oidc/<provider_id>/login/callback/.
+
+   url: the external https URL (PAPERLESS_URL: CSRF origins, links).
+   allowed_hosts: extra Host headers accepted besides url's host (the
+   upstream probe uses the IP).
+
+   config: extra PAPERLESS_* env, merged over the formula's own (no
+   secrets here). dump_dir: where formulas/backup's pre-run pg_dump goes —
+   pillar/backup.sls `dumps` repeats this path and postgres_container_name.
+   postgres_user / valkey_user: the images' own users (alpine), data dirs
+   handed to them by :U. podman / postgres_podman / valkey_podman: spec
+   overrides (keys: formulas/podman README). read_only off for paperless
+   (s6-overlay writes below /run, scratch in /tmp/paperless) and postgres
+   (/run/postgresql) — as netbox. #}
+{%- set defaults = {
+    'image': 'ghcr.io/paperless-ngx/paperless-ngx',
+    'tag': '3.5.1',
+    'postgres_image': 'docker.io/library/postgres',
+    'postgres_tag': '18.7-alpine',
+    'valkey_image': 'docker.io/valkey/valkey',
+    'valkey_tag': '9.1.3-alpine',
+    'container_name': 'paperless',
+    'postgres_container_name': 'paperless-postgres',
+    'valkey_container_name': 'paperless-valkey',
+    'network': 'paperless',
+    'http_port': 8000,
+    'uid': 979,
+    'gid': 979,
+    'base_dir': '/opt/paperless',
+    'data_dir': '/opt/paperless/data',
+    'postgres_dir': '/opt/paperless/postgres',
+    'valkey_dir': '/opt/paperless/valkey',
+    'secrets_dir': '/opt/paperless/secrets',
+    'dump_dir': '/opt/paperless/dump',
+    'media_dir': '/opt/paperless/media',
+    'consume_dir': '/opt/paperless/consume',
+    'nfs_mount': '',
+    'consumer_polling_interval': 0,
+    'postgres_user': '70:70',
+    'valkey_user': '999:1000',
+    'db_name': 'paperless',
+    'db_user': 'paperless',
+    'timezone': 'Etc/UTC',
+    'ocr_language': 'eng',
+    'url': '',
+    'allowed_hosts': ['localhost'],
+    'secret_key': '',
+    'db_password': '',
+    'oidc': {
+        'server_url': '',
+        'provider_id': 'authentik',
+        'name': 'Authentik',
+        'client_id': 'paperless',
+    },
+    'oidc_client_secret': '',
+    'config': {},
+    'podman': {'read_only': False},
+    'postgres_podman': {'read_only': False},
+    'valkey_podman': {},
+} %}
+{%- set paperless = salt['pillar.get']('paperless:lookup', default=defaults, merge=True) %}
