@@ -52,6 +52,7 @@ The `/salt-secrets` skill enforces this when editing pillar.
 | `tofu-state/postgres` | `password` | `pillar/tofu-state.sls` — DB user `tofu` of the Tofu state postgres; also in IaC-opentofu's local `backend.hcl` and the `PG_CONN_STR` Actions secret (formulas/tofu-state README). |
 | `tofu-state/encryption` | `passphrase` | Not read by pillar — OpenTofu state encryption key (local `terraform.tfvars` + `STATE_PASSPHRASE` Actions secret). Lost = state unreadable; keep a copy outside the homelab. |
 | `restic/cloud-edge` | `password` | `pillar/backup.sls` — restic repo password of cloud-edge only (OCI, outside the house; the others share `restic/repo`). Copy in the password manager. |
+| `restic/salt-master` | `password` | `pillar/backup.sls` — restic repo password of salt-master only (its repo holds the master key; with `restic/repo` every minion could read it). Copy in the password manager — needed to restore a rebuilt master. |
 | `headscale/gateway` | `auth_key` | `pillar/tailscale.sls` — single-use tagged Headscale pre-auth key for gateway's first login (formulas/headscale README "Manual steps"); stale after use, harmless. |
 | `wireguard/cloud-edge`, `wireguard/gateway` | `private_key`, `public_key` | Not read by pillar — WireGuard tunnel keys, rendered into cloud-init by IaC-opentofu (AppRole `tofu`, never CI). |
 | `oci/api`, `oci/plan` | `tenancy_ocid`, `user_ocid`, `fingerprint`, `private_key`, `region`, `compartment_ocid` | Not read by pillar — OCI API keys of the users `opentofu` (apply) and `tofu-plan` (CI, read-only) for IaC-opentofu `oci/`. |

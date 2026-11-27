@@ -18,7 +18,7 @@ base:
     - match: list
     - salt-minion-enforce-window
 
-  'arrstack,jellyfin,monitoring,wazuh,forgejo,gateway,edge,cloud-edge':
+  'arrstack,jellyfin,monitoring,wazuh,forgejo,gateway,edge,cloud-edge,salt-master':
     - match: list
     - backup
 

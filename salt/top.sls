@@ -13,8 +13,10 @@ base:
     - patchmon-agent
     - healthchecks-ping
     - salt-minion
+    - nfs-mount
     - salt-master
     - orch
+    - backup
 
   'homepage':
     - users

@@ -92,6 +92,11 @@
              'format': 'pg_custom'},
         ],
     },
+    'salt-master': {
+        'paths': ['/etc/salt/pki/master', '/etc/salt/pki/api'],
+        'excludes': [],
+        'stop_containers': [],
+    },
     'gateway': {
         'paths': ['/var/lib/tailscale'],
         'excludes': [],
@@ -111,10 +116,17 @@
         'stop_containers': [],
     },
 } %}
-{#- cloud-edge sits outside the house (OCI): its repo gets its own password,
-   so a compromised cloud-edge can't open the other minions' repos (same
-   NAS export). #}
-{%- set password_path = {'cloud-edge': 'restic/cloud-edge'}.get(grains['id'], 'restic/repo') %}
+{#- Own repo passwords where the shared one would be too wide (all repos sit
+   on the same rw NAS export):
+   - cloud-edge sits outside the house (OCI), so a compromised cloud-edge
+     can't open the other minions' repos.
+   - salt-master's repo holds the master key (pki/master): with the shared
+     password any minion could read it and impersonate the master to all
+     of them. Its AppRole secret_id stays out (regenerable, README). #}
+{%- set password_path = {
+    'cloud-edge': 'restic/cloud-edge',
+    'salt-master': 'restic/salt-master',
+}.get(grains['id'], 'restic/repo') %}
 {%- set this = per_minion.get(grains['id'], {'paths': [], 'excludes': [], 'stop_containers': [], 'dumps': []}) %}
 
 backup:

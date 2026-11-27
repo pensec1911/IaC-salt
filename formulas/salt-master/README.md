@@ -227,3 +227,26 @@ just fail cleanly on the `file.exists` guard until this is done):
    (see `user:` in `/etc/salt/master`) and has to read this file itself. `vault.sls` asserts these
    permissions on every apply, so a hand-placed `0600` file gets corrected — but the first apply
    needs the file to exist at all.
+
+## Backup and restore of the master's keys
+
+`formulas/backup` backs up `/etc/salt/pki/master` (master key pair, accepted minion keys, the
+gitfs deploy key under `gitfs/`, the OpenBao CA) and `/etc/salt/pki/api` (salt-api TLS) nightly
+into `/mnt/backups/salt-master` (`pillar/backup.sls`). That repo has its **own password**
+(`restic/salt-master` in OpenBao, copy in the password manager), not the shared `restic/repo`:
+with the shared one every minion could read the master key and impersonate the master to all of
+them. The AppRole `secret_id` is not backed up — generate a new one (section above).
+
+Restoring onto a rebuilt master, before its first highstate:
+
+```sh
+# password from the password manager (OpenBao may not be reachable via Salt yet)
+sudo systemctl stop salt-master
+sudo RESTIC_REPOSITORY=/mnt/backups/salt-master RESTIC_PASSWORD_FILE=<file> \
+  restic restore latest --target / --include /etc/salt/pki/master --include /etc/salt/pki/api
+sudo systemctl start salt-master
+```
+
+The minions then accept the master again without touching `minion_master.pub` on each of them.
+The deploy key in the restore is still registered in Forgejo, so gitfs works without the
+"Deploy keys" step from Bootstrap.

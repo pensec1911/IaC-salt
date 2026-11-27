@@ -4,15 +4,12 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Backup gaps
 
-- **salt-master and OpenBao are not backed up** (`pillar/backup.sls` covers arrstack, forgejo,
-  jellyfin, monitoring, wazuh only). salt-master holds state Salt can't rebuild:
-  `/etc/salt/pki/master` (a new master key makes every minion refuse the master — they cache
-  its pubkey — so each needs `minion_master.pub` removed by hand) and the salt-api cert under
-  `/etc/salt/pki/api`. OpenBao (.20, not a minion) holds every secret the pillar resolves, and
-  nothing snapshots it. Options: salt-master gets `backup` in both top files plus its pki paths
-  (needs the NAS export allowed for .28 and `nfs-mount`); for OpenBao a `bao operator raft
-  snapshot save` timer to the NAS — either by hand on the host or by making it a minion, which
-  is a security decision (CLAUDE.md: security-critical bootstrap stays manual).
+- **OpenBao is not backed up**. OpenBao (.20, not a minion) holds every secret the pillar
+  resolves, and nothing snapshots it. Options: a `bao operator raft snapshot save` timer to the
+  NAS by hand on the host, or the salt-master pulling the snapshot over the API with a narrow
+  AppRole policy into a path its own backup covers (salt-master README "Backup and restore").
+  Security decision either way (CLAUDE.md: security-critical bootstrap stays manual).
+  salt-master itself is backed up since 2026-11-27 (own repo password).
 
 ## Podman migration (2026-11-12) — follow-ups
 
@@ -23,8 +20,6 @@ Remove an entry once fixed (the fix lives in git history).
   forgejo (deploy source — try read-only with a manual apply), gluetun, flaresolverr (Chromium
   profile), the LinuxServer images (s6 init) and both postgres; dind privileged in the host user
   namespace. Each is worth a try with a manual apply when there's time.
-- **No image pruning**: tag bumps leave old images in `/var/lib/containers`. `podman image
-  prune -a` by hand, or a timer in formulas/podman.
 - **Downtime on a migration = image pull time**: `podman.migrate` stops Docker before the
   `<id>-image` pulls run. Irrelevant now that all hosts are migrated; matters for a new host only
   if it had Docker.
