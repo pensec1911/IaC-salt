@@ -102,20 +102,27 @@ No order agreed; pick as needed.
 - **Open**: server cert/CA generation is security-critical bootstrap → manual, documented;
   replaces or complements wazuh-agent (both is pointless once Wazuh goes); datastore growth.
 
-### Offsite copy of the restic repos
+### Offsite copy of the restic repos — built, parked until the manual steps
 
 - **Why**: `formulas/backup` writes every minion's repo to `/mnt/backups/<minion>` on the NAS
-  only. The weekly restore test proves the repos are good, but NAS loss (or the house) takes
-  the data and all its backups together; that includes Forgejo, now the master's source of truth.
-- **Sketch**: a timer on one minion (e.g. forgejo or monitoring, both mount the NAS) runs
-  `restic copy` from each NAS repo to an S3/B2/Hetzner-style target, with credentials and the
-  repo password via `sdb.get` from OpenBao. Pillar-driven in `formulas/backup`; weekly, after
-  the restore test. OCI's free tier (Object Storage 20 GB / block volume on cloud-edge) is an
-  option now that cloud-edge exists.
-- **Open**: which provider; whether copying only forgejo, wazuh keys and the *arr/jellyfin
-  configs (not media) is enough; how the offsite repo password is kept outside OpenBao itself
-  (losing OpenBao loses the key to the copy). OpenBao isn't backed up at all yet
-  (known-issues.md "Backup gaps") — fix that first, then its snapshot goes offsite too.
+  only. NAS loss (or the house) takes the data and all its backups together — incl. Forgejo,
+  salt-master's PKI and OpenBao's snapshot.
+- **State (2026-11-27)**: built and committed, not pushed or applied, parked by the user.
+  - IaC-opentofu branch `offsite-bucket`: private OCI bucket `homelab-restic`
+    (`oci/offsite.tf`, `prevent_destroy`), output `restic_offsite_repository`.
+  - IaC-salt branch `backup/offsite`: `formulas/backup-offsite` on salt-master — nightly 03:15
+    `restic copy` of every repo on the share into its own offsite repo, forget 7d/4w/12m,
+    check, per-repo metrics + alerts, Healthchecks check. Own offsite password.
+- **To ship** (formula README "Bootstrap", IaC-opentofu README "Offsite-Bucket"):
+  1. User: `tofu -chdir=oci apply` from `offsite-bucket`; OCI console: group + user
+     `restic-offsite`, bucket-scoped policy, Customer Secret Key.
+  2. User on OpenBao: `restic/offsite` (`password`, `access_key_id`, `secret_access_key`);
+     offsite password (and the OpenBao unseal key) into the password manager.
+  3. Then: replace `REPOSITORY_PLACEHOLDER` in `pillar/backup-offsite.sls` with the Tofu
+     output, render check, merge both branches — not before step 2, or salt-master's state
+     fails — first run by hand (`systemctl start restic-offsite.service`).
+- **Later**: a read-back test of the offsite repos (`check --read-data-subset` / restore),
+  today only the structure is checked.
 
 ### restic rest-server in append-only mode (ransomware-proof backups)
 
