@@ -1,0 +1,42 @@
+{#- formulas/openbao-snapshot — pulls a Raft snapshot of OpenBao over its API
+   onto this host (salt-master), where formulas/backup picks it up. OpenBao
+   itself (.20) is not a minion; this only needs an AppRole that may read
+   sys/storage/raft/snapshot and nothing else (README "Bootstrap").
+
+   addr: OpenBao's API URL. ca_file: CA that signed its TLS cert (on the
+   master: the one formulas/salt-master already uses for sdb).
+   role_id: not secret (like salt-master:lookup:vault_role_id).
+   secret_id_file: placed by hand (security-critical bootstrap), root-only,
+   no trailing newline. The state only checks that it exists.
+
+   target_dir/file: the snapshot is written as <file>.tmp and renamed, so a
+   failed run leaves the last good one. Keep target_dir inside the
+   minion's backup paths (pillar/backup.sls).
+
+   on_calendar: before formulas/backup's 02:00 run, so the nightly restic
+   snapshot carries a fresh one. Persistent: a missed night runs at boot.
+
+   textfile_dir: node-exporter's textfile collector (metrics
+   openbao_snapshot_*; alerts in pillar/prometheus.sls).
+   ping_slug: Healthchecks check <slug>-<minion id> while
+   formulas/healthchecks-ping has a ping key. #}
+{%- set defaults = {
+    'addr': '',
+    'ca_file': '/etc/salt/pki/master/openbao-ca.pem',
+    'role_id': '',
+    'approle_mount': 'approle',
+    'config_dir': '/etc/openbao-snapshot',
+    'secret_id_file': '/etc/openbao-snapshot/secret-id',
+    'target_dir': '/var/backups/openbao',
+    'file': 'openbao.snap',
+    'python': '/usr/bin/python3',
+    'script': '/usr/local/sbin/openbao-snapshot',
+    'unit': 'openbao-snapshot',
+    'on_calendar': '*-*-* 01:30:00 Europe/Berlin',
+    'randomized_delay': '5min',
+    'timeout': '10min',
+    'http_timeout': 120,
+    'textfile_dir': '/var/lib/prometheus/node-exporter',
+    'ping_slug': 'openbao-snapshot',
+} %}
+{%- set openbao_snapshot = salt['pillar.get']('openbao_snapshot:lookup', default=defaults, merge=True) %}

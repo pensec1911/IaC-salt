@@ -302,6 +302,23 @@ prometheus:
            ~04:00): repo sample readable, latest snapshot restores, SQLite
            files pass integrity_check. Stale after 8 days covers a missed
            week; last_success starts at 0 like the backup metric. #}
+        {#- openbao_snapshot_* from formulas/openbao-snapshot on salt-master
+           (nightly ~01:30): OpenBao holds every secret and isn't a minion,
+           this snapshot is its only backup. #}
+        - alert: OpenBaoSnapshotFailed
+          expr: openbao_snapshot_success == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"OpenBao snapshot on {{ $labels.instance }} failed — journalctl -u openbao-snapshot"{% endraw %}
+        - alert: OpenBaoSnapshotStale
+          expr: time() - openbao_snapshot_last_success_timestamp_seconds > 36 * 3600
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: {% raw %}"{{ $labels.instance }} has no OpenBao snapshot for over 36h"{% endraw %}
         - alert: RestoreTestFailed
           expr: restore_test_success == 0
           for: 5m

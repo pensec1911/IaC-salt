@@ -59,6 +59,13 @@ healthchecks:
         timeout: 3600
         grace: 1800
 {%- endfor %}
+      - slug: openbao-snapshot-salt-master
+        name: OpenBao snapshot
+        tags: backup salt-master
+        desc: formulas/openbao-snapshot nightly Raft snapshot of OpenBao, pulled by salt-master.
+        schedule: "30 1 * * *"
+        tz: Europe/Berlin
+        grace: 3600
 {%- for m in backup_minions %}
       - slug: backup-{{ m }}
         name: Backup {{ m }}

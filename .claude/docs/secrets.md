@@ -92,6 +92,12 @@ Non-obvious policy paths: `sys/internal/ui/mounts/*` (KV version detection) and
 `auth/token/create` (saltext.vault mints a child token per minion context, pillar rendering
 included).
 
+## Backup of OpenBao
+
+Raft storage (since 2026-11-27; was `file`). Nightly snapshot pulled by salt-master with the
+AppRole `openbao-snapshot` (policy: read on `sys/storage/raft/snapshot` only, bound to .28) —
+formulas/openbao-snapshot README for bootstrap and restore.
+
 ## Using the `bao` CLI on the OpenBao VM
 
 The VM isn't a Salt minion and isn't reachable from Claude's sessions — the user runs `bao`

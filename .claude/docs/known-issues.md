@@ -4,12 +4,11 @@ Remove an entry once fixed (the fix lives in git history).
 
 ## Backup gaps
 
-- **OpenBao is not backed up**. OpenBao (.20, not a minion) holds every secret the pillar
-  resolves, and nothing snapshots it. Options: a `bao operator raft snapshot save` timer to the
-  NAS by hand on the host, or the salt-master pulling the snapshot over the API with a narrow
-  AppRole policy into a path its own backup covers (salt-master README "Backup and restore").
-  Security decision either way (CLAUDE.md: security-critical bootstrap stays manual).
-  salt-master itself is backed up since 2026-11-27 (own repo password).
+- **OpenBao's unseal key sits on its own host** (auto-unseal drop-in
+  `openbao.service.d/unseal.conf`, single Shamir share). Accepted for unattended restarts; the
+  host must never be backed up as a whole together with the Raft snapshot
+  (formulas/openbao-snapshot) — snapshot + key = every secret in plaintext. Key copy in the
+  password manager.
 
 ## Podman migration (2026-11-12) — follow-ups
 

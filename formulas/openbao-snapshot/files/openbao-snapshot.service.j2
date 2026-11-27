@@ -1,0 +1,22 @@
+{%- from "openbao-snapshot/map.jinja" import openbao_snapshot as ob with context -%}
+{%- from "healthchecks-ping/map.jinja" import hc_ping with context -%}
+# Managed by Salt (formulas/openbao-snapshot) — do not edit.
+[Unit]
+Description=OpenBao Raft snapshot via the API
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart={{ ob.python }} {{ ob.script }}
+TimeoutStartSec={{ ob.timeout }}
+Nice=10
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths={{ ob.target_dir }} {{ ob.textfile_dir }}
+{%- if hc_ping.enabled %}
+# Dead-man's switch (formulas/healthchecks-ping). "-": never fails the unit.
+ExecStopPost=-{{ hc_ping.script }} {{ ob.ping_slug }}-{{ grains['id'] }} systemd
+{%- endif %}

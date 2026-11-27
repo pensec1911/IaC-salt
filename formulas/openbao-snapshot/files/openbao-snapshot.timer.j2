@@ -1,0 +1,12 @@
+{%- from "openbao-snapshot/map.jinja" import openbao_snapshot as ob with context -%}
+# Managed by Salt (formulas/openbao-snapshot) — do not edit.
+[Unit]
+Description=Nightly OpenBao Raft snapshot (before the restic backup)
+
+[Timer]
+OnCalendar={{ ob.on_calendar }}
+RandomizedDelaySec={{ ob.randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target
