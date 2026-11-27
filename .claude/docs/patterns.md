@@ -164,6 +164,9 @@ Every service with state Salt can't rebuild (app config, databases, keys/certs) 
   open). Containers sharing a network namespace (gluetun) stop/start fine; the sidecar stays up.
 - **New minion**: `backup` in `salt/top.sls` (after `node-exporter` and `nfs-mount`) and the
   minion in the `backup` list match in `pillar/top.sls`. Nothing on the NAS — hosts are `*`.
+  Its repo goes offsite on its own (formulas/backup-offsite copies every repo on the share);
+  a minion with its own repo password (`password_path`) also needs it in
+  `pillar/backup-offsite.sls` `source_passwords`, else `OffsiteCopyFailed`.
 - **Validation comes for free**: the weekly restore test (formulas/backup README "Restore test")
   restores the latest snapshot and runs `PRAGMA integrity_check` on every SQLite file;
   `RestoreTestFailed`/`RestoreTestStale` alert. After adding paths, run
