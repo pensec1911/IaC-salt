@@ -20,6 +20,8 @@ openbao-snapshot-unit:
       - file: openbao-snapshot-secret-id-perms
       - file: openbao-snapshot-target-dir
       - test: openbao-snapshot-config-valid
+      # textfile_dir (ReadWritePaths= fails the unit if it's missing)
+      - sls: node-exporter
 {%- if hc_ping.enabled %}
       - sls: healthchecks-ping
 {%- endif %}
