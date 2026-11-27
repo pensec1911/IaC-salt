@@ -1,0 +1,126 @@
+{%- from "openbao-snapshot/map.jinja" import openbao_snapshot as ob with context -%}
+#!{{ ob.python }}
+# Managed by Salt (formulas/openbao-snapshot) — do not edit.
+#
+# AppRole login -> GET sys/storage/raft/snapshot -> <file>.tmp -> rename,
+# then revoke the token. The snapshot is encrypted with OpenBao's barrier
+# key: useless without the unseal key, which never leaves the OpenBao host.
+# Metrics for node-exporter's textfile collector, written in every case.
+import json
+import os
+import ssl
+import sys
+import time
+import urllib.request
+
+ADDR = {{ ob.addr | json }}.rstrip("/")
+CA_FILE = {{ ob.ca_file | json }}
+ROLE_ID = {{ ob.role_id | json }}
+MOUNT = {{ ob.approle_mount | json }}
+SECRET_ID_FILE = {{ ob.secret_id_file | json }}
+TARGET = os.path.join({{ ob.target_dir | json }}, {{ ob.file | json }})
+PROM = os.path.join({{ ob.textfile_dir | json }}, "openbao_snapshot.prom")
+TIMEOUT = {{ ob.http_timeout | int }}
+
+CTX = ssl.create_default_context(cafile=CA_FILE)
+
+
+def request(method, path, token=None, body=None):  # secret-scan: allow (variable, no value)
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(ADDR + "/v1/" + path, data=data, method=method)
+    if token:
+        req.add_header("X-Vault-Token", token)
+    if data is not None:
+        req.add_header("Content-Type", "application/json")
+    return urllib.request.urlopen(req, context=CTX, timeout=TIMEOUT)
+
+
+def last_success():
+    try:
+        with open(PROM) as f:
+            for line in f:
+                if line.startswith("openbao_snapshot_last_success_timestamp_seconds "):
+                    return float(line.split()[1])
+    except (OSError, ValueError, IndexError):
+        pass
+    return 0.0
+
+
+def write_metrics(ok, size, duration):
+    now = time.time()
+    success_ts = now if ok else last_success()
+    lines = [
+        "# HELP openbao_snapshot_success 1 if the last OpenBao snapshot succeeded",
+        "# TYPE openbao_snapshot_success gauge",
+        f"openbao_snapshot_success {1 if ok else 0}",
+        "# HELP openbao_snapshot_bytes Size of the last good snapshot",
+        "# TYPE openbao_snapshot_bytes gauge",
+        f"openbao_snapshot_bytes {size}",
+        "# HELP openbao_snapshot_duration_seconds Duration of the last run",
+        "# TYPE openbao_snapshot_duration_seconds gauge",
+        f"openbao_snapshot_duration_seconds {duration:.3f}",
+        "# HELP openbao_snapshot_last_run_timestamp_seconds When the last run finished",
+        "# TYPE openbao_snapshot_last_run_timestamp_seconds gauge",
+        f"openbao_snapshot_last_run_timestamp_seconds {now:.0f}",
+        "# HELP openbao_snapshot_last_success_timestamp_seconds When the last good snapshot was written (0 = never)",
+        "# TYPE openbao_snapshot_last_success_timestamp_seconds gauge",
+        f"openbao_snapshot_last_success_timestamp_seconds {success_ts:.0f}",
+    ]
+    tmp = PROM + ".tmp"
+    with open(tmp, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.replace(tmp, PROM)
+
+
+def snapshot():
+    with open(SECRET_ID_FILE) as f:
+        secret_id = f.read().strip()  # secret-scan: allow (variable, no value)
+    with request("POST", f"auth/{MOUNT}/login",
+                 body={"role_id": ROLE_ID, "secret_id": secret_id}) as r:  # secret-scan: allow (variable, no value)
+        token = json.load(r)["auth"]["client_token"]  # secret-scan: allow (variable, no value)
+    tmp = TARGET + ".tmp"
+    try:
+        with (
+            request("GET", "sys/storage/raft/snapshot", token=token) as r,  # secret-scan: allow (variable, no value)
+            open(tmp, "wb") as out,
+        ):
+            os.fchmod(out.fileno(), 0o600)
+            while True:
+                chunk = r.read(1 << 20)
+                if not chunk:
+                    break
+                out.write(chunk)
+            out.flush()
+            os.fsync(out.fileno())
+        # A Raft snapshot is a gzip archive; anything else (an HTML error
+        # page, an empty body) must not replace the last good one.
+        with open(tmp, "rb") as f:
+            if f.read(2) != b"\x1f\x8b":
+                raise RuntimeError("response is not a gzip snapshot")
+        os.replace(tmp, TARGET)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        try:
+            request("POST", "auth/token/revoke-self", token=token).close()  # secret-scan: allow (variable, no value)
+        except Exception as e:  # the token expires on its own (token_ttl)
+            print(f"warning: token revoke failed: {e}", file=sys.stderr)
+    return os.path.getsize(TARGET)
+
+
+def main():
+    start = time.time()
+    try:
+        size = snapshot()
+    except Exception as e:
+        print(f"openbao snapshot failed: {e}", file=sys.stderr)
+        prev = os.path.getsize(TARGET) if os.path.exists(TARGET) else 0
+        write_metrics(False, prev, time.time() - start)
+        return 1
+    write_metrics(True, size, time.time() - start)
+    print(f"openbao snapshot ok: {size} bytes -> {TARGET}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

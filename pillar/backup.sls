@@ -14,6 +14,8 @@
    copying their live data dir, which is excluded (netbox/patchmon: the
    dump lands in /opt/<service>/dump; secrets come from OpenBao, valkey is only a queue/
    cache). The dumped container keeps running. #}
+{#- salt-master: /var/backups/openbao is OpenBao's Raft snapshot
+   (formulas/openbao-snapshot, 01:30, before this run). #}
 {%- set per_minion = {
     'arrstack': {
         'paths': ['/opt/arrstack', '/opt/seerr'],
@@ -93,7 +95,7 @@
         ],
     },
     'salt-master': {
-        'paths': ['/etc/salt/pki/master', '/etc/salt/pki/api'],
+        'paths': ['/etc/salt/pki/master', '/etc/salt/pki/api', '/var/backups/openbao'],
         'excludes': [],
         'stop_containers': [],
     },

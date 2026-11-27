@@ -16,6 +16,7 @@ base:
     - nfs-mount
     - salt-master
     - orch
+    - openbao-snapshot
     - backup
 
   'homepage':
