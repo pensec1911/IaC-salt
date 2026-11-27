@@ -67,12 +67,16 @@ without it edge's highstate fails as well, so create both before merging.
 
 ## First run (manual, once)
 
+`manage.py` and the other commands need `/command/with-contenv` in front: a plain `podman exec`
+bypasses s6's init, so the `PAPERLESS_<X>_FILE` secrets aren't loaded ("PAPERLESS_SECRET_KEY is
+not set"). Run it from a real terminal (`ssh -t`), not via Claude's `!` — it asks interactively.
+
 After the first apply, once `https://docs.home.<domain>` shows the login page (first start
 migrates the DB, a few minutes):
 
 ```sh
 ssh -i ~/.ssh/homelab debian@192.168.178.21 \
-  sudo podman exec -it paperless python3 manage.py createsuperuser
+  sudo podman exec -it paperless /command/with-contenv python3 manage.py createsuperuser
 ```
 
 Store it in OpenBao (`paperless/admin`, `username`/`password`). This local account is what the
@@ -91,7 +95,7 @@ SSO login creates an unprivileged user; make it superuser once as the local admi
 Users) or:
 
 ```sh
-sudo podman exec -it paperless python3 manage.py shell \
+sudo podman exec -it paperless /command/with-contenv python3 manage.py shell \
   -c "from django.contrib.auth.models import User; u=User.objects.get(username='akadmin'); u.is_superuser=u.is_staff=True; u.save()"
 ```
 
@@ -117,7 +121,7 @@ systemctl start paperless
 ```
 
 Portable full export (documents + metadata, version-bound — imports only into the same
-Paperless version): `podman exec paperless document_exporter ../export -z` (needs an `export`
+Paperless version): `podman exec paperless /command/with-contenv document_exporter ../export -z` (needs an `export`
 bind; not set up).
 
 ## Upgrades
