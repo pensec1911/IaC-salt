@@ -237,14 +237,20 @@ into `/mnt/backups/salt-master` (`pillar/backup.sls`). That repo has its **own p
 with the shared one every minion could read the master key and impersonate the master to all of
 them. The AppRole `secret_id` is not backed up — generate a new one (section above).
 
-Restoring onto a rebuilt master, before its first highstate:
+Restoring onto a rebuilt master, before its first highstate. restic and the NAS mount come from
+`backup`/`nfs-mount`, which can't run yet, so set both up by hand:
 
 ```sh
-# password from the password manager (OpenBao may not be reachable via Salt yet)
+sudo apt install -y restic nfs-common
+sudo mkdir -p /mnt/backups
+sudo mount -t nfs4 192.168.178.10:/mnt/pool01/backups /mnt/backups
+# password from the password manager (OpenBao isn't reachable via Salt yet)
+sudo bash -c 'umask 077; printf %s "<password>" > /root/restic-pw'
 sudo systemctl stop salt-master
-sudo RESTIC_REPOSITORY=/mnt/backups/salt-master RESTIC_PASSWORD_FILE=<file> \
+sudo RESTIC_REPOSITORY=/mnt/backups/salt-master RESTIC_PASSWORD_FILE=/root/restic-pw \
   restic restore latest --target / --include /etc/salt/pki/master --include /etc/salt/pki/api
-sudo systemctl start salt-master
+sudo shred -u /root/restic-pw && sudo umount /mnt/backups
+sudo systemctl start salt-master && sudo systemctl restart salt-minion
 ```
 
 The minions then accept the master again without touching `minion_master.pub` on each of them.

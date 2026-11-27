@@ -17,7 +17,7 @@ backup-password-valid:
     - name: backup:lookup:password is set
 {%- else %}
   test.fail_without_changes:
-    - name: "backup:lookup:password is empty or unresolved — set it in pillar (OpenBao restic/repo)"
+    - name: "backup:lookup:password is empty or unresolved — set it in pillar (OpenBao restic/repo, or the minion's own path in pillar/backup.sls)"
 {%- endif %}
 
 backup-password-file:
