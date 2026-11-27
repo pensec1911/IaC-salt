@@ -19,14 +19,19 @@ Agreed 2026-11-27: Paperless first, Nextcloud second on the same VM.
   documents) and files it via a storage path — the "it lands in the right folder" part that
   Nextcloud can't do (its Flow rules don't look at content).
 - **Sketch**:
-  - **VM** (IaC-opentofu, user's call): new `docs` VM on pve01, 2–4 cores, sized **5–6 GB**
+  - **VM** (IaC-opentofu, user's call): new `docs` VM on pve01, IP **192.168.178.21** (free in
+    Tofu; check the FRITZ!Box before applying), 2–4 cores, sized **5–6 GB**
     from the start so Nextcloud (item 2) fits without a resize; pve01 then ~21 of 30 GB.
     Firewall: app port only from edge (.30) + monitoring (.25). New minion → `backup` in both
     top files, base formulas like the other container hosts (incl. `nfs-mount`, `podman`,
     `cadvisor`, `alloy`).
-  - **NAS** (manual, TrueNAS): new dataset + NFS export `/mnt/pool01/documents`, allowed only
-    for the `docs` IP, owner = the container's `USERMAP_UID/GID` (root is squashed). Holds
-    `media/` (originals + archive) and `consume/`. `require: - mount: nfs-mount-documents`.
+  - **NAS** (done 2026-11-27): dataset `/mnt/pool01/documents` with NFS share (host .21, no
+    maproot/mapall) and child dataset `documents/paperless`. Child datasets are separate
+    filesystems → without `crossmnt` the client sees `paperless/` empty through the parent
+    share: mount the child via its own share (`/mnt/pool01/documents/paperless`, host .21) —
+    verify on first mount. Owner **979:979** (`paperless` user in the `users` formula, next
+    free 97x UID; container `USERMAP_UID/GID` = 979), mode 770, POSIX ACL type. Holds
+    `media/` (originals + archive) and `consume/`. `require: - mount: nfs-mount-paperless`.
   - **Local disk**: Postgres, `data/` (search index, classifier), Redis — many small random
     writes, too slow / lock-unsafe on NFS (inventory: NAS ~1.3 MB/s random).
   - **`formulas/paperless`** via the podman macro: paperless-ngx, Postgres (shared with
@@ -59,7 +64,9 @@ Agreed 2026-11-27: Paperless first, Nextcloud second on the same VM.
   - Same `docs` VM, `formulas/nextcloud` via the podman macro: nextcloud (fpm) + web server
     container + cron container; own database on the Paperless Postgres; Redis for file
     locking + cache. ~+2 GB RAM.
-  - User data on the NAS (`documents` dataset or its own dataset/export); DB, config, app
+  - User data on the NAS: child dataset `documents/nextcloud` with its own share (not created
+    yet — owner 33:33 for the image's `www-data` or a 97x UID remapped via Podman, decided at
+    build time); DB, config, app
     data local. Previews/thumbnails are small writes → keep the preview cache local or limit
     preview generation.
   - **Login**: route `cloud` **without** forward auth (Nextcloud apps and DAVx5 can't pass it).
