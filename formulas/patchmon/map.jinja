@@ -22,6 +22,10 @@
 
    dump_dir: target of formulas/backup's pre-run pg_dump (pillar/backup.sls
    `dumps` repeats the path and postgres_container_name — change both). 
+   oidc_client_secret: optional (OpenBao authentik/oidc-patchmon); goes into  secret-scan: allow (doc text)
+   the env file as OIDC_CLIENT_SECRET. The other OIDC_* settings are plain
+   `env` (pillar). With env OIDC_ENABLED "true" the secret is required.
+
    postgres_user / valkey_user / *_podman: as in formulas/netbox — the
    images' own users, data dirs handed over by :U, postgres with a
    writable root. #}
@@ -50,6 +54,7 @@
     'session_secret': '',
     'ai_encryption_key': '',
     'db_password': '',
+    'oidc_client_secret': '',
     'env': {},
     'postgres_user': '70:70',
     'valkey_user': '999:1000',

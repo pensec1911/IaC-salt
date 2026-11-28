@@ -15,6 +15,7 @@ authentik:
     {'slug': 'forgejo', 'name': 'Forgejo', 'route': 'git', 'callback': '/user/oauth2/authentik/callback'},
     {'slug': 'netbox', 'name': 'NetBox', 'route': 'netbox', 'callback': '/oauth/complete/oidc/'},
     {'slug': 'paperless', 'name': 'Paperless', 'route': 'docs', 'callback': '/accounts/oidc/authentik/login/callback/'},
+    {'slug': 'patchmon', 'name': 'PatchMon', 'route': 'patchmon', 'callback': '/api/v1/auth/oidc/callback', 'verified_email': True},
 ] %}
     oidc_apps:
 {%- for a in oidc_apps %}
@@ -22,6 +23,7 @@ authentik:
         name: {{ a.name }}
         launch_url: {{ urls[a.route] }}
         redirect_uris: ['{{ urls[a.route] ~ a.callback }}']
+        verified_email: {{ a.get('verified_email', False) }}
 {%- endfor %}
     oidc_secrets:
 {%- for a in oidc_apps %}

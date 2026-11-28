@@ -64,6 +64,16 @@ bao kv patch -mount=homelab healthchecks/project api_key=-
 bao kv get -mount=homelab healthchecks/app; bao kv get -mount=homelab healthchecks/project; bao kv get -mount=homelab ntfy/healthchecks
 ```
 
+## Login
+
+Behind Caddy with Authentik forward auth (route `healthchecks`, `auth: forward`).
+`REMOTE_USER_HEADER: HTTP_X_AUTHENTIK_EMAIL` (`pillar/healthchecks.sls` `env`) logs in the
+Healthchecks user whose e-mail equals the Authentik user's, and creates a new (empty) user if
+there's none — so the account's e-mail must match the Authentik one (Account → Email, or
+`manage.py shell`). The header replaces the password login completely: on
+`http://192.168.178.24:8000` directly nobody can log in (pings and the API keep working).
+Break-glass if Authentik is down: drop `REMOTE_USER_HEADER` from the pillar and apply jellyfin.
+
 ## Manual steps
 
 1. After the first apply on jellyfin, create the superuser (no SMTP, so no signup/reset mail):

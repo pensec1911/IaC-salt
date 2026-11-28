@@ -8,11 +8,14 @@
 {%-   set value = patchmon.get(name) or '' %}
 {%-   if not value or value.startswith('sdb://') %}{% do bad.append(name) %}{% endif %}
 {%- endfor %}
+{%- set oidc_on = (patchmon.env.get('OIDC_ENABLED', '') | string | lower) == 'true' %}
+{%- set oidc_secret = patchmon.oidc_client_secret or '' %}{#- secret-scan: allow (pillar value from OpenBao) #}
+{%- if oidc_on and (not oidc_secret or oidc_secret.startswith('sdb://')) %}{% do bad.append('oidc_client_secret') %}{% endif %}
 
 patchmon-secrets-valid:
 {%- if bad or not patchmon.cors_origin %}
   test.fail_without_changes:
-    - name: "patchmon:lookup incomplete: {{ (bad + ([] if patchmon.cors_origin else ['cors_origin'])) | join(', ') }} — secrets in OpenBao patchmon/server (README)"
+    - name: "patchmon:lookup incomplete: {{ (bad + ([] if patchmon.cors_origin else ['cors_origin'])) | join(', ') }} — secrets in OpenBao patchmon/server, authentik/oidc-patchmon (README)"
 {%- else %}
   test.succeed_without_changes:
     - name: patchmon:lookup secrets are set
@@ -68,6 +71,9 @@ patchmon-env-file:
         AI_ENCRYPTION_KEY={{ patchmon.ai_encryption_key }}
         POSTGRES_PASSWORD={{ patchmon.db_password }}
         DATABASE_URL={{ db_url }}
+{%- if oidc_secret and not oidc_secret.startswith('sdb://') %}
+        OIDC_CLIENT_SECRET={{ oidc_secret }}
+{%- endif %}
     - user: root
     - group: root
     - mode: '0444'

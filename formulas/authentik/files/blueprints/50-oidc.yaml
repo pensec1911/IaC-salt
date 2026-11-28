@@ -9,6 +9,21 @@ version: 1
 metadata:
   name: homelab - OIDC apps
 entries:
+{%- if authentik.oidc_apps | selectattr('verified_email', 'defined') | selectattr('verified_email') | list %}
+  # The built-in email mapping always says email_verified: false. Apps that
+  # link existing accounts only by a verified e-mail (verified_email: true,
+  # e.g. PatchMon) get this one instead. Only admins log in, and they set
+  # their own address — so "verified" holds.
+  - model: authentik_providers_oauth2.scopemapping
+    id: scope-email-verified
+    identifiers:
+      name: homelab OIDC email (verified)
+    attrs:
+      scope_name: email
+      description: Email address (verified)
+      expression: |
+        return {"email": request.user.email, "email_verified": True}
+{%- endif %}
 {%- for app in authentik.oidc_apps %}
   - model: authentik_providers_oauth2.oauth2provider
     id: provider-{{ app.slug }}
@@ -33,7 +48,11 @@ entries:
       signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+{%- if app.get('verified_email') %}
+        - !KeyOf scope-email-verified
+{%- else %}
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+{%- endif %}
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
   - model: authentik_core.application
     id: app-{{ app.slug }}
@@ -50,6 +69,7 @@ entries:
       order: 0
     attrs:
       group: !Find [authentik_core.group, [name, {{ authentik.admin_group }}]]
-{%- else %}
-  []
 {%- endfor %}
+{%- if not authentik.oidc_apps %}
+  []
+{%- endif %}

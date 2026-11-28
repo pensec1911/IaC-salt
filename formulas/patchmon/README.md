@@ -60,6 +60,30 @@ bao kv put -mount=homelab patchmon/server \
 3. Settings → Agent Updates → **auto-update off**.
 4. Auto-enrollment token for the agents: `formulas/patchmon-agent` README "Enrolment".
 
+## Login (Authentik OIDC)
+
+Route `patchmon` is `auth: oidc` (no forward auth — PatchMon logs in against Authentik itself):
+provider `patchmon` in `pillar/authentik.sls` `oidc_apps` (with `verified_email`), the OIDC_*
+settings in `pillar/patchmon.sls` `env`, the client secret in OpenBao
+`authentik/oidc-patchmon` (`client_secret`) — the same value feeds Authentik and PatchMon:
+
+```sh
+bao kv put -mount=homelab authentik/oidc-patchmon client_secret="$(openssl rand -hex 32)"
+```
+
+Both edge (Authentik) and forgejo fail their config check while it's missing — create it before
+the merge.
+
+- An existing PatchMon account is linked on its first SSO login only by a **verified e-mail**
+  equal to the Authentik user's. Authentik's built-in email scope says `email_verified: false`,
+  so the provider uses the formula's "homelab OIDC email (verified)" mapping instead. No
+  auto-creation (`OIDC_AUTO_CREATE_USERS` false): the e-mail must match an existing account.
+- Role from groups on every login (`OIDC_SYNC_ROLES`): `authentik Admins` → superadmin.
+- Local password login stays on as break-glass (`OIDC_DISABLE_LOCAL_AUTH` unset) — strong
+  password + TOTP on that account.
+- Since 2.x all OIDC settings come from env as soon as one OIDC_* var is set; the UI's
+  Settings → OIDC is read-only then.
+
 ## Backup / restore
 
 `pillar/backup.sls` (forgejo): `/opt/patchmon` without `postgres/`, `valkey/` and `secrets/`,
