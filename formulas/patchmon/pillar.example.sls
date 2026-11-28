@@ -10,6 +10,8 @@ patchmon:
     session_secret: {{ salt['sdb.get']('sdb://osvault/homelab/data/patchmon/server?session_secret') | yaml_encode }}
     ai_encryption_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/patchmon/server?ai_encryption_key') | yaml_encode }}
     db_password: {{ salt['sdb.get']('sdb://osvault/homelab/data/patchmon/server?db_password') | yaml_encode }}
+    # Optional — OIDC login (README "Login"); the other OIDC_* go into env.
+    oidc_client_secret: {{ salt['sdb.get']('sdb://osvault/homelab/data/authentik/oidc-patchmon?client_secret') | yaml_encode }}
     # Optional — overrides for formulas/patchmon/map.jinja defaults.
     tag: '2.1.8'
     postgres_tag: 17.11-alpine

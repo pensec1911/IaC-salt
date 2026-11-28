@@ -28,8 +28,11 @@
                    — the built-in superuser group by default, so akadmin and
                    whoever is added there by hand get in.
 
-   oidc_apps: [{slug, name, redirect_uris, launch_url}] -> one OAuth2
-   provider + application each (files/blueprints/50-oidc.yaml), client_id =
+   oidc_apps: [{slug, name, redirect_uris, launch_url, verified_email?}] -> one OAuth2
+   provider + application each (files/blueprints/50-oidc.yaml), verified_email:
+   true swaps the built-in email scope (email_verified always false) for one
+   that says true — for apps that link existing accounts only by a verified
+   e-mail (PatchMon). client_id =
    slug, secret = oidc_secrets[slug] (required for every listed app).  secret-scan: allow (doc text)
 
    dump_dir: where formulas/backup's pre-run pg_dump goes; pillar/backup.sls

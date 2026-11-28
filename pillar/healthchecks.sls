@@ -41,6 +41,11 @@ healthchecks:
     allowed_hosts: [localhost, 127.0.0.1, healthchecks.{{ edge.domain }}]
     env:
       SECURE_PROXY_SSL_HEADER: "HTTP_X_FORWARDED_PROTO,https"
+      # Login = the Authentik forward-auth login in front (route `auth:
+      # forward`): Caddy copies X-Authentik-Email from Authentik's answer,
+      # Healthchecks logs in the user with that e-mail (creates one if new).
+      # Replaces the password login entirely — README "Login".
+      REMOTE_USER_HEADER: HTTP_X_AUTHENTIK_EMAIL
     secret_key: {{ salt['sdb.get']('sdb://osvault/homelab/data/healthchecks/app?secret_key') | yaml_encode }}
     # Optional: created in the UI after the first login (README).
     api_key: {{ (salt['sdb.get']('sdb://osvault/homelab/data/healthchecks/project?api_key') or '') | yaml_encode }}

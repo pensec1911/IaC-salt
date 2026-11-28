@@ -48,6 +48,10 @@ Remove an entry once fixed (the fix lives in git history).
   cloud-edge) and the encrypted Tofu state hold the WG private keys.
 - **cloud-edge can delete its own restic repo** on the NAS (rw NFS through the tunnel; own repo
   password, but the export is shared). Append-only rest-server (roadmap) would close it.
+- **Healthchecks logs in by the `X-Authentik-Email` header** (2026-11-28): password login
+  is off, so Authentik down = no Healthchecks UI (break-glass: drop `REMOTE_USER_HEADER`,
+  formulas/healthchecks README "Login"). Anyone who reaches jellyfin:8000 directly (edge,
+  monitoring per the Proxmox firewall) could send the header themselves.
 - **Seerr has no OIDC** (v3.5.2): own login (Jellyfin accounts), no forward auth (non-admin users).
 - **NetBox Tofu provider 6.0 not merged**: a rewrite (renamed resources, state re-imports,
   NetBox 4.6 only — we run 4.7). Renovate PR stays open until a planned migration.
