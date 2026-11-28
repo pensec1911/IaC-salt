@@ -43,6 +43,12 @@
       "allowedVersions": "<18.0.0"
     },
     {
+      "description": "Postgres stays on 18 (authentik, netbox, paperless, tofu-state): a major needs a dump/restore per service (known-issues), and the apps don't test 19 yet",
+      "matchDepNames": ["docker.io/library/postgres"],
+      "matchFileNames": ["formulas/authentik/map.jinja", "formulas/netbox/map.jinja", "formulas/paperless/map.jinja", "formulas/tofu-state/map.jinja"],
+      "allowedVersions": "<19.0.0"
+    },
+    {
       "description": "Salt: stay on the 3008 LTS line (Tofu's bootstrap pin is 3008.*); a new major is a manual decision",
       "matchDepNames": ["salt-common"],
       "matchDatasources": ["deb"],

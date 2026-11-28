@@ -51,6 +51,11 @@ Remove an entry once fixed (the fix lives in git history).
 - **Seerr has no OIDC** (v3.5.2): own login (Jellyfin accounts), no forward auth (non-admin users).
 - **NetBox Tofu provider 6.0 not merged**: a rewrite (renamed resources, state re-imports,
   NetBox 4.6 only — we run 4.7). Renovate PR stays open until a planned migration.
+- **Postgres stays on 18** (Renovate `allowedVersions <19`, 2026-11-28): 19 is out, but
+  authentik, NetBox and Paperless don't test it yet. A plain tag bump would not fail — the image
+  initdbs an empty cluster in `/var/lib/postgresql/19/docker` next to the old `18/` dir and
+  the apps start empty. Migration per service: dump with 18, move `/opt/<svc>/postgres` aside,
+  bump, restore with 19, REINDEX/ANALYZE (rollback = old dir + old tag).
 - **pve03 `local-lvm` at 92 %** (`PveStorageAlmostFull`, before step 7) — arrstack/forgejo disks.
 
 ## Smaller items
@@ -135,8 +140,8 @@ Remove an entry once fixed (the fix lives in git history).
 - **Proton NAT-PMP renewals fail intermittently** (`recvfrom: connection refused` to
   `10.2.0.1:5351`, several times an hour on 2026-10-20). gluetun retries and gets the same port
   back within seconds, so qBittorrent keeps its listen port — noise, not an outage.
-- arrstack majors (2026-11-14): Radarr 6, Prowlarr 2, qBittorrent 5 taken. Radarr 7 and
-  Prowlarr 3 (.NET 10) are upstream pre-releases only (LSIO: develop/nightly tags) — take them
+- arrstack majors: Radarr 6, Prowlarr 2, qBittorrent 5 taken 2026-11-14, Prowlarr 3 (.NET 10)
+  2026-11-28. Radarr 7 is an upstream pre-release only (LSIO: develop/nightly tags) — take it
   once stable. Each major migrates its config/DB one-way: fresh backup first
   (`systemctl start restic-backup.service`, formulas/backup), read the release notes, then bump.
 
